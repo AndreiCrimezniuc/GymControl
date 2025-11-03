@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:gymboss/data/repositories/trainings.dart';
 import 'package:gymboss/data/services/trainigs/trainings.dart';
 import 'package:gymboss/domain/models/trainigs/trainigs.dart';
@@ -20,6 +19,7 @@ class _TrainingState extends State<Training> {
   String? error;
   TrainingComplexity currentComplexity = TrainingComplexity.hard;
   Trainings currentTraining = Trainings.empty();
+  int currentExerciseIndex = 0;
 
   @override
   void initState() {
@@ -34,15 +34,38 @@ class _TrainingState extends State<Training> {
     setState(() => isLoading = true);
     try {
       trainings = await viewModel.trainingsService.fetchAllTrainings();
+      currentExerciseIndex = 0;
       currentTraining = trainings.firstWhere(
         (item) => item.complexity == currentComplexity,
-        orElse: () => Trainings.empty(), // 🔹 если хочешь избежать null
+        orElse: () => Trainings.empty(),
       );
       error = null;
     } catch (e) {
       error = e.toString();
     } finally {
       setState(() => isLoading = false);
+    }
+  }
+
+  void nextExercise() {
+    if (currentExerciseIndex < currentTraining.exercises.length - 1) {
+      setState(() {
+        currentExerciseIndex++;
+      });
+    } else {
+      showCupertinoDialog(
+        context: context,
+        builder: (_) => CupertinoAlertDialog(
+          title: const Text("Done!"),
+          content: const Text("You've finished this training."),
+          actions: [
+            CupertinoDialogAction(
+              child: const Text("OK"),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ],
+        ),
+      );
     }
   }
 
@@ -56,7 +79,6 @@ class _TrainingState extends State<Training> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ---------- H1 ----------
               const Text(
                 "Schedule",
                 style: TextStyle(
@@ -66,15 +88,7 @@ class _TrainingState extends State<Training> {
                 ),
               ),
               const SizedBox(height: 6),
-
-              // ---------- H2 / subtitle ----------
-              const Text(
-                "Your personal training schedule",
-                style: TextStyle(fontSize: 16, color: CupertinoColors.black),
-              ),
-              const SizedBox(height: 12),
-
-              // ---------- Filters / controls (пример) ----------
+              const SizedBox(height: 2),
               Row(
                 children: [
                   CupertinoButton(
@@ -88,17 +102,22 @@ class _TrainingState extends State<Training> {
                   const SizedBox(width: 8),
                   CupertinoButton(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
-                    onPressed: loadTrainings,
+                    onPressed: () {
+                      currentComplexity = TrainingComplexity.medium;
+                      loadTrainings();
+                    },
                     child: const Text("Medium"),
                   ),
                   const SizedBox(width: 8),
                   CupertinoButton(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
-                    onPressed: loadTrainings,
+                    onPressed: () {
+                      currentComplexity = TrainingComplexity.easy;
+                      loadTrainings();
+                    },
                     child: const Text("Easy"),
                   ),
                   const Spacer(),
-
                   CupertinoButton(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     onPressed: loadTrainings,
@@ -109,9 +128,6 @@ class _TrainingState extends State<Training> {
 
               const SizedBox(height: 12),
 
-              // ---------- Content area (под заголовками) ----------
-              // Expanded гарантирует, что этот блок займет всё оставшееся пространство,
-              // и внутри можно безопасно показывать индикатор, ошибку или список.
               Expanded(
                 child: Builder(
                   builder: (context) {
@@ -135,33 +151,40 @@ class _TrainingState extends State<Training> {
                       );
                     }
 
-                    // Контент: список тренировок (скроллится внутри Expanded)
                     if (currentTraining.isEmpty()) {
                       return const Center(child: Text('No trainings found'));
                     }
 
-                    return ListView.separated(
-                      itemCount: currentTraining.exercises.length,
-                      separatorBuilder: (_, __) => Divider(
-                        height: 1,
-                        color: CupertinoColors.systemGrey4,
-                      ),
-                      itemBuilder: (context, idx) {
-                        final t = currentTraining.exercises[idx];
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              TrainingExercise(
-                                name: t.name,
-                                status: true,
-                                exerciseSet: t.sets,
-                              ),
-                            ],
+                    return Column(
+                      children: [
+                        Expanded(
+                          child: ListView.separated(
+                            itemCount: currentTraining.exercises.length,
+                            separatorBuilder: (_, __) => Container(
+                              height: 1,
+                              color: CupertinoColors.systemGrey4,
+                            ),
+                            itemBuilder: (context, idx) {
+                              final t = currentTraining.exercises[idx];
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                                child: TrainingExercise(
+                                  name: t.name,
+                                  status: idx == currentExerciseIndex,
+                                  exerciseSet: t.sets,
+                                ),
+                              );
+                            },
                           ),
-                        );
-                      },
+                        ),
+                        const SizedBox(height: 8),
+                        CupertinoButton.filled(
+                          onPressed: nextExercise,
+                          child: const Text("Next exercise"),
+                        ),
+                      ],
                     );
                   },
                 ),

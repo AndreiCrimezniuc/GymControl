@@ -1,7 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:gymboss/domain/models/trainigs/exercise.dart';
+import 'package:gymboss/ui/core/ui/colors/main_gradient.dart';
 import 'package:gymboss/ui/core/ui/icons/icons_training.dart';
+import 'package:gymboss/ui/menu_options_list/training/widgets/bullet_point.dart';
 
 class TrainingExercise extends StatefulWidget {
   const TrainingExercise({
@@ -55,46 +57,42 @@ class _TrainingExerciseState extends State<TrainingExercise> {
   }) {
     showCupertinoModalPopup(
       context: context,
-      builder:
-          (_) => Container(
-            height: 250,
-            color: CupertinoColors.systemGrey6,
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
+      builder: (_) => Container(
+        height: 250,
+        color: CupertinoColors.systemGrey6,
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              color: CupertinoColors.systemGrey5,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  color: CupertinoColors.systemGrey5,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      CupertinoButton(
-                        padding: EdgeInsets.zero,
-                        child: const Text("Done"),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    child: const Text("Done"),
+                    onPressed: () => Navigator.pop(context),
                   ),
-                ),
-                Expanded(
-                  child: CupertinoPicker(
-                    itemExtent: 36.0,
-                    scrollController: FixedExtentScrollController(
-                      initialItem: initialIndex,
-                    ),
-                    onSelectedItemChanged: onSelected,
-                    children: options,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
+            Expanded(
+              child: CupertinoPicker(
+                itemExtent: 36.0,
+                scrollController: FixedExtentScrollController(
+                  initialItem: initialIndex,
+                ),
+                onSelectedItemChanged: onSelected,
+                children: options,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -158,13 +156,7 @@ class _TrainingExerciseState extends State<TrainingExercise> {
                   padding: const EdgeInsets.symmetric(vertical: 8.0),
                   child: Row(
                     children: [
-                      SizedBox(
-                        width: 40,
-                        child: Text(
-                          "#${index + 1}",
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
+                      SizedBox(width: 40, child: bulletPoint(index)),
 
                       Expanded(
                         child: GestureDetector(
@@ -212,8 +204,8 @@ class _TrainingExerciseState extends State<TrainingExercise> {
                                 (i) => Center(child: Text("$i")),
                               ),
                               initialIndex: set.weight.toInt(),
-                              onSelected:
-                                  (val) => _updateWeight(index, val.toDouble()),
+                              onSelected: (val) =>
+                                  _updateWeight(index, val.toDouble()),
                             );
                           },
                           child: Column(
@@ -257,13 +249,59 @@ class _TrainingExerciseState extends State<TrainingExercise> {
               color: CupertinoColors.activeBlue,
               child: Text(
                 "Add set",
-                style: TextStyle(fontSize: 35, color: CupertinoColors.black),
+                style: TextStyle(fontSize: 16, color: CupertinoColors.black),
               ),
               onPressed: () {
                 setState(() {
                   _sets.add(ExerciseSet(weight: 0, reps: 10));
                 });
               },
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  decoration: MainGradient
+                      .purpleBlueButtonBackground, // твой градиент и тень
+                  child: CupertinoButton(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    color: Colors.transparent, // важно!
+                    borderRadius: BorderRadius.circular(16),
+                    onPressed: () {},
+                    child: Text(
+                      "Complete",
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: CupertinoColors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+
+                CupertinoButton(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  color: CupertinoColors.black,
+                  child: Text(
+                    "Skip",
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: CupertinoColors.white,
+                    ),
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _sets.add(ExerciseSet(weight: 0, reps: 10));
+                    });
+                  },
+                ),
+              ],
             ),
           ],
         ),
