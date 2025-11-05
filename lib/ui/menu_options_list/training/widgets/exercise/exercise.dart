@@ -1,9 +1,12 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:gymboss/domain/models/trainigs/exercise.dart';
+import 'package:gymboss/ui/core/ui/colors/main_dark_blue.dart';
 import 'package:gymboss/ui/core/ui/colors/main_gradient.dart';
 import 'package:gymboss/ui/core/ui/icons/icons_training.dart';
+import 'package:gymboss/ui/menu_options_list/training/view_model/exercise_view_model.dart';
 import 'package:gymboss/ui/menu_options_list/training/widgets/bullet_point.dart';
+import 'package:gymboss/ui/menu_options_list/training/widgets/exercise/show_picker.dart';
 
 class TrainingExercise extends StatefulWidget {
   const TrainingExercise({
@@ -11,89 +14,70 @@ class TrainingExercise extends StatefulWidget {
     required this.name,
     required this.status,
     required this.exerciseSet,
+    required this.onSkip,
+    required this.onComplete,
+    required this.onSetAsCurrent,
+    required this.onUndo,
+    required this.onRedo,
   });
 
   final String name;
   final bool status;
+  final VoidCallback onSkip;
+  final VoidCallback onComplete;
+  final VoidCallback onSetAsCurrent;
+  final VoidCallback onUndo;
+  final VoidCallback onRedo;
   final List<ExerciseSet> exerciseSet;
 
   @override
-  State<TrainingExercise> createState() => _TrainingExerciseState();
+  State<TrainingExercise> createState() => TrainingExerciseState();
 }
 
-class _TrainingExerciseState extends State<TrainingExercise> {
-  late List<ExerciseSet> _sets = [];
+// Export для доступа из других файлов
+class TrainingExerciseState extends State<TrainingExercise> {
+  late ExerciseViewModel _viewModel;
 
   @override
   void initState() {
     super.initState();
-    _sets = List.from(widget.exerciseSet);
+    _viewModel = ExerciseViewModel(initialSets: widget.exerciseSet);
   }
 
+  void undo() {
+    if (_viewModel.undo()) {
+      setState(() {});
+      widget.onUndo();
+    }
+  }
+
+  void redo() {
+    if (_viewModel.redo()) {
+      setState(() {});
+      widget.onRedo();
+    }
+  }
+
+  bool get canRedo => _viewModel.canRedo;
+
   void _updateReps(int index, int newReps) {
-    setState(() {
-      _sets[index] = ExerciseSet(weight: _sets[index].weight, reps: newReps);
-    });
+    _viewModel.updateReps(index, newReps);
+    setState(() {});
   }
 
   void _updateWeight(int index, double newWeight) {
-    setState(() {
-      _sets[index] = ExerciseSet(weight: newWeight, reps: _sets[index].reps);
-    });
+    _viewModel.updateWeight(index, newWeight);
+    setState(() {});
   }
 
   void _removeSet(int index) {
-    setState(() {
-      _sets.removeAt(index);
-    });
+    _viewModel.removeSet(index);
+    setState(() {});
   }
 
-  void _showPicker({
-    required BuildContext context,
-    required String title,
-    required List<Widget> options,
-    required int initialIndex,
-    required Function(int) onSelected,
-  }) {
-    showCupertinoModalPopup(
-      context: context,
-      builder: (_) => Container(
-        height: 250,
-        color: CupertinoColors.systemGrey6,
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: CupertinoColors.systemGrey5,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  CupertinoButton(
-                    padding: EdgeInsets.zero,
-                    child: const Text("Done"),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: CupertinoPicker(
-                itemExtent: 36.0,
-                scrollController: FixedExtentScrollController(
-                  initialItem: initialIndex,
-                ),
-                onSelectedItemChanged: onSelected,
-                children: options,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  void _addSet() {
+    _viewModel.addSet();
+    setState(() {});
   }
 
   @override
@@ -101,7 +85,7 @@ class _TrainingExerciseState extends State<TrainingExercise> {
     return SingleChildScrollView(
       child: Container(
         decoration: BoxDecoration(
-          color: Color.fromRGBO(99, 32, 36, 1),
+          color: widget.status ? Color.fromRGBO(99, 32, 36, 1) : mainDarkBlue,
           borderRadius: BorderRadius.circular(12),
           boxShadow: const [
             BoxShadow(
@@ -150,8 +134,8 @@ class _TrainingExerciseState extends State<TrainingExercise> {
             const SizedBox(height: 16),
 
             Column(
-              children: List.generate(_sets.length, (index) {
-                final set = _sets[index];
+              children: List.generate(_viewModel.sets.length, (index) {
+                final set = _viewModel.sets[index];
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8.0),
                   child: Row(
@@ -161,7 +145,7 @@ class _TrainingExerciseState extends State<TrainingExercise> {
                       Expanded(
                         child: GestureDetector(
                           onTap: () {
-                            _showPicker(
+                            showPicker(
                               context: context,
                               title: "Reps",
                               options: List.generate(
@@ -196,7 +180,7 @@ class _TrainingExerciseState extends State<TrainingExercise> {
                       Expanded(
                         child: GestureDetector(
                           onTap: () {
-                            _showPicker(
+                            showPicker(
                               context: context,
                               title: "Weight (kg)",
                               options: List.generate(
@@ -245,24 +229,31 @@ class _TrainingExerciseState extends State<TrainingExercise> {
 
             // ➕ Кнопка добавить сет
             CupertinoButton(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: CupertinoColors.activeBlue,
-              child: Text(
-                "Add set",
-                style: TextStyle(fontSize: 16, color: CupertinoColors.black),
+              color: mainDarkBlue,
+              padding: EdgeInsets.zero,
+              child: SizedBox(
+                width: 400,
+                child: Center(
+                  child: Text(
+                    "Add set",
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: CupertinoColors.white,
+                    ),
+                  ),
+                ),
               ),
-              onPressed: () {
-                setState(() {
-                  _sets.add(ExerciseSet(weight: 0, reps: 10));
-                });
-              },
+              onPressed: _addSet,
             ),
+            SizedBox(height: 10),
             Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                //Skip button
                 Container(
-                  decoration: MainGradient
-                      .purpleBlueButtonBackground, // твой градиент и тень
+                  decoration: widget.status
+                      ? MainGradient.purpleBlueButtonBackground
+                      : MainGradient.darkDisabledButtonBackground,
                   child: CupertinoButton(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -270,9 +261,15 @@ class _TrainingExerciseState extends State<TrainingExercise> {
                     ),
                     color: Colors.transparent, // важно!
                     borderRadius: BorderRadius.circular(16),
-                    onPressed: () {},
+                    onPressed: () {
+                      if (widget.status) {
+                        widget.onComplete();
+                      } else {
+                        widget.onSetAsCurrent();
+                      }
+                    },
                     child: Text(
-                      "Complete",
+                      widget.status ? "Complete" : "Completed",
                       style: const TextStyle(
                         fontSize: 16,
                         color: CupertinoColors.white,
@@ -281,13 +278,13 @@ class _TrainingExerciseState extends State<TrainingExercise> {
                     ),
                   ),
                 ),
-
+                //Complete button
                 CupertinoButton(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 8,
                   ),
-                  color: CupertinoColors.black,
+                  color: mainDarkBlue,
                   child: Text(
                     "Skip",
                     style: TextStyle(
@@ -296,9 +293,9 @@ class _TrainingExerciseState extends State<TrainingExercise> {
                     ),
                   ),
                   onPressed: () {
-                    setState(() {
-                      _sets.add(ExerciseSet(weight: 0, reps: 10));
-                    });
+                    if (widget.status) {
+                      widget.onComplete();
+                    }
                   },
                 ),
               ],

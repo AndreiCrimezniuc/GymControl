@@ -3,7 +3,7 @@ import 'package:gymboss/data/repositories/trainings.dart';
 import 'package:gymboss/data/services/trainigs/trainings.dart';
 import 'package:gymboss/domain/models/trainigs/trainigs.dart';
 import 'package:gymboss/ui/menu_options_list/training/view_model/trainig.dart';
-import 'package:gymboss/ui/menu_options_list/training/widgets/exercise.dart';
+import 'package:gymboss/ui/menu_options_list/training/widgets/exercise/exercise.dart';
 
 class Training extends StatefulWidget {
   const Training({super.key});
@@ -20,6 +20,7 @@ class _TrainingState extends State<Training> {
   TrainingComplexity currentComplexity = TrainingComplexity.hard;
   Trainings currentTraining = Trainings.empty();
   int currentExerciseIndex = 0;
+  final Map<int, GlobalKey<TrainingExerciseState>> _exerciseKeys = {};
 
   @override
   void initState() {
@@ -39,12 +40,18 @@ class _TrainingState extends State<Training> {
         (item) => item.complexity == currentComplexity,
         orElse: () => Trainings.empty(),
       );
+      _exerciseKeys.clear(); // Очищаем ключи при загрузке новой тренировки
       error = null;
     } catch (e) {
       error = e.toString();
     } finally {
       setState(() => isLoading = false);
     }
+  }
+
+  void completeExercise() {
+    nextExercise();
+    //sendStatistics();
   }
 
   void nextExercise() {
@@ -69,9 +76,17 @@ class _TrainingState extends State<Training> {
     }
   }
 
+  void setExerciseAsCurrent(int index) {
+    setState(() {
+      currentExerciseIndex = index;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = CupertinoTheme.of(context);
     return CupertinoPageScaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       navigationBar: const CupertinoNavigationBar(middle: Text("Training")),
       child: SafeArea(
         child: Padding(
@@ -120,8 +135,40 @@ class _TrainingState extends State<Training> {
                   const Spacer(),
                   CupertinoButton(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
-                    onPressed: loadTrainings,
-                    child: const Icon(CupertinoIcons.lab_flask_solid),
+                    onPressed: () {
+                      // Undo для текущего упражнения
+                      final key = _exerciseKeys[currentExerciseIndex];
+                      if (key?.currentState != null) {
+                        key!.currentState!.undo();
+                        setState(() {}); // Обновляем UI для обновления кнопки redo
+                      }
+                    },
+                    child: const Icon(CupertinoIcons.arrow_counterclockwise),
+                  ),
+                  const SizedBox(width: 8),
+                  Builder(
+                    builder: (context) {
+                      final key = _exerciseKeys[currentExerciseIndex];
+                      final canRedo = key?.currentState?.canRedo ?? false;
+                      return CupertinoButton(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        onPressed: canRedo
+                            ? () {
+                                // Redo для текущего упражнения
+                                if (key?.currentState != null) {
+                                  key!.currentState!.redo();
+                                  setState(() {}); // Обновляем UI
+                                }
+                              }
+                            : null,
+                        child: Icon(
+                          CupertinoIcons.arrow_clockwise,
+                          color: canRedo
+                              ? null
+                              : CupertinoColors.systemGrey,
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -166,23 +213,31 @@ class _TrainingState extends State<Training> {
                             ),
                             itemBuilder: (context, idx) {
                               final t = currentTraining.exercises[idx];
+                              if (!_exerciseKeys.containsKey(idx)) {
+                                _exerciseKeys[idx] = GlobalKey<TrainingExerciseState>();
+                              }
                               return Padding(
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 12,
                                 ),
                                 child: TrainingExercise(
+                                  key: _exerciseKeys[idx],
                                   name: t.name,
                                   status: idx == currentExerciseIndex,
                                   exerciseSet: t.sets,
+                                  onSkip: completeExercise,
+                                  onComplete: completeExercise,
+                                  onSetAsCurrent: () => setExerciseAsCurrent(idx),
+                                  onUndo: () {
+                                    // Callback для обновления UI после undo
+                                  },
+                                  onRedo: () {
+                                    // Callback для обновления UI после redo
+                                  },
                                 ),
                               );
                             },
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        CupertinoButton.filled(
-                          onPressed: nextExercise,
-                          child: const Text("Next exercise"),
                         ),
                       ],
                     );

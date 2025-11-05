@@ -11,10 +11,27 @@ class MainGradient {
     end: Alignment.centerRight,
   );
 
+  static const LinearGradient darkDisabledGradient = LinearGradient(
+    colors: [
+      Color(0xFF546A7B),
+      Color(0xFF546A9B),
+      // Color(0xFF3B82F6),
+      // Color(0xFF0D1F2D),
+    ],
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+  );
+
   static final BoxShadow blueShadow = BoxShadow(
     color: const Color(0xFF3B82F6).withOpacity(0.4),
     blurRadius: 10,
     offset: const Offset(0, 4),
+  );
+
+  static final BoxDecoration darkDisabledButtonBackground = BoxDecoration(
+    gradient: darkDisabledGradient,
+    boxShadow: [blueShadow],
+    borderRadius: BorderRadius.circular(12),
   );
 
   static final BoxDecoration purpleBlueButtonBackground = BoxDecoration(
@@ -23,5 +40,3 @@ class MainGradient {
     borderRadius: BorderRadius.circular(12),
   );
 }
-
-
