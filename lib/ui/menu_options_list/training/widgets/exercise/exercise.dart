@@ -17,8 +17,7 @@ class TrainingExercise extends StatefulWidget {
     required this.onSkip,
     required this.onComplete,
     required this.onSetAsCurrent,
-    required this.onUndo,
-    required this.onRedo,
+    required this.onHistoryChanged,
   });
 
   final String name;
@@ -26,8 +25,7 @@ class TrainingExercise extends StatefulWidget {
   final VoidCallback onSkip;
   final VoidCallback onComplete;
   final VoidCallback onSetAsCurrent;
-  final VoidCallback onUndo;
-  final VoidCallback onRedo;
+  final VoidCallback onHistoryChanged;
   final List<ExerciseSet> exerciseSet;
 
   @override
@@ -47,37 +45,34 @@ class TrainingExerciseState extends State<TrainingExercise> {
   void undo() {
     if (_viewModel.undo()) {
       setState(() {});
-      widget.onUndo();
+      widget.onHistoryChanged();
     }
   }
 
-  void redo() {
-    if (_viewModel.redo()) {
-      setState(() {});
-      widget.onRedo();
-    }
-  }
-
-  bool get canRedo => _viewModel.canRedo;
+  bool get canUndo => _viewModel.canUndo;
 
   void _updateReps(int index, int newReps) {
     _viewModel.updateReps(index, newReps);
     setState(() {});
+    widget.onHistoryChanged();
   }
 
   void _updateWeight(int index, double newWeight) {
     _viewModel.updateWeight(index, newWeight);
     setState(() {});
+    widget.onHistoryChanged();
   }
 
   void _removeSet(int index) {
     _viewModel.removeSet(index);
     setState(() {});
+    widget.onHistoryChanged();
   }
 
   void _addSet() {
     _viewModel.addSet();
     setState(() {});
+    widget.onHistoryChanged();
   }
 
   @override

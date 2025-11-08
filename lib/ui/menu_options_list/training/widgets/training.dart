@@ -133,39 +133,22 @@ class _TrainingState extends State<Training> {
                     child: const Text("Easy"),
                   ),
                   const Spacer(),
-                  CupertinoButton(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    onPressed: () {
-                      // Undo для текущего упражнения
-                      final key = _exerciseKeys[currentExerciseIndex];
-                      if (key?.currentState != null) {
-                        key!.currentState!.undo();
-                        setState(() {}); // Обновляем UI для обновления кнопки redo
-                      }
-                    },
-                    child: const Icon(CupertinoIcons.arrow_counterclockwise),
-                  ),
-                  const SizedBox(width: 8),
                   Builder(
                     builder: (context) {
                       final key = _exerciseKeys[currentExerciseIndex];
-                      final canRedo = key?.currentState?.canRedo ?? false;
+                      final canUndo = key?.currentState?.canUndo ?? false;
                       return CupertinoButton(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
-                        onPressed: canRedo
+                        onPressed: canUndo
                             ? () {
-                                // Redo для текущего упражнения
-                                if (key?.currentState != null) {
-                                  key!.currentState!.redo();
-                                  setState(() {}); // Обновляем UI
-                                }
+                                key!.currentState!.undo();
+                                setState(() {});
                               }
                             : null,
                         child: Icon(
-                          CupertinoIcons.arrow_clockwise,
-                          color: canRedo
-                              ? null
-                              : CupertinoColors.systemGrey,
+                          CupertinoIcons.arrow_counterclockwise,
+                          color:
+                              canUndo ? null : CupertinoColors.systemGrey,
                         ),
                       );
                     },
@@ -228,12 +211,7 @@ class _TrainingState extends State<Training> {
                                   onSkip: completeExercise,
                                   onComplete: completeExercise,
                                   onSetAsCurrent: () => setExerciseAsCurrent(idx),
-                                  onUndo: () {
-                                    // Callback для обновления UI после undo
-                                  },
-                                  onRedo: () {
-                                    // Callback для обновления UI после redo
-                                  },
+                                  onHistoryChanged: () => setState(() {}),
                                 ),
                               );
                             },
