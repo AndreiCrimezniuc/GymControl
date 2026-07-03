@@ -1,15 +1,12 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:gymboss/app.dart';
+import 'package:gymboss/config/api_config.dart';
 
-void main() {
-  runApp(const MyCupertinoApp());
-}
-
-class MyCupertinoApp extends StatelessWidget {
-  const MyCupertinoApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return app;
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  if (kDebugMode) {
+    debugPrint('GymBoss starting — ${ApiConfig.summary}');
   }
+  runApp(const GymBossApp());
 }
