@@ -1,6 +1,6 @@
-import 'package:gymboss/domain/models/trainigs/exercise.dart';
+import 'package:gymboss/domain/models/trainings/exercise.dart';
 
-class Trainings {
+class TrainingEntity {
   final String id;
   final String name;
   final List<Exercise> exercises;
@@ -10,8 +10,22 @@ class Trainings {
     return 'Trainings(id: $id, name: $name, exercises: $exercises)';
   }
 
-  factory Trainings.empty() {
-    return const Trainings(
+  TrainingEntity copyWith({
+    String? id,
+    String? name,
+    List<Exercise>? exercises,
+    TrainingComplexity? complexity,
+  }) {
+    return TrainingEntity(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      exercises: exercises ?? this.exercises,
+      complexity: complexity ?? this.complexity,
+    );
+  }
+
+  factory TrainingEntity.empty() {
+    return const TrainingEntity(
       id: '',
       name: '',
       complexity: TrainingComplexity.easy,
@@ -23,7 +37,7 @@ class Trainings {
     return id == "";
   }
 
-  const Trainings({
+  const TrainingEntity({
     required this.id,
     required this.name,
     required this.complexity,

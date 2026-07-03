@@ -1,12 +1,12 @@
-import "package:gymboss/data/services/trainigs/trainings.dart";
-import "package:gymboss/domain/models/trainigs/trainigs.dart";
+import "package:gymboss/data/services/trainings/trainings.dart";
+import "package:gymboss/domain/models/trainings/trainings.dart";
 
 class TrainingViewModel {
   final TrainingsService trainingsService;
 
   TrainingViewModel({required this.trainingsService});
 
-  List<Trainings> trainings = [];
+  List<TrainingEntity> trainings = [];
   bool isLoading = false;
   String? error;
 

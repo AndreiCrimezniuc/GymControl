@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:gymboss/domain/models/trainigs/exercise.dart';
+import 'package:gymboss/domain/models/trainings/exercise.dart';
 import 'package:gymboss/ui/core/ui/colors/main_dark_blue.dart';
 import 'package:gymboss/ui/core/ui/colors/main_gradient.dart';
 import 'package:gymboss/ui/core/ui/icons/icons_training.dart';

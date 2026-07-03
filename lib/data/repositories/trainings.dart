@@ -1,14 +1,14 @@
-import 'package:gymboss/domain/models/trainigs/trainigs.dart';
-import 'package:gymboss/domain/models/trainigs/exercise.dart';
+import 'package:gymboss/domain/models/trainings/trainings.dart';
+import 'package:gymboss/domain/models/trainings/exercise.dart';
 
 abstract class TrainingsRepository {
-  Future<List<Trainings>> getTrainings();
-  Future<void> saveTraining(Trainings trainings);
+  Future<List<TrainingEntity>> getTrainings();
+  Future<void> saveTraining(TrainingEntity trainings);
 }
 
 class TrainingsRepositoryImpl implements TrainingsRepository {
-  final List<Trainings> _mockData = [
-    Trainings(
+  final List<TrainingEntity> _mockData = [
+    TrainingEntity(
       id: '1',
       name: 'Hard',
       complexity: TrainingComplexity.hard,
@@ -32,7 +32,7 @@ class TrainingsRepositoryImpl implements TrainingsRepository {
         ),
       ],
     ),
-    Trainings(
+    TrainingEntity(
       id: '2',
       name: 'Medium',
       complexity: TrainingComplexity.hard,
@@ -41,13 +41,13 @@ class TrainingsRepositoryImpl implements TrainingsRepository {
   ];
 
   @override
-  Future<List<Trainings>> getTrainings() async {
+  Future<List<TrainingEntity>> getTrainings() async {
     await Future.delayed(const Duration(milliseconds: 500)); // имитация API
     return _mockData;
   }
 
   @override
-  Future<void> saveTraining(Trainings trainings) async {
+  Future<void> saveTraining(TrainingEntity trainings) async {
     _mockData.add(trainings);
     await Future.delayed(const Duration(milliseconds: 200));
   }

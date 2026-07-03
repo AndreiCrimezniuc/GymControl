@@ -1,4 +1,4 @@
-import 'package:gymboss/domain/models/trainigs/exercise.dart';
+import 'package:gymboss/domain/models/trainings/exercise.dart';
 
 class ExerciseModel extends Exercise {
   ExerciseModel({

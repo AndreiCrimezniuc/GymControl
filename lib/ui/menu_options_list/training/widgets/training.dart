@@ -1,8 +1,10 @@
 import 'package:flutter/cupertino.dart';
-import 'package:gymboss/data/repositories/trainings.dart';
-import 'package:gymboss/data/services/trainigs/trainings.dart';
-import 'package:gymboss/domain/models/trainigs/trainigs.dart';
-import 'package:gymboss/ui/menu_options_list/training/view_model/trainig.dart';
+import 'package:provider/provider.dart';
+import 'package:gymboss/data/repositories/trainings_api.dart';
+import 'package:gymboss/data/services/auth/authenticated_client.dart';
+import 'package:gymboss/data/services/trainings/trainings.dart';
+import 'package:gymboss/domain/models/trainings/trainings.dart';
+import 'package:gymboss/ui/menu_options_list/training/view_model/training_view_model.dart';
 import 'package:gymboss/ui/menu_options_list/training/widgets/exercise/exercise.dart';
 
 class Training extends StatefulWidget {
@@ -14,11 +16,11 @@ class Training extends StatefulWidget {
 
 class _TrainingState extends State<Training> {
   late final TrainingViewModel viewModel;
-  List<Trainings> trainings = [];
+  List<TrainingEntity> trainings = [];
   bool isLoading = true;
   String? error;
   TrainingComplexity currentComplexity = TrainingComplexity.hard;
-  Trainings currentTraining = Trainings.empty();
+  TrainingEntity currentTraining = TrainingEntity.empty();
   int currentExerciseIndex = 0;
   final Map<int, GlobalKey<TrainingExerciseState>> _exerciseKeys = {};
 
@@ -26,7 +28,11 @@ class _TrainingState extends State<Training> {
   void initState() {
     super.initState();
     viewModel = TrainingViewModel(
-      trainingsService: TrainingsService(repository: TrainingsRepositoryImpl()),
+      trainingsService: TrainingsService(
+        repository: TrainingsApiRepository(
+          client: context.read<AuthenticatedClient>(),
+        ),
+      ),
     );
     loadTrainings();
   }
@@ -38,7 +44,7 @@ class _TrainingState extends State<Training> {
       currentExerciseIndex = 0;
       currentTraining = trainings.firstWhere(
         (item) => item.complexity == currentComplexity,
-        orElse: () => Trainings.empty(),
+        orElse: () => TrainingEntity.empty(),
       );
       _exerciseKeys.clear(); // Очищаем ключи при загрузке новой тренировки
       error = null;
@@ -94,14 +100,25 @@ class _TrainingState extends State<Training> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                "Schedule",
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: CupertinoColors.black,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    "Schedule",
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: CupertinoColors.black,
+                    ),
+                  ),
+
+                  Text(
+                    '${currentExerciseIndex + 1} /${currentTraining.exercises.length.toString()}  ',
+                    style: TextStyle(color: CupertinoColors.black),
+                  ),
+                ],
               ),
+
               const SizedBox(height: 6),
               const SizedBox(height: 2),
               Row(
@@ -133,6 +150,7 @@ class _TrainingState extends State<Training> {
                     child: const Text("Easy"),
                   ),
                   const Spacer(),
+
                   Builder(
                     builder: (context) {
                       final key = _exerciseKeys[currentExerciseIndex];
@@ -147,8 +165,7 @@ class _TrainingState extends State<Training> {
                             : null,
                         child: Icon(
                           CupertinoIcons.arrow_counterclockwise,
-                          color:
-                              canUndo ? null : CupertinoColors.systemGrey,
+                          color: canUndo ? null : CupertinoColors.systemGrey,
                         ),
                       );
                     },
@@ -197,7 +214,8 @@ class _TrainingState extends State<Training> {
                             itemBuilder: (context, idx) {
                               final t = currentTraining.exercises[idx];
                               if (!_exerciseKeys.containsKey(idx)) {
-                                _exerciseKeys[idx] = GlobalKey<TrainingExerciseState>();
+                                _exerciseKeys[idx] =
+                                    GlobalKey<TrainingExerciseState>();
                               }
                               return Padding(
                                 padding: const EdgeInsets.symmetric(
@@ -210,7 +228,8 @@ class _TrainingState extends State<Training> {
                                   exerciseSet: t.sets,
                                   onSkip: completeExercise,
                                   onComplete: completeExercise,
-                                  onSetAsCurrent: () => setExerciseAsCurrent(idx),
+                                  onSetAsCurrent: () =>
+                                      setExerciseAsCurrent(idx),
                                   onHistoryChanged: () => setState(() {}),
                                 ),
                               );

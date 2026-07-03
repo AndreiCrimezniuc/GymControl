@@ -1,4 +1,4 @@
-import 'package:gymboss/domain/models/trainigs/exercise.dart';
+import 'package:gymboss/domain/models/trainings/exercise.dart';
 
 typedef _UndoCallback = void Function();
 
