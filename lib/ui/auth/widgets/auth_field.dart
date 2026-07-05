@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:gymboss/ui/core/theme/theme_controller.dart';
 
 class AuthField extends StatelessWidget {
   final TextEditingController controller;
@@ -18,11 +19,12 @@ class AuthField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF162534),
+        color: c.iconBg,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF1E3A50), width: 1),
+        border: Border.all(color: c.border, width: 1),
       ),
       child: CupertinoTextField(
         controller: controller,
@@ -30,13 +32,13 @@ class AuthField extends StatelessWidget {
         obscureText: obscureText,
         keyboardType: keyboardType,
         autocorrect: false,
-        style: const TextStyle(
-          color: CupertinoColors.white,
+        style: TextStyle(
+          color: c.textPrimary,
           fontFamily: 'Rubik',
           fontSize: 15,
         ),
-        placeholderStyle: const TextStyle(
-          color: Color(0xFF546A7B),
+        placeholderStyle: TextStyle(
+          color: c.textSecondary,
           fontFamily: 'Rubik',
           fontSize: 15,
         ),
@@ -44,7 +46,7 @@ class AuthField extends StatelessWidget {
         padding: const EdgeInsets.only(left: 0, right: 16, top: 14, bottom: 14),
         prefix: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Icon(icon, color: const Color(0xFF3B82F6), size: 18),
+          child: Icon(icon, color: c.accent, size: 18),
         ),
       ),
     );

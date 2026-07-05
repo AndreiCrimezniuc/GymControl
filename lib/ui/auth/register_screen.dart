@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:gymboss/core/errors/app_error.dart';
 import 'package:gymboss/ui/auth/view_model/auth_view_model.dart';
+import 'package:gymboss/ui/core/ui/widgets/app_scaffold.dart';
 import 'package:gymboss/ui/auth/widgets/auth_card.dart';
 import 'package:gymboss/ui/auth/widgets/auth_field.dart';
 import 'package:gymboss/ui/auth/widgets/error_banner.dart';
@@ -59,12 +60,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return Consumer<AuthViewModel>(
       builder: (ctx, vm, _) {
         final errorMsg = _localError ?? vm.errorCode;
-        return CupertinoPageScaffold(
-          backgroundColor: const Color(0xFFCAE9FF),
-          child: SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
+        return AppScaffold(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
                 children: [
                   const SizedBox(height: 48),
                   const GymLogo(),
@@ -150,8 +149,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ],
               ),
             ),
-          ),
-        );
+          );
       },
     );
   }

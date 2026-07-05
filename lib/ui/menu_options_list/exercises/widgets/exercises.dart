@@ -218,13 +218,6 @@ class _ExerciseDetailScreen extends StatelessWidget {
   final _CatalogEntry entry;
   const _ExerciseDetailScreen({required this.entry});
 
-  static const _history = [
-    {'date': 'May 17', 'sets': '4 × 10 @ 80 kg'},
-    {'date': 'May 14', 'sets': '3 × 8 @ 82.5 kg'},
-    {'date': 'May 10', 'sets': '4 × 10 @ 77.5 kg'},
-    {'date': 'May 7',  'sets': '3 × 10 @ 75 kg'},
-  ];
-
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
@@ -274,7 +267,7 @@ class _ExerciseDetailScreen extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           Text(
-            'Recent History',
+            'History',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
@@ -284,51 +277,28 @@ class _ExerciseDetailScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Container(
+            width: double.infinity,
             decoration: BoxDecoration(
               color: c.card,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: c.border),
             ),
-            child: ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _history.length,
-              separatorBuilder: (_, __) => Container(
-                height: 1,
-                margin: const EdgeInsets.symmetric(horizontal: 16),
-                color: c.border,
-              ),
-              itemBuilder: (_, i) {
-                final h = _history[i];
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  child: Row(
-                    children: [
-                      Icon(CupertinoIcons.calendar, size: 16, color: c.textSecondary),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          h['date']!,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: c.textSecondary,
-                            fontFamily: 'Rubik',
-                          ),
-                        ),
-                      ),
-                      Text(
-                        h['sets']!,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: c.textPrimary,
-                          fontFamily: 'Rubik',
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                Icon(CupertinoIcons.clock, size: 28, color: c.textSecondary),
+                const SizedBox(height: 10),
+                Text(
+                  'No history yet',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: c.textPrimary, fontFamily: 'Rubik'),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Log this exercise in a workout\nto track your progress here.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12, color: c.textSecondary, fontFamily: 'Rubik', height: 1.5),
+                ),
+              ],
             ),
           ),
         ],

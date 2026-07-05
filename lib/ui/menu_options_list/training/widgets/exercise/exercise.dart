@@ -1,8 +1,6 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:gymboss/domain/models/trainings/exercise.dart';
-import 'package:gymboss/ui/core/ui/colors/main_dark_blue.dart';
-import 'package:gymboss/ui/core/ui/colors/main_gradient.dart';
+import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/icons/icons_training.dart';
 import 'package:gymboss/ui/menu_options_list/training/view_model/exercise_view_model.dart';
 import 'package:gymboss/ui/menu_options_list/training/widgets/bullet_point.dart';
@@ -32,7 +30,6 @@ class TrainingExercise extends StatefulWidget {
   State<TrainingExercise> createState() => TrainingExerciseState();
 }
 
-// Export для доступа из других файлов
 class TrainingExerciseState extends State<TrainingExercise> {
   late ExerciseViewModel _viewModel;
 
@@ -77,18 +74,16 @@ class TrainingExerciseState extends State<TrainingExercise> {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return SingleChildScrollView(
       child: Container(
         decoration: BoxDecoration(
-          color: widget.status ? Color.fromRGBO(99, 32, 36, 1) : mainDarkBlue,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black26,
-              blurRadius: 6,
-              offset: Offset(0, 3),
-            ),
-          ],
+          color: c.card,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: widget.status ? c.accent : c.border,
+            width: widget.status ? 1.5 : 1,
+          ),
         ),
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -108,26 +103,23 @@ class TrainingExerciseState extends State<TrainingExercise> {
                   children: [
                     Text(
                       widget.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
+                        color: c.textPrimary,
+                        fontFamily: 'Rubik',
                       ),
                     ),
                     if (widget.status)
-                      const Text(
+                      Text(
                         "Current Exercise",
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: CupertinoColors.activeGreen,
-                        ),
+                        style: TextStyle(fontSize: 12, color: c.accent, fontFamily: 'Rubik'),
                       ),
                   ],
                 ),
               ],
             ),
-
             const SizedBox(height: 16),
-
             Column(
               children: List.generate(_viewModel.sets.length, (index) {
                 final set = _viewModel.sets[index];
@@ -136,7 +128,6 @@ class TrainingExerciseState extends State<TrainingExercise> {
                   child: Row(
                     children: [
                       SizedBox(width: 40, child: bulletPoint(index)),
-
                       Expanded(
                         child: GestureDetector(
                           onTap: () {
@@ -153,25 +144,22 @@ class TrainingExerciseState extends State<TrainingExercise> {
                           },
                           child: Column(
                             children: [
-                              const Text(
-                                "Reps",
-                                style: TextStyle(fontSize: 12),
-                              ),
+                              Text("Reps", style: TextStyle(fontSize: 12, color: c.textSecondary, fontFamily: 'Rubik')),
                               const SizedBox(height: 8),
                               Text(
                                 "${set.reps}",
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.w600,
+                                  color: c.textPrimary,
+                                  fontFamily: 'Rubik',
                                 ),
                               ),
                             ],
                           ),
                         ),
                       ),
-
                       const SizedBox(width: 16),
-
                       Expanded(
                         child: GestureDetector(
                           onTap: () {
@@ -189,109 +177,86 @@ class TrainingExerciseState extends State<TrainingExercise> {
                           },
                           child: Column(
                             children: [
-                              const Text(
-                                "Weight (kg)",
-                                style: TextStyle(fontSize: 12),
-                              ),
+                              Text("Weight (kg)", style: TextStyle(fontSize: 12, color: c.textSecondary, fontFamily: 'Rubik')),
                               const SizedBox(height: 8),
                               Text(
                                 "${set.weight.toInt()}",
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.w600,
+                                  color: c.textPrimary,
+                                  fontFamily: 'Rubik',
                                 ),
                               ),
                             ],
                           ),
                         ),
                       ),
-
                       CupertinoButton(
                         padding: EdgeInsets.zero,
+                        onPressed: () => _removeSet(index),
                         child: const Icon(
                           CupertinoIcons.clear_circled,
                           color: CupertinoColors.systemRed,
                         ),
-                        onPressed: () => _removeSet(index),
                       ),
                     ],
                   ),
                 );
               }),
             ),
-
             const SizedBox(height: 16),
-
-            // ➕ Кнопка добавить сет
-            CupertinoButton(
-              color: mainDarkBlue,
-              padding: EdgeInsets.zero,
-              child: SizedBox(
-                width: 400,
-                child: Center(
-                  child: Text(
-                    "Add set",
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: CupertinoColors.white,
-                    ),
-                  ),
+            SizedBox(
+              width: double.infinity,
+              child: CupertinoButton(
+                color: c.iconBg,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                borderRadius: BorderRadius.circular(12),
+                onPressed: _addSet,
+                child: Text(
+                  "Add set",
+                  style: TextStyle(fontSize: 16, color: c.textPrimary, fontFamily: 'Rubik'),
                 ),
               ),
-              onPressed: _addSet,
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                //Skip button
-                Container(
-                  decoration: widget.status
-                      ? MainGradient.purpleBlueButtonBackground
-                      : MainGradient.darkDisabledButtonBackground,
-                  child: CupertinoButton(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    color: Colors.transparent, // важно!
-                    borderRadius: BorderRadius.circular(16),
-                    onPressed: () {
-                      if (widget.status) {
-                        widget.onComplete();
-                      } else {
-                        widget.onSetAsCurrent();
-                      }
-                    },
-                    child: Text(
-                      widget.status ? "Complete" : "Completed",
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: CupertinoColors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
+                CupertinoButton(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  color: widget.status ? c.accent : c.iconBg,
+                  borderRadius: BorderRadius.circular(16),
+                  onPressed: () {
+                    if (widget.status) {
+                      widget.onComplete();
+                    } else {
+                      widget.onSetAsCurrent();
+                    }
+                  },
+                  child: Text(
+                    widget.status ? "Complete" : "Completed",
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: widget.status ? c.textOnAccent : c.textSecondary,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'Rubik',
                     ),
                   ),
                 ),
-                //Complete button
                 CupertinoButton(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  color: mainDarkBlue,
-                  child: Text(
-                    "Skip",
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: CupertinoColors.white,
-                    ),
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  color: c.iconBg,
+                  borderRadius: BorderRadius.circular(16),
                   onPressed: () {
                     if (widget.status) {
                       widget.onComplete();
                     }
                   },
+                  child: Text(
+                    "Skip",
+                    style: TextStyle(fontSize: 16, color: c.textSecondary, fontFamily: 'Rubik'),
+                  ),
                 ),
               ],
             ),

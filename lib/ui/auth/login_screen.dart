@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:gymboss/config/api_config.dart';
 import 'package:gymboss/ui/auth/view_model/auth_view_model.dart';
+import 'package:gymboss/ui/core/ui/widgets/app_scaffold.dart';
 import 'package:gymboss/ui/auth/widgets/auth_card.dart';
 import 'package:gymboss/ui/auth/widgets/auth_field.dart';
 import 'package:gymboss/ui/auth/widgets/error_banner.dart';
@@ -50,12 +51,10 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Consumer<AuthViewModel>(
-      builder: (ctx, vm, _) => CupertinoPageScaffold(
-        backgroundColor: const Color(0xFFCAE9FF),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
+      builder: (ctx, vm, _) => AppScaffold(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
               children: [
                 const SizedBox(height: 64),
                 const GymLogo(),
@@ -135,7 +134,6 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ),
-      ),
     );
   }
 }

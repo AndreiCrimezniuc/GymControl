@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:gymboss/ui/core/theme/theme_controller.dart';
 
 class GoogleIcon extends StatelessWidget {
   const GoogleIcon({super.key});
@@ -60,14 +61,15 @@ class SocialButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return GestureDetector(
       onTap: loading ? null : onTap,
       child: Container(
         height: 50,
         decoration: BoxDecoration(
-          color: const Color(0xFF1A2F42),
+          color: c.iconBg,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFF2A4560), width: 1),
+          border: Border.all(color: c.border, width: 1),
         ),
         child: loading
             ? const Center(child: CupertinoActivityIndicator())
@@ -78,10 +80,10 @@ class SocialButton extends StatelessWidget {
                   const SizedBox(width: 10),
                   Text(
                     label,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                      color: CupertinoColors.white,
+                      fontWeight: FontWeight.w600,
+                      color: c.textPrimary,
                       fontFamily: 'Rubik',
                     ),
                   ),

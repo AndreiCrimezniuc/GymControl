@@ -1,69 +1,139 @@
 import 'package:flutter/cupertino.dart';
+import 'package:provider/provider.dart';
+import 'package:gymboss/data/repositories/ranking_repository.dart';
+import 'package:gymboss/data/repositories/sessions_repository.dart';
+import 'package:gymboss/data/repositories/trainings_api.dart';
+import 'package:gymboss/data/services/auth/authenticated_client.dart';
+import 'package:gymboss/data/services/trainings/trainings.dart';
+import 'package:gymboss/domain/models/ranking/rank_data.dart';
+import 'package:gymboss/domain/models/streak/streak_data.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
 
-class _WeekVolume {
-  final String day;
-  final int volume;
-  const _WeekVolume(this.day, this.volume);
-}
-
-class _PersonalRecord {
-  final String exercise;
-  final double weight;
-  final int reps;
-  final String date;
-  const _PersonalRecord(this.exercise, this.weight, this.reps, this.date);
-}
-
-class Statistics extends StatelessWidget {
+class Statistics extends StatefulWidget {
   const Statistics({super.key});
 
-  static const _weekData = [
-    _WeekVolume('Mon', 2400),
-    _WeekVolume('Tue', 0),
-    _WeekVolume('Wed', 3100),
-    _WeekVolume('Thu', 0),
-    _WeekVolume('Fri', 2800),
-    _WeekVolume('Sat', 1900),
-    _WeekVolume('Sun', 0),
-  ];
+  @override
+  State<Statistics> createState() => _StatisticsState();
+}
 
-  static const _records = [
-    _PersonalRecord('Bench Press', 100, 5, 'May 15'),
-    _PersonalRecord('Squats', 140, 3, 'May 12'),
-    _PersonalRecord('Deadlift', 160, 2, 'May 10'),
-    _PersonalRecord('Pull Ups', 0, 15, 'May 17'),
-    _PersonalRecord('Overhead Press', 70, 8, 'May 14'),
-  ];
+class _StatisticsState extends State<Statistics> {
+  late final SessionsRepository _sessions;
+  late final RankingRepository _ranking;
+  late final TrainingsService _trainings;
+
+  bool _loading = true;
+  StreakData _streak = StreakData.empty;
+  UserRanks _ranks = UserRanks.empty;
+  int _workouts = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    final client = context.read<AuthenticatedClient>();
+    _sessions = SessionsRepository(client: client);
+    _ranking = RankingRepository(client: client);
+    _trainings = TrainingsService(repository: TrainingsApiRepository(client: client));
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final results = await Future.wait([
+        _sessions.getStreakData(),
+        _ranking.getUserRanks(),
+        _trainings.fetchAllTrainings(),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _streak = results[0] as StreakData;
+        _ranks = results[1] as UserRanks;
+        _workouts = (results[2] as List).length;
+        _loading = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final ranks = _ranks.exerciseRanks;
     return AppPage(
       title: 'Statistics',
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-        children: const [
-          Row(
-            children: [
-              _StatTile(title: 'Streak', value: '7', unit: 'days', icon: CupertinoIcons.flame_fill),
-              SizedBox(width: 10),
-              _StatTile(title: 'This Week', value: '3', unit: 'workouts', icon: CupertinoIcons.calendar),
-              SizedBox(width: 10),
-              _StatTile(title: 'All Time', value: '42', unit: 'total', icon: CupertinoIcons.chart_bar_fill),
-            ],
-          ),
-          SizedBox(height: 24),
-          _SectionLabel('Weekly Volume'),
-          SizedBox(height: 12),
-          _VolumeChart(data: _weekData),
-          SizedBox(height: 24),
-          _SectionLabel('Personal Records'),
-          SizedBox(height: 12),
-          _RecordsList(records: _records),
-          SizedBox(height: 16),
-        ],
+      body: _loading
+          ? const Center(child: CupertinoActivityIndicator())
+          : ListView(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              children: [
+                Row(
+                  children: [
+                    _StatTile(
+                      value: '${_streak.currentStreakWeeks}',
+                      unit: _streak.currentStreakWeeks == 1 ? 'week' : 'weeks',
+                      title: 'Streak',
+                      icon: CupertinoIcons.flame_fill,
+                    ),
+                    const SizedBox(width: 10),
+                    _StatTile(
+                      value: '$_workouts',
+                      unit: 'routines',
+                      title: 'Workouts',
+                      icon: CupertinoIcons.calendar,
+                    ),
+                    const SizedBox(width: 10),
+                    _StatTile(
+                      value: '${ranks.length}',
+                      unit: 'lifts',
+                      title: 'Ranked',
+                      icon: CupertinoIcons.chart_bar_fill,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                if (ranks.isEmpty)
+                  const _EmptyState()
+                else ...[
+                  const _SectionLabel('Estimated 1RM'),
+                  const SizedBox(height: 12),
+                  _OneRmChart(ranks: ranks),
+                  const SizedBox(height: 24),
+                  const _SectionLabel('Personal Records'),
+                  const SizedBox(height: 12),
+                  _RecordsList(ranks: ranks),
+                ],
+                const SizedBox(height: 16),
+              ],
+            ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Container(
+      decoration: BoxDecoration(
+        color: c.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: c.border),
       ),
+      padding: const EdgeInsets.all(24),
+      child: Column(children: [
+        const Text('📊', style: TextStyle(fontSize: 36)),
+        const SizedBox(height: 12),
+        Text('No stats yet',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: c.textPrimary, fontFamily: 'Rubik')),
+        const SizedBox(height: 6),
+        Text(
+          'Record a lift in the Rank screen to start\ntracking your strength progress.',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 12, color: c.textSecondary, fontFamily: 'Rubik', height: 1.5),
+        ),
+      ]),
     );
   }
 }
@@ -87,15 +157,15 @@ class _SectionLabel extends StatelessWidget {
 }
 
 class _StatTile extends StatelessWidget {
-  final String title;
   final String value;
   final String unit;
+  final String title;
   final IconData icon;
 
   const _StatTile({
-    required this.title,
     required this.value,
     required this.unit,
+    required this.title,
     required this.icon,
   });
 
@@ -115,24 +185,11 @@ class _StatTile extends StatelessWidget {
           children: [
             Icon(icon, color: c.accent, size: 20),
             const SizedBox(height: 8),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.w700,
-                color: c.textPrimary,
-                fontFamily: 'Rubik',
-              ),
-            ),
-            Text(
-              unit,
-              style: TextStyle(fontSize: 10, color: c.textSecondary, fontFamily: 'Rubik'),
-            ),
+            Text(value,
+                style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: c.textPrimary, fontFamily: 'Rubik')),
+            Text(unit, style: TextStyle(fontSize: 10, color: c.textSecondary, fontFamily: 'Rubik')),
             const SizedBox(height: 4),
-            Text(
-              title,
-              style: TextStyle(fontSize: 11, color: c.textSecondary, fontFamily: 'Rubik'),
-            ),
+            Text(title, style: TextStyle(fontSize: 11, color: c.textSecondary, fontFamily: 'Rubik')),
           ],
         ),
       ),
@@ -140,14 +197,14 @@ class _StatTile extends StatelessWidget {
   }
 }
 
-class _VolumeChart extends StatelessWidget {
-  final List<_WeekVolume> data;
-  const _VolumeChart({required this.data});
+class _OneRmChart extends StatelessWidget {
+  final List<ExerciseRank> ranks;
+  const _OneRmChart({required this.ranks});
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final maxVol = data.map((e) => e.volume).reduce((a, b) => a > b ? a : b);
+    final maxOrm = ranks.map((e) => e.oneRmKg).fold<double>(1, (a, b) => a > b ? a : b);
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
@@ -159,28 +216,24 @@ class _VolumeChart extends StatelessWidget {
       child: Column(
         children: [
           SizedBox(
-            height: 100,
+            height: 110,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
-              children: data.map((d) {
-                final fraction = maxVol > 0 ? d.volume / maxVol : 0.0;
-                final barH = d.volume > 0 ? (fraction * 76).clamp(6.0, 76.0) : 4.0;
+              children: ranks.map((r) {
+                final barH = (r.oneRmKg / maxOrm * 80).clamp(6.0, 80.0);
                 return Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 3),
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (d.volume > 0)
-                          Text(
-                            '${(d.volume / 1000).toStringAsFixed(1)}t',
-                            style: TextStyle(fontSize: 8, color: c.textSecondary, fontFamily: 'Rubik'),
-                          ),
-                        const SizedBox(height: 2),
+                        Text(r.oneRmKg.toStringAsFixed(0),
+                            style: TextStyle(fontSize: 9, color: c.textSecondary, fontFamily: 'Rubik')),
+                        const SizedBox(height: 3),
                         Container(
                           height: barH,
                           decoration: BoxDecoration(
-                            color: d.volume > 0 ? c.accent : c.iconBg,
+                            color: c.accent,
                             borderRadius: BorderRadius.circular(5),
                           ),
                         ),
@@ -193,11 +246,13 @@ class _VolumeChart extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Row(
-            children: data.map((d) => Expanded(
+            children: ranks.map((r) => Expanded(
               child: Center(
                 child: Text(
-                  d.day,
-                  style: TextStyle(fontSize: 10, color: c.textSecondary, fontFamily: 'Rubik'),
+                  _short(r.exerciseName),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 9, color: c.textSecondary, fontFamily: 'Rubik'),
                 ),
               ),
             )).toList(),
@@ -206,11 +261,17 @@ class _VolumeChart extends StatelessWidget {
       ),
     );
   }
+
+  static String _short(String name) {
+    final parts = name.split(' ');
+    if (parts.length == 1) return parts.first;
+    return parts.map((p) => p.isEmpty ? '' : p[0]).join().toUpperCase();
+  }
 }
 
 class _RecordsList extends StatelessWidget {
-  final List<_PersonalRecord> records;
-  const _RecordsList({required this.records});
+  final List<ExerciseRank> ranks;
+  const _RecordsList({required this.ranks});
 
   @override
   Widget build(BuildContext context) {
@@ -224,14 +285,14 @@ class _RecordsList extends StatelessWidget {
       child: ListView.separated(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        itemCount: records.length,
+        itemCount: ranks.length,
         separatorBuilder: (_, __) => Container(
           height: 1,
           margin: const EdgeInsets.symmetric(horizontal: 16),
           color: c.border,
         ),
         itemBuilder: (_, i) {
-          final r = records[i];
+          final r = ranks[i];
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
@@ -239,34 +300,16 @@ class _RecordsList extends StatelessWidget {
                 Icon(CupertinoIcons.star_fill, size: 16, color: c.accent),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    r.exercise,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: c.textPrimary,
-                      fontFamily: 'Rubik',
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  child: Text(r.exerciseName,
+                      style: TextStyle(fontSize: 14, color: c.textPrimary, fontFamily: 'Rubik', fontWeight: FontWeight.w600)),
                 ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(
-                      r.weight > 0
-                          ? '${r.weight.toStringAsFixed(0)} kg × ${r.reps}'
-                          : '${r.reps} reps',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: c.textPrimary,
-                        fontFamily: 'Rubik',
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    Text(
-                      r.date,
-                      style: TextStyle(fontSize: 11, color: c.textSecondary, fontFamily: 'Rubik'),
-                    ),
+                    Text('${r.weightKg.toStringAsFixed(0)} kg × ${r.reps}',
+                        style: TextStyle(fontSize: 14, color: c.textPrimary, fontFamily: 'Rubik', fontWeight: FontWeight.w700)),
+                    Text('Rank ${r.rank}',
+                        style: TextStyle(fontSize: 11, color: c.textSecondary, fontFamily: 'Rubik')),
                   ],
                 ),
               ],
