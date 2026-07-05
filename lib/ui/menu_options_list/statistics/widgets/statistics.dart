@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
-import 'package:gymboss/ui/core/ui/colors/main_dark_blue.dart';
-import 'package:gymboss/ui/core/ui/colors/main_gradient.dart';
+import 'package:gymboss/ui/core/theme/theme_controller.dart';
+import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
 
 class _WeekVolume {
   final String day;
@@ -39,68 +39,51 @@ class Statistics extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoPageScaffold(
-      backgroundColor: const Color(0xFFCAE9FF),
-      navigationBar: const CupertinoNavigationBar(
-        middle: Text('Statistics'),
-        backgroundColor: Color(0xFFCAE9FF),
-        border: null,
-      ),
-      child: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            Row(
-              children: [
-                _StatTile(
-                  title: 'Streak',
-                  value: '7',
-                  unit: 'days',
-                  icon: CupertinoIcons.flame_fill,
-                  iconColor: const Color(0xFFFF6B35),
-                ),
-                const SizedBox(width: 10),
-                _StatTile(
-                  title: 'This Week',
-                  value: '3',
-                  unit: 'workouts',
-                  icon: CupertinoIcons.calendar,
-                  iconColor: const Color(0xFF06B6D4),
-                ),
-                const SizedBox(width: 10),
-                _StatTile(
-                  title: 'All Time',
-                  value: '42',
-                  unit: 'total',
-                  icon: CupertinoIcons.chart_bar_fill,
-                  iconColor: const Color(0xFF8B5CF6),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            _sectionLabel('Weekly Volume'),
-            const SizedBox(height: 12),
-            _VolumeChart(data: _weekData),
-            const SizedBox(height: 24),
-            _sectionLabel('Personal Records'),
-            const SizedBox(height: 12),
-            _RecordsList(records: _records),
-            const SizedBox(height: 16),
-          ],
-        ),
+    return AppPage(
+      title: 'Statistics',
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+        children: const [
+          Row(
+            children: [
+              _StatTile(title: 'Streak', value: '7', unit: 'days', icon: CupertinoIcons.flame_fill),
+              SizedBox(width: 10),
+              _StatTile(title: 'This Week', value: '3', unit: 'workouts', icon: CupertinoIcons.calendar),
+              SizedBox(width: 10),
+              _StatTile(title: 'All Time', value: '42', unit: 'total', icon: CupertinoIcons.chart_bar_fill),
+            ],
+          ),
+          SizedBox(height: 24),
+          _SectionLabel('Weekly Volume'),
+          SizedBox(height: 12),
+          _VolumeChart(data: _weekData),
+          SizedBox(height: 24),
+          _SectionLabel('Personal Records'),
+          SizedBox(height: 12),
+          _RecordsList(records: _records),
+          SizedBox(height: 16),
+        ],
       ),
     );
   }
+}
 
-  Widget _sectionLabel(String text) => Text(
-    text,
-    style: const TextStyle(
-      fontSize: 18,
-      fontWeight: FontWeight.w700,
-      fontFamily: 'Rubik',
-      color: Color(0xFF0D1F2D),
-    ),
-  );
+class _SectionLabel extends StatelessWidget {
+  final String text;
+  const _SectionLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.w700,
+        fontFamily: 'Rubik',
+        color: context.colors.textPrimary,
+      ),
+    );
+  }
 }
 
 class _StatTile extends StatelessWidget {
@@ -108,55 +91,47 @@ class _StatTile extends StatelessWidget {
   final String value;
   final String unit;
   final IconData icon;
-  final Color iconColor;
 
   const _StatTile({
     required this.title,
     required this.value,
     required this.unit,
     required this.icon,
-    required this.iconColor,
   });
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: mainDarkBlue,
+          color: c.card,
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: c.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: iconColor, size: 20),
+            Icon(icon, color: c.accent, size: 20),
             const SizedBox(height: 8),
             Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 26,
                 fontWeight: FontWeight.w700,
-                color: CupertinoColors.white,
+                color: c.textPrimary,
                 fontFamily: 'Rubik',
               ),
             ),
             Text(
               unit,
-              style: const TextStyle(
-                fontSize: 10,
-                color: Color(0xFF8B9EAE),
-                fontFamily: 'Rubik',
-              ),
+              style: TextStyle(fontSize: 10, color: c.textSecondary, fontFamily: 'Rubik'),
             ),
             const SizedBox(height: 4),
             Text(
               title,
-              style: const TextStyle(
-                fontSize: 11,
-                color: Color(0xFF546A7B),
-                fontFamily: 'Rubik',
-              ),
+              style: TextStyle(fontSize: 11, color: c.textSecondary, fontFamily: 'Rubik'),
             ),
           ],
         ),
@@ -171,13 +146,15 @@ class _VolumeChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final maxVol = data.map((e) => e.volume).reduce((a, b) => a > b ? a : b);
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
       decoration: BoxDecoration(
-        color: mainDarkBlue,
+        color: c.card,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: c.border),
       ),
       child: Column(
         children: [
@@ -197,18 +174,13 @@ class _VolumeChart extends StatelessWidget {
                         if (d.volume > 0)
                           Text(
                             '${(d.volume / 1000).toStringAsFixed(1)}t',
-                            style: const TextStyle(
-                              fontSize: 8,
-                              color: Color(0xFF8B9EAE),
-                              fontFamily: 'Rubik',
-                            ),
+                            style: TextStyle(fontSize: 8, color: c.textSecondary, fontFamily: 'Rubik'),
                           ),
                         const SizedBox(height: 2),
                         Container(
                           height: barH,
                           decoration: BoxDecoration(
-                            gradient: d.volume > 0 ? MainGradient.purpleBlueGradient : null,
-                            color: d.volume == 0 ? const Color(0xFF1E3A50) : null,
+                            color: d.volume > 0 ? c.accent : c.iconBg,
                             borderRadius: BorderRadius.circular(5),
                           ),
                         ),
@@ -225,11 +197,7 @@ class _VolumeChart extends StatelessWidget {
               child: Center(
                 child: Text(
                   d.day,
-                  style: const TextStyle(
-                    fontSize: 10,
-                    color: Color(0xFF546A7B),
-                    fontFamily: 'Rubik',
-                  ),
+                  style: TextStyle(fontSize: 10, color: c.textSecondary, fontFamily: 'Rubik'),
                 ),
               ),
             )).toList(),
@@ -246,10 +214,12 @@ class _RecordsList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Container(
       decoration: BoxDecoration(
-        color: mainDarkBlue,
+        color: c.card,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: c.border),
       ),
       child: ListView.separated(
         shrinkWrap: true,
@@ -258,7 +228,7 @@ class _RecordsList extends StatelessWidget {
         separatorBuilder: (_, __) => Container(
           height: 1,
           margin: const EdgeInsets.symmetric(horizontal: 16),
-          color: const Color(0xFF1E3A50),
+          color: c.border,
         ),
         itemBuilder: (_, i) {
           final r = records[i];
@@ -266,24 +236,16 @@ class _RecordsList extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
               children: [
-                ShaderMask(
-                  shaderCallback: (b) =>
-                      MainGradient.purpleBlueGradient.createShader(b),
-                  child: const Icon(
-                    CupertinoIcons.star_fill,
-                    size: 16,
-                    color: CupertinoColors.white,
-                  ),
-                ),
+                Icon(CupertinoIcons.star_fill, size: 16, color: c.accent),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     r.exercise,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
-                      color: CupertinoColors.white,
+                      color: c.textPrimary,
                       fontFamily: 'Rubik',
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
@@ -294,20 +256,16 @@ class _RecordsList extends StatelessWidget {
                       r.weight > 0
                           ? '${r.weight.toStringAsFixed(0)} kg × ${r.reps}'
                           : '${r.reps} reps',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
-                        color: CupertinoColors.white,
+                        color: c.textPrimary,
                         fontFamily: 'Rubik',
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                     Text(
                       r.date,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFF546A7B),
-                        fontFamily: 'Rubik',
-                      ),
+                      style: TextStyle(fontSize: 11, color: c.textSecondary, fontFamily: 'Rubik'),
                     ),
                   ],
                 ),

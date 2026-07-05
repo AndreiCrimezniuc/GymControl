@@ -1,8 +1,6 @@
-import 'package:flutter/foundation.dart';
-
 /// Which backend the app talks to. Selected at build/run time via a flag:
 ///
-///   flutter run                              # dev  (default)
+///   flutter run                              # dev — shared dev server
 ///   flutter run --dart-define=ENV=prod       # prod
 ///   flutter build apk --dart-define=ENV=prod # prod release build
 ///
@@ -41,18 +39,14 @@ class ApiConfig {
 
   // ─── Host resolution ────────────────────────────────────────────────────────
 
-  /// Dev host depends on where the app runs (emulator vs web/desktop).
-  static String get _devHost {
-    if (kIsWeb) return 'localhost';
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.android:
-        return '10.0.2.2'; // Android emulator → host machine loopback
-      default:
-        return 'localhost';
-    }
-  }
-
-  static String get _devBase => 'http://$_devHost';
+  /// Dev entry point — the shared dev server, so any build/run works out of the
+  /// box without flags. Override for a local backend:
+  ///   --dart-define=DEV_BASE_URL=http://10.0.2.2   (Android emulator)
+  ///   --dart-define=DEV_BASE_URL=http://localhost  (web/desktop)
+  static const String _devBase = String.fromEnvironment(
+    'DEV_BASE_URL',
+    defaultValue: 'http://168.119.114.105',
+  );
 
   /// Single nginx entry point — all traffic goes through one host.
   static String get _base => isProd ? _prodBase : _devBase;

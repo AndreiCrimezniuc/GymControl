@@ -4,7 +4,8 @@ import 'package:gymboss/data/repositories/ranking_repository.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/domain/models/ranking/rank_data.dart';
 import 'package:gymboss/ui/auth/view_model/auth_view_model.dart';
-import 'package:gymboss/ui/core/ui/colors/main_dark_blue.dart';
+import 'package:gymboss/ui/core/theme/theme_controller.dart';
+import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
 
 class Settings extends StatefulWidget {
   const Settings({super.key});
@@ -52,71 +53,77 @@ class _SettingsState extends State<Settings> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.watch<ThemeController>();
     final weight = _profile?.weightKg;
     final height = _profile?.heightCm;
     final dontAsk = _profile?.dontAskWeight ?? false;
 
-    return CupertinoPageScaffold(
-      backgroundColor: const Color(0xFFCAE9FF),
-      navigationBar: const CupertinoNavigationBar(
-        middle: Text('Settings'),
-        backgroundColor: Color(0xFFCAE9FF),
-        border: null,
-      ),
-      child: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            const SizedBox(height: 8),
-            _Section(
-              title: 'Body Metrics',
-              children: [
-                _ValueTile(
-                  icon: CupertinoIcons.chart_bar_circle_fill,
-                  label: 'Weight',
-                  value: weight != null ? '${weight.toStringAsFixed(1)} kg' : 'Not set',
-                  onTap: _openBodyMetrics,
-                ),
-                _ValueTile(
-                  icon: CupertinoIcons.person_fill,
-                  label: 'Height',
-                  value: height != null ? '${height.toStringAsFixed(0)} cm' : 'Not set',
-                  onTap: _openBodyMetrics,
-                ),
-                if (dontAsk)
-                  _SettingsTile(
-                    icon: CupertinoIcons.bell_slash_fill,
-                    label: 'Re-enable weight reminders',
-                    onTap: _resetWeightPrompt,
-                  ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            _Section(
-              title: 'Account',
-              children: [
+    return AppPage(
+      title: 'Settings',
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+        children: [
+          const SizedBox(height: 4),
+          _Section(
+            title: 'Body Metrics',
+            children: [
+              _ValueTile(
+                icon: CupertinoIcons.chart_bar_circle_fill,
+                label: 'Weight',
+                value: weight != null ? '${weight.toStringAsFixed(1)} kg' : 'Not set',
+                onTap: _openBodyMetrics,
+              ),
+              _ValueTile(
+                icon: CupertinoIcons.person_fill,
+                label: 'Height',
+                value: height != null ? '${height.toStringAsFixed(0)} cm' : 'Not set',
+                onTap: _openBodyMetrics,
+              ),
+              if (dontAsk)
                 _SettingsTile(
-                  icon: CupertinoIcons.bell_fill,
-                  label: 'Notifications',
-                  onTap: () {},
+                  icon: CupertinoIcons.bell_slash_fill,
+                  label: 'Re-enable weight reminders',
+                  onTap: _resetWeightPrompt,
                 ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            _Section(
-              title: 'App',
-              children: [
-                _SettingsTile(
-                  icon: CupertinoIcons.info_circle_fill,
-                  label: 'About',
-                  onTap: () {},
-                ),
-              ],
-            ),
-            const SizedBox(height: 32),
-            _LogoutButton(),
-          ],
-        ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _Section(
+            title: 'Appearance',
+            children: [
+              _SwitchTile(
+                icon: theme.isDark ? CupertinoIcons.moon_fill : CupertinoIcons.sun_max_fill,
+                label: 'Dark Mode',
+                value: theme.isDark,
+                onChanged: (_) => theme.toggle(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _Section(
+            title: 'Account',
+            children: [
+              _SettingsTile(
+                icon: CupertinoIcons.bell_fill,
+                label: 'Notifications',
+                onTap: () {},
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _Section(
+            title: 'App',
+            children: [
+              _SettingsTile(
+                icon: CupertinoIcons.info_circle_fill,
+                label: 'About',
+                onTap: () {},
+              ),
+            ],
+          ),
+          const SizedBox(height: 32),
+          const _LogoutButton(),
+        ],
       ),
     );
   }
@@ -129,6 +136,7 @@ class _Section extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -136,10 +144,10 @@ class _Section extends StatelessWidget {
           padding: const EdgeInsets.only(left: 4, bottom: 8),
           child: Text(
             title.toUpperCase(),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF546A7B),
+              color: c.textSecondary,
               fontFamily: 'Rubik',
               letterSpacing: 0.8,
             ),
@@ -147,8 +155,9 @@ class _Section extends StatelessWidget {
         ),
         Container(
           decoration: BoxDecoration(
-            color: mainDarkBlue,
+            color: c.card,
             borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: c.border),
           ),
           child: ListView.separated(
             shrinkWrap: true,
@@ -157,7 +166,7 @@ class _Section extends StatelessWidget {
             separatorBuilder: (_, __) => Container(
               height: 1,
               margin: const EdgeInsets.symmetric(horizontal: 16),
-              color: const Color(0xFF1E3A50),
+              color: c.border,
             ),
             itemBuilder: (_, i) => children[i],
           ),
@@ -175,6 +184,7 @@ class _SettingsTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return CupertinoButton(
       padding: EdgeInsets.zero,
       onPressed: onTap,
@@ -182,19 +192,13 @@ class _SettingsTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
-            Icon(icon, size: 18, color: const Color(0xFF8B9EAE)),
+            Icon(icon, size: 18, color: c.accent),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 15,
-                  color: CupertinoColors.white,
-                  fontFamily: 'Rubik',
-                ),
-              ),
+              child: Text(label,
+                  style: TextStyle(fontSize: 15, color: c.textPrimary, fontFamily: 'Rubik')),
             ),
-            const Icon(CupertinoIcons.chevron_forward, size: 14, color: Color(0xFF546A7B)),
+            Icon(CupertinoIcons.chevron_forward, size: 14, color: c.textSecondary),
           ],
         ),
       ),
@@ -211,6 +215,7 @@ class _ValueTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return CupertinoButton(
       padding: EdgeInsets.zero,
       onPressed: onTap,
@@ -218,18 +223,49 @@ class _ValueTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
-            Icon(icon, size: 18, color: const Color(0xFF8B9EAE)),
+            Icon(icon, size: 18, color: c.accent),
             const SizedBox(width: 12),
             Expanded(
               child: Text(label,
-                  style: const TextStyle(fontSize: 15, color: CupertinoColors.white, fontFamily: 'Rubik')),
+                  style: TextStyle(fontSize: 15, color: c.textPrimary, fontFamily: 'Rubik')),
             ),
             Text(value,
-                style: const TextStyle(fontSize: 14, color: Color(0xFF8B9EAE), fontFamily: 'Rubik')),
+                style: TextStyle(fontSize: 14, color: c.textSecondary, fontFamily: 'Rubik')),
             const SizedBox(width: 6),
-            const Icon(CupertinoIcons.chevron_forward, size: 14, color: Color(0xFF546A7B)),
+            Icon(CupertinoIcons.chevron_forward, size: 14, color: c.textSecondary),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _SwitchTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  const _SwitchTile({required this.icon, required this.label, required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: c.accent),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(label,
+                style: TextStyle(fontSize: 15, color: c.textPrimary, fontFamily: 'Rubik')),
+          ),
+          CupertinoSwitch(
+            value: value,
+            activeTrackColor: c.accent,
+            onChanged: onChanged,
+          ),
+        ],
       ),
     );
   }
@@ -276,10 +312,11 @@ class _BodyMetricsSheetState extends State<_BodyMetricsSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFF0D1F2D),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color: c.card,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.only(
         left: 20, right: 20, top: 20,
@@ -292,12 +329,12 @@ class _BodyMetricsSheetState extends State<_BodyMetricsSheet> {
           Center(
             child: Container(
               width: 40, height: 4,
-              decoration: BoxDecoration(color: const Color(0xFF546A7B), borderRadius: BorderRadius.circular(2)),
+              decoration: BoxDecoration(color: c.border, borderRadius: BorderRadius.circular(2)),
             ),
           ),
           const SizedBox(height: 16),
-          const Text('Body Metrics',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: CupertinoColors.white, fontFamily: 'Rubik')),
+          Text('Body Metrics',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: c.textPrimary, fontFamily: 'Rubik')),
           const SizedBox(height: 16),
           Row(children: [
             Expanded(child: _MetricInput(controller: _weightCtrl, label: 'Weight (kg)', placeholder: '80')),
@@ -313,16 +350,16 @@ class _BodyMetricsSheetState extends State<_BodyMetricsSheet> {
               child: Container(
                 height: 48,
                 decoration: BoxDecoration(
-                  color: _saving ? const Color(0xFF1E3A50) : const Color(0xFF3B82F6),
+                  color: _saving ? c.iconBg : c.accent,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
                   child: _saving
                       ? const CupertinoActivityIndicator()
-                      : const Text('Save',
+                      : Text('Save',
                           style: TextStyle(
                             fontSize: 15, fontWeight: FontWeight.w700,
-                            color: CupertinoColors.white, fontFamily: 'Rubik',
+                            color: c.textOnAccent, fontFamily: 'Rubik',
                           )),
                 ),
               ),
@@ -342,26 +379,27 @@ class _MetricInput extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11, fontWeight: FontWeight.w600,
-              color: Color(0xFF8B9EAE), fontFamily: 'Rubik',
+              color: c.textSecondary, fontFamily: 'Rubik',
             )),
         const SizedBox(height: 6),
         CupertinoTextField(
           controller: controller,
           placeholder: placeholder,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          style: const TextStyle(color: CupertinoColors.white, fontSize: 15, fontFamily: 'Rubik'),
-          placeholderStyle: const TextStyle(color: Color(0xFF546A7B), fontSize: 15),
+          style: TextStyle(color: c.textPrimary, fontSize: 15, fontFamily: 'Rubik'),
+          placeholderStyle: TextStyle(color: c.textSecondary, fontSize: 15),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            color: const Color(0xFF152A3A),
+            color: c.iconBg,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFF1E3A50)),
+            border: Border.all(color: c.border),
           ),
         ),
       ],
@@ -370,28 +408,31 @@ class _MetricInput extends StatelessWidget {
 }
 
 class _LogoutButton extends StatelessWidget {
+  const _LogoutButton();
+
   @override
   Widget build(BuildContext context) {
+    const red = Color(0xFFEF4444);
     return GestureDetector(
       onTap: () => _confirmLogout(context),
       child: Container(
         height: 52,
         decoration: BoxDecoration(
-          color: const Color(0xFF3D1818),
+          color: const Color(0x14EF4444),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFF632024), width: 1),
+          border: Border.all(color: const Color(0x33EF4444), width: 1),
         ),
         child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(CupertinoIcons.square_arrow_left, color: Color(0xFFEF4444), size: 18),
+            Icon(CupertinoIcons.square_arrow_left, color: red, size: 18),
             SizedBox(width: 8),
             Text(
               'Log Out',
               style: TextStyle(
                 fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFFEF4444),
+                fontWeight: FontWeight.w700,
+                color: red,
                 fontFamily: 'Rubik',
               ),
             ),

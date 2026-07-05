@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show Icons;
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gymboss/data/repositories/ranking_repository.dart';
@@ -6,8 +7,13 @@ import 'package:gymboss/data/repositories/sessions_repository.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/domain/models/ranking/rank_data.dart';
 import 'package:gymboss/domain/models/streak/streak_data.dart';
-import 'package:gymboss/ui/core/ui/button/option_button.dart';
-import 'package:gymboss/ui/core/ui/icons/icons_options_menu.dart';
+import 'package:gymboss/ui/core/theme/theme_controller.dart';
+import 'package:gymboss/ui/core/ui/widgets/app_bottom_nav.dart';
+import 'package:gymboss/ui/core/ui/widgets/app_scaffold.dart';
+import 'package:gymboss/ui/core/ui/widgets/menu_card.dart';
+import 'package:gymboss/ui/core/ui/widgets/pill_button.dart';
+import 'package:gymboss/ui/core/ui/widgets/streak_ring.dart';
+import 'package:gymboss/ui/core/ui/widgets/theme_toggle.dart';
 import 'package:gymboss/ui/menu_options_list/exercises/widgets/exercises.dart';
 import 'package:gymboss/ui/menu_options_list/program/widgets/program.dart';
 import 'package:gymboss/ui/menu_options_list/ranking/widgets/ranking.dart';
@@ -105,156 +111,179 @@ class _MenuOptionsState extends State<MenuOptions> {
     );
   }
 
+  void _push(Widget page) {
+    Navigator.of(context).push(
+      CupertinoPageRoute<void>(builder: (_) => page),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return CupertinoPageScaffold(
-      child: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const Text(
-                  "Gym | Control",
-                  style: TextStyle(fontSize: 35, color: CupertinoColors.black),
-                ),
-                const SizedBox(height: 35),
-                const Text(
-                  "Your fitness companion",
-                  style: TextStyle(fontSize: 25, color: CupertinoColors.black),
-                ),
-                const SizedBox(height: 20),
-                OptionButtonMenu(
-                  title: "Current streak",
-                  borderColor: const Color.fromRGBO(99, 32, 36, 1),
-                  subtitle: "${_streak.currentStreakWeeks} week${_streak.currentStreakWeeks == 1 ? '' : 's'}",
-                  icon: Image.asset(
-                    IconsOptionsMenu.fire,
-                    width: 24,
-                    height: 24,
-                  ),
-                  backgroundColor: const Color.fromRGBO(99, 32, 36, 1),
-                  callBack: () => _showYearCalendar(context),
-                ),
-                const SizedBox(height: 70),
-                OptionButtonMenu(
-                  title: "Start training",
-                  subtitle: "Begin your workout",
-                  borderColor: const Color(0xFF0D1F2D),
-                  icon: Image.asset(
-                    IconsOptionsMenu.play,
-                    width: 24,
-                    height: 24,
-                  ),
-                  backgroundColor: const Color(0xFF0D1F2D),
-                  callBack: () {
-                    Navigator.of(context).push(
-                      CupertinoPageRoute<void>(
-                        builder: (context) => const Training(),
+    final c = context.colors;
+    final weeks = _streak.currentStreakWeeks;
+    final ringProgress =
+        weeks <= 0 ? 0.0 : (weeks % 7 == 0 ? 1.0 : (weeks % 7) / 7);
+
+    return AppScaffold(
+      child: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // ── Header ──────────────────────────────────────────────
+                  Row(
+                    children: [
+                      Container(
+                        width: 13,
+                        height: 13,
+                        decoration: BoxDecoration(
+                          color: c.accent,
+                          borderRadius: BorderRadius.circular(3),
+                        ),
                       ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 16),
-                OptionButtonMenu(
-                  title: "My Program",
-                  borderColor: const Color(0xFF0D1F2D),
-                  subtitle: "View routines",
-                  icon: Image.asset(
-                    IconsOptionsMenu.calender,
-                    width: 24,
-                    height: 24,
-                  ),
-                  backgroundColor: const Color(0xFF0D1F2D),
-                  callBack: () {
-                    Navigator.of(context).push(
-                      CupertinoPageRoute<void>(
-                        builder: (context) => const Program(),
+                      const SizedBox(width: 10),
+                      Text(
+                        'GYM CONTROL',
+                        style: TextStyle(
+                          fontFamily: 'Rubik',
+                          fontSize: 19,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.2,
+                          color: c.textPrimary,
+                        ),
                       ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 16),
-                OptionButtonMenu(
-                  title: "Statistics",
-                  subtitle: "Track progress",
-                  borderColor: const Color(0xFF0D1F2D),
-                  icon: Image.asset(
-                    IconsOptionsMenu.statictics,
-                    width: 24,
-                    height: 24,
-                  ),
-                  backgroundColor: const Color(0xFF0D1F2D),
-                  callBack: () {
-                    Navigator.of(context).push(
-                      CupertinoPageRoute<void>(
-                        builder: (context) => const Statistics(),
+                      const Spacer(),
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: c.accent,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
                       ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 16),
-                OptionButtonMenu(
-                  title: "Rank",
-                  subtitle: "See where you stand",
-                  borderColor: const Color(0xFF4C1D95),
-                  icon: const Padding(
-                    padding: EdgeInsets.all(2),
-                    child: Text('🏆', style: TextStyle(fontSize: 20)),
-                  ),
-                  backgroundColor: const Color(0xFF4C1D95),
-                  callBack: () {
-                    Navigator.of(context).push(
-                      CupertinoPageRoute<void>(
-                        builder: (context) => const Ranking(),
+                      const SizedBox(width: 6),
+                      Text(
+                        'READY',
+                        style: TextStyle(
+                          fontFamily: 'Rubik',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 1.5,
+                          color: c.textSecondary,
+                        ),
                       ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 16),
-                OptionButtonMenu(
-                  title: "Exercises",
-                  subtitle: "Browse library",
-                  borderColor: const Color(0xFF0D1F2D),
-                  icon: Image.asset(
-                    IconsOptionsMenu.barbell,
-                    width: 24,
-                    height: 24,
+                      const SizedBox(width: 12),
+                      const ThemeToggle(),
+                    ],
                   ),
-                  backgroundColor: const Color(0xFF0D1F2D),
-                  callBack: () {
-                    Navigator.of(context).push(
-                      CupertinoPageRoute<void>(
-                        builder: (context) => const Exercises(),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 16),
-                OptionButtonMenu(
-                  title: "Settings",
-                  subtitle: "Customize app or profile",
-                  borderColor: const Color(0xFF0D1F2D),
-                  icon: Image.asset(
-                    IconsOptionsMenu.gear,
-                    width: 24,
-                    height: 24,
+
+                  const SizedBox(height: 30),
+
+                  // ── Streak ring ─────────────────────────────────────────
+                  Center(
+                    child: StreakRing(
+                      value: weeks,
+                      caption: 'Week Streak',
+                      progress: ringProgress,
+                      onTap: () => _showYearCalendar(context),
+                    ),
                   ),
-                  backgroundColor: const Color(0xFF0D1F2D),
-                  callBack: () {
-                    Navigator.of(context).push(
-                      CupertinoPageRoute<void>(
-                        builder: (context) => const Settings(),
+
+                  const SizedBox(height: 30),
+
+                  // ── Action pills ────────────────────────────────────────
+                  Row(
+                    children: [
+                      Expanded(
+                        child: PillButton(
+                          label: 'Start',
+                          filled: true,
+                          onTap: () => _push(const Training()),
+                        ),
                       ),
-                    );
-                  },
-                ),
-              ],
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: PillButton(
+                          label: 'Program',
+                          onTap: () => _push(const Program()),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: PillButton(
+                          label: 'Stats',
+                          onTap: () => _push(const Statistics()),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // ── Menu cards ──────────────────────────────────────────
+                  MenuCard(
+                    icon: Icons.emoji_events_rounded,
+                    iconColor: c.accent,
+                    title: 'My Program',
+                    subtitle: 'View routines',
+                    onTap: () => _push(const Program()),
+                  ),
+                  const SizedBox(height: 12),
+                  MenuCard(
+                    icon: Icons.bar_chart_rounded,
+                    title: 'Statistics',
+                    subtitle: 'Track progress',
+                    onTap: () => _push(const Statistics()),
+                  ),
+                  const SizedBox(height: 12),
+                  MenuCard(
+                    icon: Icons.emoji_events_outlined,
+                    title: 'Rank',
+                    subtitle: 'See where you stand',
+                    onTap: () => _push(const Ranking()),
+                  ),
+                  const SizedBox(height: 12),
+                  MenuCard(
+                    icon: Icons.fitness_center_rounded,
+                    title: 'Exercises',
+                    subtitle: 'Browse library',
+                    onTap: () => _push(const Exercises()),
+                  ),
+                  const SizedBox(height: 12),
+                  MenuCard(
+                    icon: Icons.wb_sunny_outlined,
+                    title: 'Settings',
+                    subtitle: 'Customize app',
+                    onTap: () => _push(const Settings()),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
+
+          // ── Bottom navigation ───────────────────────────────────────────
+          AppBottomNav(
+            activeIndex: 0,
+            items: [
+              const BottomNavItem(icon: Icons.home_outlined),
+              BottomNavItem(
+                icon: Icons.fitness_center_rounded,
+                onTap: () => _push(const Exercises()),
+              ),
+              BottomNavItem(
+                icon: Icons.bar_chart_rounded,
+                onTap: () => _push(const Statistics()),
+              ),
+              BottomNavItem(
+                icon: Icons.person_outline,
+                onTap: () => _push(const Settings()),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -295,10 +324,11 @@ class _FirstTimeWeightSheetState extends State<_FirstTimeWeightSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFF0D1F2D),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color: c.card,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.only(
         left: 20, right: 20, top: 20,
@@ -311,15 +341,15 @@ class _FirstTimeWeightSheetState extends State<_FirstTimeWeightSheet> {
           Center(
             child: Container(
               width: 40, height: 4,
-              decoration: BoxDecoration(color: const Color(0xFF546A7B), borderRadius: BorderRadius.circular(2)),
+              decoration: BoxDecoration(color: c.border, borderRadius: BorderRadius.circular(2)),
             ),
           ),
           const SizedBox(height: 16),
-          const Text('Quick setup 🏋',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: CupertinoColors.white, fontFamily: 'Rubik')),
+          Text('Quick setup 🏋',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: c.textPrimary, fontFamily: 'Rubik')),
           const SizedBox(height: 4),
-          const Text('Optional — helps calculate your strength rank',
-              style: TextStyle(fontSize: 12, color: Color(0xFF8B9EAE), fontFamily: 'Rubik')),
+          Text('Optional — helps calculate your strength rank',
+              style: TextStyle(fontSize: 12, color: c.textSecondary, fontFamily: 'Rubik')),
           const SizedBox(height: 16),
           Row(children: [
             Expanded(child: _MetricField(controller: _weightCtrl, label: 'Weight (kg)', placeholder: '80')),
@@ -334,8 +364,8 @@ class _FirstTimeWeightSheetState extends State<_FirstTimeWeightSheet> {
                 onPressed: () => Navigator.pop(context),
                 child: Container(
                   height: 44,
-                  decoration: BoxDecoration(color: const Color(0xFF152A3A), borderRadius: BorderRadius.circular(12)),
-                  child: const Center(child: Text('Skip', style: TextStyle(color: Color(0xFF8B9EAE), fontFamily: 'Rubik'))),
+                  decoration: BoxDecoration(color: c.iconBg, borderRadius: BorderRadius.circular(12)),
+                  child: Center(child: Text('Skip', style: TextStyle(color: c.textSecondary, fontFamily: 'Rubik'))),
                 ),
               ),
             ),
@@ -346,11 +376,11 @@ class _FirstTimeWeightSheetState extends State<_FirstTimeWeightSheet> {
                 onPressed: _saving ? null : _save,
                 child: Container(
                   height: 44,
-                  decoration: BoxDecoration(color: const Color(0xFF3B82F6), borderRadius: BorderRadius.circular(12)),
+                  decoration: BoxDecoration(color: c.accent, borderRadius: BorderRadius.circular(12)),
                   child: Center(
                     child: _saving
                         ? const CupertinoActivityIndicator()
-                        : const Text('Save', style: TextStyle(color: CupertinoColors.white, fontWeight: FontWeight.w600, fontFamily: 'Rubik')),
+                        : Text('Save', style: TextStyle(color: c.textOnAccent, fontWeight: FontWeight.w600, fontFamily: 'Rubik')),
                   ),
                 ),
               ),
@@ -370,22 +400,23 @@ class _MetricField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF8B9EAE), fontFamily: 'Rubik')),
+        Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: c.textSecondary, fontFamily: 'Rubik')),
         const SizedBox(height: 6),
         CupertinoTextField(
           controller: controller,
           placeholder: placeholder,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          style: const TextStyle(color: CupertinoColors.white, fontSize: 15, fontFamily: 'Rubik'),
-          placeholderStyle: const TextStyle(color: Color(0xFF546A7B), fontSize: 15),
+          style: TextStyle(color: c.textPrimary, fontSize: 15, fontFamily: 'Rubik'),
+          placeholderStyle: TextStyle(color: c.textSecondary, fontSize: 15),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            color: const Color(0xFF152A3A),
+            color: c.iconBg,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFF1E3A50)),
+            border: Border.all(color: c.border),
           ),
         ),
       ],
@@ -488,15 +519,16 @@ class _YearCalendarSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final year = DateTime.now().year;
     final activeSet = streak.activeWeeks.toSet();
     final currentWeek = _isoWeekNumber(DateTime.now());
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.6,
-      decoration: const BoxDecoration(
-        color: Color(0xFF0D1F2D),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color: c.card,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
         children: [
@@ -505,15 +537,15 @@ class _YearCalendarSheet extends StatelessWidget {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: const Color(0xFF546A7B),
+              color: c.border,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
           const SizedBox(height: 16),
           Text(
             '$year  •  ${streak.currentStreakWeeks} week${streak.currentStreakWeeks == 1 ? '' : 's'} streak',
-            style: const TextStyle(
-              color: CupertinoColors.white,
+            style: TextStyle(
+              color: c.textPrimary,
               fontSize: 16,
               fontWeight: FontWeight.w600,
               fontFamily: 'Rubik',
@@ -522,23 +554,13 @@ class _YearCalendarSheet extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             '${streak.activeWeeks.length} week${streak.activeWeeks.length == 1 ? '' : 's'} active this year',
-            style: const TextStyle(
-              color: Color(0xFF8B9EAE),
+            style: TextStyle(
+              color: c.textSecondary,
               fontSize: 12,
               fontFamily: 'Rubik',
             ),
           ),
-          const SizedBox(height: 16),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: _StreakProgressBar(
-              activeWeeks: streak.activeWeeks.length,
-              totalWeeks: _weeksInYear(year),
-              currentWeek: currentWeek,
-              streakWeeks: streak.currentStreakWeeks,
-            ),
-          ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -569,107 +591,6 @@ class _YearCalendarSheet extends StatelessWidget {
   }
 }
 
-class _StreakProgressBar extends StatelessWidget {
-  final int activeWeeks;
-  final int totalWeeks;
-  final int currentWeek;
-  final int streakWeeks;
-
-  const _StreakProgressBar({
-    required this.activeWeeks,
-    required this.totalWeeks,
-    required this.currentWeek,
-    required this.streakWeeks,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final yearFraction = currentWeek / totalWeeks;
-    final activeFraction = activeWeeks / totalWeeks;
-    final streakFraction = streakWeeks / totalWeeks;
-
-    const barH = 10.0;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'W$currentWeek of $totalWeeks  •  $activeWeeks active',
-          style: const TextStyle(
-            color: Color(0xFF8B9EAE),
-            fontSize: 11,
-            fontFamily: 'Rubik',
-          ),
-        ),
-        const SizedBox(height: 6),
-        LayoutBuilder(
-          builder: (ctx, constraints) {
-            final w = constraints.maxWidth;
-            return Stack(
-              children: [
-                // base track
-                Container(
-                  height: barH,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF152A3A),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                ),
-                // year elapsed (very faint)
-                FractionallySizedBox(
-                  widthFactor: yearFraction.clamp(0.0, 1.0),
-                  child: Container(
-                    height: barH,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1E3A50),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                  ),
-                ),
-                // active weeks fill
-                FractionallySizedBox(
-                  widthFactor: activeFraction.clamp(0.0, 1.0),
-                  child: Container(
-                    height: barH,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF16A34A), Color(0xFF22C55E)],
-                      ),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                  ),
-                ),
-                // streak highlight (brighter tip)
-                if (streakWeeks > 0)
-                  Positioned(
-                    right: w * (1 - activeFraction).clamp(0.0, 1.0),
-                    child: Container(
-                      width: w * streakFraction.clamp(0.0, 1.0),
-                      height: barH,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF22C55E), Color(0xFF4ADE80)],
-                        ),
-                        borderRadius: BorderRadius.circular(6),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0x8022C55E),
-                            blurRadius: 6,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-              ],
-            );
-          },
-        ),
-      ],
-    );
-  }
-
-}
-
 class _WeekGrid extends StatelessWidget {
   final int totalWeeks;
   final Set<int> activeWeeks;
@@ -683,6 +604,7 @@ class _WeekGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     const cols = 13;
 
     return GridView.builder(
@@ -700,29 +622,24 @@ class _WeekGrid extends StatelessWidget {
         Color bg;
         Color numColor;
         if (isActive) {
-          bg = const Color(0xFF22C55E);
-          numColor = const Color(0xFFDCFCE7);
-        } else if (week < currentWeek) {
-          bg = const Color(0xFF1E3A50);
-          numColor = const Color(0xFF3A5A70);
+          bg = c.accent;
+          numColor = c.textOnAccent;
         } else {
-          bg = const Color(0xFF152A3A);
-          numColor = const Color(0xFF2A4050);
+          bg = c.iconBg;
+          numColor = c.textSecondary;
         }
 
         return Container(
           decoration: BoxDecoration(
             color: bg,
             borderRadius: BorderRadius.circular(3),
-            border: isCurrent
-                ? Border.all(color: const Color(0xFF60A5FA), width: 1.5)
-                : null,
+            border: isCurrent ? Border.all(color: c.accent, width: 1.5) : null,
           ),
           child: Center(
             child: Text(
               '$week',
               style: TextStyle(
-                color: isCurrent ? const Color(0xFF60A5FA) : numColor,
+                color: isCurrent && !isActive ? c.accent : numColor,
                 fontSize: 7,
                 fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w400,
                 fontFamily: 'Rubik',

@@ -4,6 +4,8 @@ import 'package:gymboss/data/repositories/trainings_api.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/data/services/trainings/trainings.dart';
 import 'package:gymboss/domain/models/trainings/trainings.dart';
+import 'package:gymboss/ui/core/theme/theme_controller.dart';
+import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
 import 'package:gymboss/ui/menu_options_list/training/view_model/training_view_model.dart';
 import 'package:gymboss/ui/menu_options_list/training/widgets/exercise/exercise.dart';
 
@@ -90,90 +92,76 @@ class _TrainingState extends State<Training> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = CupertinoTheme.of(context);
-    return CupertinoPageScaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      navigationBar: const CupertinoNavigationBar(middle: Text("Training")),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    "Schedule",
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: CupertinoColors.black,
-                    ),
-                  ),
+    final c = context.colors;
+    return AppPage(
+      title: 'Training',
+      actions: [
+        Text(
+          '${currentExerciseIndex + 1} / ${currentTraining.exercises.length}',
+          style: TextStyle(
+            color: c.textSecondary,
+            fontFamily: 'Rubik',
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+      body: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                _ComplexityChip(
+                  label: 'Hard',
+                  active: currentComplexity == TrainingComplexity.hard,
+                  onTap: () {
+                    currentComplexity = TrainingComplexity.hard;
+                    loadTrainings();
+                  },
+                ),
+                const SizedBox(width: 8),
+                _ComplexityChip(
+                  label: 'Medium',
+                  active: currentComplexity == TrainingComplexity.medium,
+                  onTap: () {
+                    currentComplexity = TrainingComplexity.medium;
+                    loadTrainings();
+                  },
+                ),
+                const SizedBox(width: 8),
+                _ComplexityChip(
+                  label: 'Easy',
+                  active: currentComplexity == TrainingComplexity.easy,
+                  onTap: () {
+                    currentComplexity = TrainingComplexity.easy;
+                    loadTrainings();
+                  },
+                ),
+                const Spacer(),
+                Builder(
+                  builder: (context) {
+                    final key = _exerciseKeys[currentExerciseIndex];
+                    final canUndo = key?.currentState?.canUndo ?? false;
+                    return CupertinoButton(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      onPressed: canUndo
+                          ? () {
+                              key!.currentState!.undo();
+                              setState(() {});
+                            }
+                          : null,
+                      child: Icon(
+                        CupertinoIcons.arrow_counterclockwise,
+                        color: canUndo ? c.accent : c.textSecondary,
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
 
-                  Text(
-                    '${currentExerciseIndex + 1} /${currentTraining.exercises.length.toString()}  ',
-                    style: TextStyle(color: CupertinoColors.black),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 6),
-              const SizedBox(height: 2),
-              Row(
-                children: [
-                  CupertinoButton(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    onPressed: () {
-                      currentComplexity = TrainingComplexity.hard;
-                      loadTrainings();
-                    },
-                    child: const Text("Hard"),
-                  ),
-                  const SizedBox(width: 8),
-                  CupertinoButton(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    onPressed: () {
-                      currentComplexity = TrainingComplexity.medium;
-                      loadTrainings();
-                    },
-                    child: const Text("Medium"),
-                  ),
-                  const SizedBox(width: 8),
-                  CupertinoButton(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    onPressed: () {
-                      currentComplexity = TrainingComplexity.easy;
-                      loadTrainings();
-                    },
-                    child: const Text("Easy"),
-                  ),
-                  const Spacer(),
-
-                  Builder(
-                    builder: (context) {
-                      final key = _exerciseKeys[currentExerciseIndex];
-                      final canUndo = key?.currentState?.canUndo ?? false;
-                      return CupertinoButton(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        onPressed: canUndo
-                            ? () {
-                                key!.currentState!.undo();
-                                setState(() {});
-                              }
-                            : null,
-                        child: Icon(
-                          CupertinoIcons.arrow_counterclockwise,
-                          color: canUndo ? null : CupertinoColors.systemGrey,
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 12),
+            const SizedBox(height: 12),
 
               Expanded(
                 child: Builder(
@@ -242,6 +230,38 @@ class _TrainingState extends State<Training> {
                 ),
               ),
             ],
+          ),
+        ),
+    );
+  }
+}
+
+class _ComplexityChip extends StatelessWidget {
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+  const _ComplexityChip({required this.label, required this.active, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: active ? c.accent : c.card,
+          borderRadius: BorderRadius.circular(12),
+          border: active ? null : Border.all(color: c.border),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            fontFamily: 'Rubik',
+            color: active ? c.textOnAccent : c.textSecondary,
           ),
         ),
       ),

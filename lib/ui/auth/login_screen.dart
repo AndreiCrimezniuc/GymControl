@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
+import 'package:gymboss/config/api_config.dart';
 import 'package:gymboss/ui/auth/view_model/auth_view_model.dart';
 import 'package:gymboss/ui/auth/widgets/auth_card.dart';
 import 'package:gymboss/ui/auth/widgets/auth_field.dart';
@@ -27,9 +28,21 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  // Dev-only quick login: typing "test" as the email signs into the shared
+  // test account without a password. Gated to the dev backend so it never
+  // ships in a prod build.
+  static const _testAccountEmail = 'kib69dev19@gmail.com';
+  static const _testAccountPassword = 'gymboss-test-2026';
+
   void _submit(AuthViewModel vm) {
     final email = _emailCtrl.text.trim();
     final pass = _passCtrl.text;
+
+    if (ApiConfig.isDev && email.toLowerCase() == 'test') {
+      vm.login(_testAccountEmail, _testAccountPassword);
+      return;
+    }
+
     if (email.isEmpty || pass.isEmpty) return;
     vm.login(email, pass);
   }

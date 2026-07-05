@@ -8,7 +8,8 @@ import 'package:gymboss/data/services/auth/token_storage.dart';
 import 'package:gymboss/ui/auth/login_screen.dart';
 import 'package:gymboss/ui/auth/register_screen.dart';
 import 'package:gymboss/ui/auth/view_model/auth_view_model.dart';
-import 'package:gymboss/ui/core/themes/light_theme.dart';
+import 'package:gymboss/ui/core/theme/theme_controller.dart';
+import 'package:gymboss/ui/core/ui/widgets/app_scaffold.dart';
 import 'package:gymboss/ui/home_screen/home_screen.dart';
 
 class GymBossApp extends StatefulWidget {
@@ -43,13 +44,24 @@ class _GymBossAppState extends State<GymBossApp> {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider<ThemeController>(create: (_) => ThemeController()),
         ChangeNotifierProvider<AuthViewModel>.value(value: _authVm),
         Provider<AuthenticatedClient>.value(value: _client),
       ],
-      child: const CupertinoApp(
-        theme: lightTheme,
-        debugShowCheckedModeBanner: false,
-        home: _AuthGate(),
+      child: Consumer<ThemeController>(
+        builder: (context, theme, _) {
+          return CupertinoApp(
+            theme: CupertinoThemeData(
+              brightness: theme.isDark ? Brightness.dark : Brightness.light,
+              scaffoldBackgroundColor: theme.colors.bg,
+              textTheme: const CupertinoTextThemeData(
+                textStyle: TextStyle(fontFamily: 'Rubik'),
+              ),
+            ),
+            debugShowCheckedModeBanner: false,
+            home: const _AuthGate(),
+          );
+        },
       ),
     );
   }
@@ -85,7 +97,7 @@ class _AuthGateState extends State<_AuthGate> {
     return Consumer<AuthViewModel>(
       builder: (ctx, vm, _) {
         if (vm.status == AuthStatus.unknown) {
-          return const CupertinoPageScaffold(
+          return const AppScaffold(
             child: Center(child: CupertinoActivityIndicator()),
           );
         }

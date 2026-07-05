@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
-import 'package:gymboss/ui/core/ui/colors/main_dark_blue.dart';
-import 'package:gymboss/ui/core/ui/colors/main_gradient.dart';
+import 'package:gymboss/ui/core/theme/theme_controller.dart';
+import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
 
 class _CatalogEntry {
   final String name;
@@ -64,81 +64,76 @@ class _ExercisesState extends State<Exercises> {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     final filtered = _filtered;
-    return CupertinoPageScaffold(
-      backgroundColor: const Color(0xFFCAE9FF),
-      navigationBar: const CupertinoNavigationBar(
-        middle: Text('Exercises'),
-        backgroundColor: Color(0xFFCAE9FF),
-        border: null,
-      ),
-      child: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: CupertinoSearchTextField(
-                controller: _searchCtrl,
-                placeholder: 'Search exercises',
-                onChanged: (v) => setState(() => _query = v),
-              ),
+    return AppPage(
+      title: 'Exercises',
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+            child: CupertinoSearchTextField(
+              controller: _searchCtrl,
+              placeholder: 'Search exercises',
+              backgroundColor: c.card,
+              style: TextStyle(color: c.textPrimary, fontFamily: 'Rubik'),
+              placeholderStyle: TextStyle(color: c.textSecondary, fontFamily: 'Rubik'),
+              itemColor: c.textSecondary,
+              onChanged: (v) => setState(() => _query = v),
             ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 36,
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                scrollDirection: Axis.horizontal,
-                itemCount: _groups.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
-                itemBuilder: (_, i) {
-                  final g = _groups[i];
-                  final active = g == _group;
-                  return GestureDetector(
-                    onTap: () => setState(() => _group = g),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      decoration: active
-                          ? MainGradient.purpleBlueButtonBackground
-                          : BoxDecoration(
-                              color: mainDarkBlue,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                      child: Text(
-                        g,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: CupertinoColors.white,
-                          fontFamily: 'Rubik',
-                          fontWeight: FontWeight.w500,
-                        ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 36,
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              scrollDirection: Axis.horizontal,
+              itemCount: _groups.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (_, i) {
+                final g = _groups[i];
+                final active = g == _group;
+                return GestureDetector(
+                  onTap: () => setState(() => _group = g),
+                  child: Container(
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: active ? c.accent : c.card,
+                      borderRadius: BorderRadius.circular(12),
+                      border: active ? null : Border.all(color: c.border),
+                    ),
+                    child: Text(
+                      g,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: active ? c.textOnAccent : c.textSecondary,
+                        fontFamily: 'Rubik',
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                  );
-                },
-              ),
+                  ),
+                );
+              },
             ),
-            const SizedBox(height: 12),
-            Expanded(
-              child: filtered.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'No exercises found',
-                        style: TextStyle(
-                          color: Color(0xFF546A7B),
-                          fontFamily: 'Rubik',
-                        ),
-                      ),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                      itemCount: filtered.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
-                      itemBuilder: (_, i) => _ExerciseTile(entry: filtered[i]),
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: filtered.isEmpty
+                ? Center(
+                    child: Text(
+                      'No exercises found',
+                      style: TextStyle(color: c.textSecondary, fontFamily: 'Rubik'),
                     ),
-            ),
-          ],
-        ),
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                    itemCount: filtered.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (_, i) => _ExerciseTile(entry: filtered[i]),
+                  ),
+          ),
+        ],
       ),
     );
   }
@@ -150,6 +145,7 @@ class _ExerciseTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return GestureDetector(
       onTap: () => Navigator.of(context, rootNavigator: true).push(
         CupertinoPageRoute(
@@ -159,8 +155,9 @@ class _ExerciseTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: mainDarkBlue,
+          color: c.card,
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: c.border),
         ),
         child: Row(
           children: [
@@ -170,10 +167,10 @@ class _ExerciseTile extends StatelessWidget {
                 children: [
                   Text(
                     entry.name,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: CupertinoColors.white,
+                      fontWeight: FontWeight.w700,
+                      color: c.textPrimary,
                       fontFamily: 'Rubik',
                     ),
                   ),
@@ -182,9 +179,9 @@ class _ExerciseTile extends StatelessWidget {
                     entry.description,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: Color(0xFF8B9EAE),
+                      color: c.textSecondary,
                       fontFamily: 'Rubik',
                     ),
                   ),
@@ -195,25 +192,21 @@ class _ExerciseTile extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: const Color(0xFF1E3A50),
+                color: c.iconBg,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 entry.muscleGroup,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 11,
-                  color: Color(0xFF06B6D4),
+                  color: c.accent,
                   fontFamily: 'Rubik',
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
             const SizedBox(width: 8),
-            const Icon(
-              CupertinoIcons.chevron_forward,
-              size: 16,
-              color: Color(0xFF546A7B),
-            ),
+            Icon(CupertinoIcons.chevron_forward, size: 16, color: c.textSecondary),
           ],
         ),
       ),
@@ -234,119 +227,111 @@ class _ExerciseDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoPageScaffold(
-      backgroundColor: const Color(0xFFCAE9FF),
-      navigationBar: CupertinoNavigationBar(
-        middle: Text(entry.name),
-        backgroundColor: const Color(0xFFCAE9FF),
-        border: null,
-      ),
-      child: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: mainDarkBlue,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                    decoration: BoxDecoration(
-                      gradient: MainGradient.purpleBlueGradient,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      entry.muscleGroup,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: CupertinoColors.white,
-                        fontFamily: 'Rubik',
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+    final c = context.colors;
+    return AppPage(
+      title: entry.name,
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: c.card,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: c.border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: c.accent,
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    entry.description,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF8B9EAE),
+                  child: Text(
+                    entry.muscleGroup,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: c.textOnAccent,
                       fontFamily: 'Rubik',
-                      height: 1.5,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'Recent History',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                fontFamily: 'Rubik',
-                color: Color(0xFF0D1F2D),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              decoration: BoxDecoration(
-                color: mainDarkBlue,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: _history.length,
-                separatorBuilder: (_, __) => Container(
-                  height: 1,
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  color: const Color(0xFF1E3A50),
                 ),
-                itemBuilder: (_, i) {
-                  final h = _history[i];
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          CupertinoIcons.calendar,
-                          size: 16,
-                          color: Color(0xFF546A7B),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            h['date']!,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Color(0xFF8B9EAE),
-                              fontFamily: 'Rubik',
-                            ),
-                          ),
-                        ),
-                        Text(
-                          h['sets']!,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: CupertinoColors.white,
-                            fontFamily: 'Rubik',
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
+                const SizedBox(height: 16),
+                Text(
+                  entry.description,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: c.textSecondary,
+                    fontFamily: 'Rubik',
+                    height: 1.5,
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'Recent History',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              fontFamily: 'Rubik',
+              color: c.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            decoration: BoxDecoration(
+              color: c.card,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: c.border),
+            ),
+            child: ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _history.length,
+              separatorBuilder: (_, __) => Container(
+                height: 1,
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                color: c.border,
+              ),
+              itemBuilder: (_, i) {
+                final h = _history[i];
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  child: Row(
+                    children: [
+                      Icon(CupertinoIcons.calendar, size: 16, color: c.textSecondary),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          h['date']!,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: c.textSecondary,
+                            fontFamily: 'Rubik',
+                          ),
+                        ),
+                      ),
+                      Text(
+                        h['sets']!,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: c.textPrimary,
+                          fontFamily: 'Rubik',
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
