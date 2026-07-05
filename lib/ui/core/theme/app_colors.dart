@@ -1,11 +1,13 @@
 import 'package:flutter/widgets.dart';
 
 /// Full colour palette for one theme (light or dark). Read it from context via
-/// `context.colors` (see theme_controller.dart).
+/// `context.colors` (see theme_controller.dart). Tuned to the "design 5" look:
+/// near-white / pure-black backgrounds, a bright red accent, and a high-contrast
+/// inverse surface for the primary action button.
 class AppColors {
   final bool isDark;
 
-  // Page background (subtle vertical gradient).
+  // Page background (flat).
   final Color bg;
   final Color bgTop;
   final Color bgBottom;
@@ -27,6 +29,10 @@ class AppColors {
   final Color ringTrack;
   final Color navInactive;
 
+  // High-contrast inverse surface (primary action button).
+  final Color invBg;
+  final Color invText;
+
   const AppColors({
     required this.isDark,
     required this.bg,
@@ -43,41 +49,47 @@ class AppColors {
     required this.accentPressed,
     required this.ringTrack,
     required this.navInactive,
+    required this.invBg,
+    required this.invText,
   });
 
   static const light = AppColors(
     isDark: false,
-    bg: Color(0xFFFBF5F3),
-    bgTop: Color(0xFFF7E9E5),
-    bgBottom: Color(0xFFFDF8F6),
-    card: Color(0xFFF7E7E3),
-    iconBg: Color(0xFFF0D6D1),
-    border: Color(0xFFEBD9D4),
-    pillBorder: Color(0xFFE3CFC9),
-    textPrimary: Color(0xFF1B1A1A),
-    textSecondary: Color(0xFF8C8480),
+    bg: Color(0xFFFCFAF8),
+    bgTop: Color(0xFFFCFAF8),
+    bgBottom: Color(0xFFFCFAF8),
+    card: Color(0xFFF4EFEC),
+    iconBg: Color(0xFFF0E7E4),
+    border: Color(0xFFEAE4E0),
+    pillBorder: Color(0xFFE0D8D3),
+    textPrimary: Color(0xFF141312),
+    textSecondary: Color(0xFF8B8480),
     textOnAccent: Color(0xFFFFFFFF),
-    accent: Color(0xFFD23B36),
-    accentPressed: Color(0xFFB93330),
-    ringTrack: Color(0xFFE9DAD5),
-    navInactive: Color(0xFFB3A8A4),
+    accent: Color(0xFFDE3B34),
+    accentPressed: Color(0xFFC2332D),
+    ringTrack: Color(0xFFEAE0DB),
+    navInactive: Color(0xFFB0A6A2),
+    invBg: Color(0xFF121212),
+    invText: Color(0xFFFFFFFF),
   );
 
   static const dark = AppColors(
     isDark: true,
-    bg: Color(0xFF120C0C),
-    bgTop: Color(0xFF1A1010),
-    bgBottom: Color(0xFF0C0808),
-    card: Color(0xFF1C1313),
-    iconBg: Color(0xFF281B1B),
-    border: Color(0xFF2C1F1F),
-    pillBorder: Color(0xFF3A2A2A),
-    textPrimary: Color(0xFFF5EEEE),
-    textSecondary: Color(0xFF988D8D),
+    bg: Color(0xFF0B0A0A),
+    bgTop: Color(0xFF0B0A0A),
+    bgBottom: Color(0xFF0B0A0A),
+    card: Color(0xFF171111),
+    iconBg: Color(0xFF221818),
+    border: Color(0xFF241B1B),
+    pillBorder: Color(0xFF332626),
+    textPrimary: Color(0xFFF3EEEE),
+    textSecondary: Color(0xFF8E8383),
     textOnAccent: Color(0xFFFFFFFF),
-    accent: Color(0xFFD8433E),
-    accentPressed: Color(0xFFB93330),
-    ringTrack: Color(0xFF332525),
-    navInactive: Color(0xFF6E6060),
+    accent: Color(0xFFE0413A),
+    accentPressed: Color(0xFFC2332D),
+    ringTrack: Color(0xFF2A2020),
+    navInactive: Color(0xFF6A5E5E),
+    invBg: Color(0xFFF2ECE8),
+    invText: Color(0xFF121212),
   );
 }

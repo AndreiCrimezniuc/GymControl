@@ -4,15 +4,13 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gymboss/data/repositories/ranking_repository.dart';
 import 'package:gymboss/data/repositories/sessions_repository.dart';
+import 'package:gymboss/data/repositories/trainings_api.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
+import 'package:gymboss/data/services/trainings/trainings.dart';
 import 'package:gymboss/domain/models/ranking/rank_data.dart';
 import 'package:gymboss/domain/models/streak/streak_data.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
-import 'package:gymboss/ui/core/ui/widgets/app_bottom_nav.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_scaffold.dart';
-import 'package:gymboss/ui/core/ui/widgets/menu_card.dart';
-import 'package:gymboss/ui/core/ui/widgets/pill_button.dart';
-import 'package:gymboss/ui/core/ui/widgets/streak_ring.dart';
 import 'package:gymboss/ui/core/ui/widgets/theme_toggle.dart';
 import 'package:gymboss/ui/menu_options_list/exercises/widgets/exercises.dart';
 import 'package:gymboss/ui/menu_options_list/program/widgets/program.dart';
@@ -31,7 +29,9 @@ class MenuOptions extends StatefulWidget {
 class _MenuOptionsState extends State<MenuOptions> {
   late final SessionsRepository _sessions;
   late final RankingRepository _ranking;
+  late final TrainingsService _trainings;
   StreakData _streak = StreakData.empty;
+  int _workouts = 0;
 
   @override
   void initState() {
@@ -39,15 +39,22 @@ class _MenuOptionsState extends State<MenuOptions> {
     final client = context.read<AuthenticatedClient>();
     _sessions = SessionsRepository(client: client);
     _ranking = RankingRepository(client: client);
+    _trainings = TrainingsService(repository: TrainingsApiRepository(client: client));
     _loadStreak();
+    _loadWorkouts();
+  }
+
+  Future<void> _loadWorkouts() async {
+    try {
+      final t = await _trainings.fetchAllTrainings();
+      if (mounted) setState(() => _workouts = t.length);
+    } catch (_) {}
   }
 
   Future<void> _loadStreak() async {
     try {
       await _sessions.recordSession();
-    } catch (_) {
-      // non-critical — already recorded today or backend rebuilding
-    }
+    } catch (_) {}
     try {
       final data = await _sessions.getStreakData();
       if (mounted) {
@@ -56,7 +63,6 @@ class _MenuOptionsState extends State<MenuOptions> {
             : StreakData(currentStreakWeeks: 1, activeWeeks: data.activeWeeks));
       }
     } catch (_) {
-      // backend unreachable — show 1 week since user just opened the app
       if (mounted) {
         setState(() => _streak = const StreakData(currentStreakWeeks: 1, activeWeeks: []));
       }
@@ -70,14 +76,12 @@ class _MenuOptionsState extends State<MenuOptions> {
       if (!mounted) return;
       if (profile.dontAskWeight) return;
 
-      // First-time: no weight set
       if (profile.weightKg == null) {
         await Future.delayed(const Duration(milliseconds: 600));
         if (mounted) _showFirstTimeWeightSheet();
         return;
       }
 
-      // Monthly check: weight not updated in 30+ days
       final prefs = await SharedPreferences.getInstance();
       final lastCheckMs = prefs.getInt('weight_last_asked') ?? 0;
       final lastCheck = DateTime.fromMillisecondsSinceEpoch(lastCheckMs);
@@ -85,9 +89,7 @@ class _MenuOptionsState extends State<MenuOptions> {
         await Future.delayed(const Duration(milliseconds: 800));
         if (mounted) _showMonthlyWeightPopup(profile);
       }
-    } catch (_) {
-      // non-critical
-    }
+    } catch (_) {}
   }
 
   void _showFirstTimeWeightSheet() {
@@ -112,176 +114,124 @@ class _MenuOptionsState extends State<MenuOptions> {
   }
 
   void _push(Widget page) {
-    Navigator.of(context).push(
-      CupertinoPageRoute<void>(builder: (_) => page),
-    );
+    Navigator.of(context).push(CupertinoPageRoute<void>(builder: (_) => page));
   }
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     final weeks = _streak.currentStreakWeeks;
-    final ringProgress =
-        weeks <= 0 ? 0.0 : (weeks % 7 == 0 ? 1.0 : (weeks % 7) / 7);
+    final milestonePct = weeks <= 0 ? 0 : ((weeks % 4) / 4 * 100).round();
 
     return AppScaffold(
       child: Column(
         children: [
           Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // ── Header ──────────────────────────────────────────────
-                  Row(
-                    children: [
-                      Container(
-                        width: 13,
-                        height: 13,
-                        decoration: BoxDecoration(
-                          color: c.accent,
-                          borderRadius: BorderRadius.circular(3),
-                        ),
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
+              children: [
+                // ── Header ──────────────────────────────────────────────
+                Row(
+                  children: [
+                    Text(
+                      'GYM CONTROL',
+                      style: TextStyle(
+                        fontFamily: 'Rubik',
+                        fontSize: 19,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 2,
+                        color: c.textPrimary,
                       ),
-                      const SizedBox(width: 10),
-                      Text(
-                        'GYM CONTROL',
-                        style: TextStyle(
-                          fontFamily: 'Rubik',
-                          fontSize: 19,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.2,
-                          color: c.textPrimary,
-                        ),
-                      ),
-                      const Spacer(),
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: c.accent,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'READY',
-                        style: TextStyle(
-                          fontFamily: 'Rubik',
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 1.5,
-                          color: c.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const ThemeToggle(),
-                    ],
-                  ),
-
-                  const SizedBox(height: 30),
-
-                  // ── Streak ring ─────────────────────────────────────────
-                  Center(
-                    child: StreakRing(
-                      value: weeks,
-                      caption: 'Week Streak',
-                      progress: ringProgress,
-                      onTap: () => _showYearCalendar(context),
                     ),
-                  ),
+                    const Spacer(),
+                    Container(
+                      width: 7, height: 7,
+                      decoration: BoxDecoration(color: c.accent, borderRadius: BorderRadius.circular(4)),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'READY',
+                      style: TextStyle(
+                        fontFamily: 'Rubik',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 1.5,
+                        color: c.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const ThemeToggle(),
+                  ],
+                ),
 
-                  const SizedBox(height: 30),
+                const SizedBox(height: 22),
 
-                  // ── Action pills ────────────────────────────────────────
-                  Row(
-                    children: [
-                      Expanded(
-                        child: PillButton(
-                          label: 'Start',
-                          filled: true,
-                          onTap: () => _push(const Training()),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: PillButton(
-                          label: 'Program',
-                          onTap: () => _push(const Program()),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: PillButton(
-                          label: 'Stats',
-                          onTap: () => _push(const Statistics()),
-                        ),
-                      ),
+                // ── Stats strip ─────────────────────────────────────────
+                GestureDetector(
+                  onTap: () => _showYearCalendar(context),
+                  child: _StatStrip(
+                    segments: [
+                      ('$weeks', weeks == 1 ? 'WEEK\nSTREAK' : 'WEEK\nSTREAK'),
+                      ('$milestonePct%', 'TO\nMILESTONE'),
+                      ('$_workouts', 'ROUTINES'),
                     ],
                   ),
+                ),
 
-                  const SizedBox(height: 24),
+                const SizedBox(height: 28),
 
-                  // ── Menu cards ──────────────────────────────────────────
-                  MenuCard(
-                    icon: Icons.emoji_events_rounded,
-                    iconColor: c.accent,
-                    title: 'My Program',
-                    subtitle: 'View routines',
-                    onTap: () => _push(const Program()),
+                // ── Menu ────────────────────────────────────────────────
+                Text(
+                  'MENU',
+                  style: TextStyle(
+                    fontFamily: 'Rubik',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 2,
+                    color: c.textSecondary,
                   ),
-                  const SizedBox(height: 12),
-                  MenuCard(
-                    icon: Icons.bar_chart_rounded,
-                    title: 'Statistics',
-                    subtitle: 'Track progress',
-                    onTap: () => _push(const Statistics()),
-                  ),
-                  const SizedBox(height: 12),
-                  MenuCard(
-                    icon: Icons.emoji_events_outlined,
-                    title: 'Rank',
-                    subtitle: 'See where you stand',
-                    onTap: () => _push(const Ranking()),
-                  ),
-                  const SizedBox(height: 12),
-                  MenuCard(
-                    icon: Icons.fitness_center_rounded,
-                    title: 'Exercises',
-                    subtitle: 'Browse library',
-                    onTap: () => _push(const Exercises()),
-                  ),
-                  const SizedBox(height: 12),
-                  MenuCard(
-                    icon: Icons.wb_sunny_outlined,
-                    title: 'Settings',
-                    subtitle: 'Customize app',
-                    onTap: () => _push(const Settings()),
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 12),
+                _MenuRow(
+                  icon: Icons.emoji_events_rounded,
+                  accentTile: true,
+                  title: 'My Program',
+                  subtitle: 'View routines',
+                  onTap: () => _push(const Program()),
+                ),
+                _MenuRow(
+                  icon: Icons.bar_chart_rounded,
+                  title: 'Statistics',
+                  subtitle: 'Track progress',
+                  onTap: () => _push(const Statistics()),
+                ),
+                _MenuRow(
+                  icon: Icons.emoji_events_outlined,
+                  title: 'Rank',
+                  subtitle: 'See where you stand',
+                  onTap: () => _push(const Ranking()),
+                ),
+                _MenuRow(
+                  icon: Icons.fitness_center_rounded,
+                  title: 'Exercises',
+                  subtitle: 'Browse library',
+                  onTap: () => _push(const Exercises()),
+                ),
+                _MenuRow(
+                  icon: Icons.wb_sunny_outlined,
+                  title: 'Settings',
+                  subtitle: 'Customize app',
+                  onTap: () => _push(const Settings()),
+                  last: true,
+                ),
+              ],
             ),
           ),
 
-          // ── Bottom navigation ───────────────────────────────────────────
-          AppBottomNav(
-            activeIndex: 0,
-            items: [
-              const BottomNavItem(icon: Icons.home_outlined),
-              BottomNavItem(
-                icon: Icons.fitness_center_rounded,
-                onTap: () => _push(const Exercises()),
-              ),
-              BottomNavItem(
-                icon: Icons.bar_chart_rounded,
-                onTap: () => _push(const Statistics()),
-              ),
-              BottomNavItem(
-                icon: Icons.person_outline,
-                onTap: () => _push(const Settings()),
-              ),
-            ],
+          // ── Start workout ───────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+            child: _StartButton(onTap: () => _push(const Training())),
           ),
         ],
       ),
@@ -292,6 +242,167 @@ class _MenuOptionsState extends State<MenuOptions> {
     showCupertinoModalPopup<void>(
       context: context,
       builder: (_) => _YearCalendarSheet(streak: _streak),
+    );
+  }
+}
+
+// ── Stats strip (3 red segments) ──────────────────────────────────────────────
+
+class _StatStrip extends StatelessWidget {
+  final List<(String, String)> segments;
+  const _StatStrip({required this.segments});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Container(
+      height: 116,
+      color: c.accent,
+      child: Row(
+        children: [
+          for (var i = 0; i < segments.length; i++) ...[
+            if (i > 0)
+              Container(width: 1, color: const Color(0x33FFFFFF)),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    Text(
+                      segments[i].$1,
+                      style: const TextStyle(
+                        fontFamily: 'Rubik',
+                        fontSize: 30,
+                        fontWeight: FontWeight.w800,
+                        height: 1,
+                        color: Color(0xFFFFFFFF),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      segments[i].$2,
+                      style: const TextStyle(
+                        fontFamily: 'Rubik',
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1,
+                        height: 1.25,
+                        color: Color(0xCCFFFFFF),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ── Flat menu row ─────────────────────────────────────────────────────────────
+
+class _MenuRow extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+  final bool accentTile;
+  final bool last;
+
+  const _MenuRow({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    this.accentTile = false,
+    this.last = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: accentTile ? c.accent.withValues(alpha: 0.12) : c.iconBg,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, size: 22, color: accentTile ? c.accent : c.textSecondary),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontFamily: 'Rubik',
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                          color: c.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: TextStyle(fontFamily: 'Rubik', fontSize: 13, color: c.textSecondary),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(CupertinoIcons.arrow_right, size: 18, color: c.textSecondary),
+              ],
+            ),
+          ),
+          if (!last) Container(height: 1, color: c.border),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Start workout button ──────────────────────────────────────────────────────
+
+class _StartButton extends StatelessWidget {
+  final VoidCallback onTap;
+  const _StartButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        height: 58,
+        alignment: Alignment.center,
+        color: c.invBg,
+        child: Text(
+          'START WORKOUT',
+          style: TextStyle(
+            fontFamily: 'Rubik',
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 2,
+            color: c.invText,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -496,7 +607,6 @@ class _MonthlyWeightDialogState extends State<_MonthlyWeightDialog> {
       actions: [
         CupertinoDialogAction(
           onPressed: _dontAsk,
-          isDestructiveAction: false,
           child: const Text("Don't ask again", style: TextStyle(fontSize: 13)),
         ),
         CupertinoDialogAction(
@@ -534,31 +644,18 @@ class _YearCalendarSheet extends StatelessWidget {
         children: [
           const SizedBox(height: 8),
           Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: c.border,
-              borderRadius: BorderRadius.circular(2),
-            ),
+            width: 40, height: 4,
+            decoration: BoxDecoration(color: c.border, borderRadius: BorderRadius.circular(2)),
           ),
           const SizedBox(height: 16),
           Text(
             '$year  •  ${streak.currentStreakWeeks} week${streak.currentStreakWeeks == 1 ? '' : 's'} streak',
-            style: TextStyle(
-              color: c.textPrimary,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              fontFamily: 'Rubik',
-            ),
+            style: TextStyle(color: c.textPrimary, fontSize: 16, fontWeight: FontWeight.w600, fontFamily: 'Rubik'),
           ),
           const SizedBox(height: 4),
           Text(
             '${streak.activeWeeks.length} week${streak.activeWeeks.length == 1 ? '' : 's'} active this year',
-            style: TextStyle(
-              color: c.textSecondary,
-              fontSize: 12,
-              fontFamily: 'Rubik',
-            ),
+            style: TextStyle(color: c.textSecondary, fontSize: 12, fontFamily: 'Rubik'),
           ),
           const SizedBox(height: 20),
           Expanded(
@@ -580,15 +677,11 @@ class _YearCalendarSheet extends StatelessWidget {
   static int _isoWeekNumber(DateTime d) {
     final thursday = d.add(Duration(days: 4 - d.weekday));
     final jan1 = DateTime(thursday.year, 1, 1);
-    final firstThursday = jan1.add(
-      Duration(days: (4 - jan1.weekday + 7) % 7),
-    );
+    final firstThursday = jan1.add(Duration(days: (4 - jan1.weekday + 7) % 7));
     return ((thursday.difference(firstThursday).inDays) / 7).floor() + 1;
   }
 
-  static int _weeksInYear(int year) {
-    return _isoWeekNumber(DateTime(year, 12, 28));
-  }
+  static int _weeksInYear(int year) => _isoWeekNumber(DateTime(year, 12, 28));
 }
 
 class _WeekGrid extends StatelessWidget {
@@ -596,11 +689,7 @@ class _WeekGrid extends StatelessWidget {
   final Set<int> activeWeeks;
   final int currentWeek;
 
-  const _WeekGrid({
-    required this.totalWeeks,
-    required this.activeWeeks,
-    required this.currentWeek,
-  });
+  const _WeekGrid({required this.totalWeeks, required this.activeWeeks, required this.currentWeek});
 
   @override
   Widget build(BuildContext context) {
