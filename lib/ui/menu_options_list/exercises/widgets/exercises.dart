@@ -1,41 +1,11 @@
+import 'dart:async';
 import 'package:flutter/cupertino.dart';
+import 'package:provider/provider.dart';
+import 'package:gymboss/data/repositories/exercises_repository.dart';
+import 'package:gymboss/data/services/auth/authenticated_client.dart';
+import 'package:gymboss/domain/models/exercises/exercise_catalog.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
-
-class _CatalogEntry {
-  final String name;
-  final String muscleGroup;
-  final String description;
-
-  const _CatalogEntry({
-    required this.name,
-    required this.muscleGroup,
-    required this.description,
-  });
-}
-
-const _catalog = [
-  _CatalogEntry(name: 'Bench Press', muscleGroup: 'Chest', description: 'Lie on bench, lower bar to chest, press up.'),
-  _CatalogEntry(name: 'Incline DB Press', muscleGroup: 'Chest', description: 'Press dumbbells on an inclined bench.'),
-  _CatalogEntry(name: 'Cable Fly', muscleGroup: 'Chest', description: 'Cable crossover fly for chest isolation.'),
-  _CatalogEntry(name: 'Pull Ups', muscleGroup: 'Back', description: 'Dead hang, pull until chin clears the bar.'),
-  _CatalogEntry(name: 'Barbell Row', muscleGroup: 'Back', description: 'Bent-over row for upper back thickness.'),
-  _CatalogEntry(name: 'Lat Pulldown', muscleGroup: 'Back', description: 'Pull bar to upper chest for lat width.'),
-  _CatalogEntry(name: 'Squats', muscleGroup: 'Legs', description: 'Full-depth squat with bar on upper back.'),
-  _CatalogEntry(name: 'Romanian Deadlift', muscleGroup: 'Legs', description: 'Hip hinge targeting hamstrings and glutes.'),
-  _CatalogEntry(name: 'Leg Press', muscleGroup: 'Legs', description: 'Press plate for quad and glute development.'),
-  _CatalogEntry(name: 'Overhead Press', muscleGroup: 'Shoulders', description: 'Press barbell overhead for shoulder mass.'),
-  _CatalogEntry(name: 'Lateral Raises', muscleGroup: 'Shoulders', description: 'Dumbbell raises for lateral deltoid isolation.'),
-  _CatalogEntry(name: 'Face Pulls', muscleGroup: 'Shoulders', description: 'Cable pull for rear delt and external rotation.'),
-  _CatalogEntry(name: 'Barbell Curl', muscleGroup: 'Arms', description: 'Curl barbell for bicep peak development.'),
-  _CatalogEntry(name: 'Tricep Pushdown', muscleGroup: 'Arms', description: 'Cable pushdown for tricep isolation.'),
-  _CatalogEntry(name: 'Hammer Curl', muscleGroup: 'Arms', description: 'Neutral grip curl for brachialis development.'),
-  _CatalogEntry(name: 'Plank', muscleGroup: 'Core', description: 'Isometric hold for core stability endurance.'),
-  _CatalogEntry(name: 'Cable Crunch', muscleGroup: 'Core', description: 'Cable crunch for rectus abdominis isolation.'),
-  _CatalogEntry(name: 'Hanging Leg Raise', muscleGroup: 'Core', description: 'Raise legs from a dead hang for lower abs.'),
-];
-
-const _groups = ['All', 'Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core'];
 
 class Exercises extends StatefulWidget {
   const Exercises({super.key});
@@ -45,9 +15,21 @@ class Exercises extends StatefulWidget {
 }
 
 class _ExercisesState extends State<Exercises> {
+  late final ExercisesRepository _repo;
+  final _searchCtrl = TextEditingController();
+
+  bool _loading = true;
+  String? _error;
+  List<ExerciseCatalogItem> _all = [];
   String _group = 'All';
   String _query = '';
-  final _searchCtrl = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _repo = ExercisesRepository(client: context.read<AuthenticatedClient>());
+    _load();
+  }
 
   @override
   void dispose() {
@@ -55,105 +37,133 @@ class _ExercisesState extends State<Exercises> {
     super.dispose();
   }
 
-  List<_CatalogEntry> get _filtered => _catalog.where((e) {
-    final matchGroup = _group == 'All' || e.muscleGroup == _group;
-    final matchQuery = _query.isEmpty ||
-        e.name.toLowerCase().contains(_query.toLowerCase());
-    return matchGroup && matchQuery;
-  }).toList();
+  Future<void> _load() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      final items = await _repo.getCatalog();
+      if (mounted) setState(() { _all = items; _loading = false; });
+    } catch (e) {
+      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+    }
+  }
+
+  List<String> get _groups {
+    final s = _all.map((e) => e.muscleGroup).where((g) => g.isNotEmpty).toSet().toList()..sort();
+    return ['All', ...s];
+  }
+
+  List<ExerciseCatalogItem> get _filtered => _all.where((e) {
+        final mg = _group == 'All' || e.muscleGroup == _group;
+        final q = _query.isEmpty || e.name.toLowerCase().contains(_query.toLowerCase());
+        return mg && q;
+      }).toList();
+
+  void _openCreate() {
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (_) => _CreateExerciseSheet(repo: _repo, onCreated: (_) => _load()),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final filtered = _filtered;
     return AppPage(
       title: 'Exercises',
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
-            child: CupertinoSearchTextField(
-              controller: _searchCtrl,
-              placeholder: 'Search exercises',
-              backgroundColor: c.card,
-              style: TextStyle(color: c.textPrimary, fontFamily: 'Rubik'),
-              placeholderStyle: TextStyle(color: c.textSecondary, fontFamily: 'Rubik'),
-              itemColor: c.textSecondary,
-              onChanged: (v) => setState(() => _query = v),
-            ),
+      actions: [
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: _openCreate,
+          child: Icon(CupertinoIcons.add_circled, size: 24, color: c.accent),
+        ),
+      ],
+      body: _loading
+          ? const Center(child: CupertinoActivityIndicator())
+          : _error != null
+              ? _ErrorView(error: _error!, onRetry: _load)
+              : _buildList(c),
+    );
+  }
+
+  Widget _buildList(dynamic c) {
+    final filtered = _filtered;
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+          child: CupertinoSearchTextField(
+            controller: _searchCtrl,
+            placeholder: 'Search ${_all.length} exercises',
+            backgroundColor: c.card,
+            style: TextStyle(color: c.textPrimary, fontFamily: 'Rubik'),
+            placeholderStyle: TextStyle(color: c.textSecondary, fontFamily: 'Rubik'),
+            itemColor: c.textSecondary,
+            onChanged: (v) => setState(() => _query = v),
           ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 36,
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              scrollDirection: Axis.horizontal,
-              itemCount: _groups.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemBuilder: (_, i) {
-                final g = _groups[i];
-                final active = g == _group;
-                return GestureDetector(
-                  onTap: () => setState(() => _group = g),
-                  child: Container(
-                    alignment: Alignment.center,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: active ? c.accent : c.card,
-                      borderRadius: BorderRadius.circular(12),
-                      border: active ? null : Border.all(color: c.border),
-                    ),
-                    child: Text(
-                      g,
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 36,
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            scrollDirection: Axis.horizontal,
+            itemCount: _groups.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (_, i) {
+              final g = _groups[i];
+              final active = g == _group;
+              return GestureDetector(
+                onTap: () => setState(() => _group = g),
+                child: Container(
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: active ? c.accent : c.card,
+                    borderRadius: BorderRadius.circular(12),
+                    border: active ? null : Border.all(color: c.border),
+                  ),
+                  child: Text(g,
                       style: TextStyle(
                         fontSize: 13,
                         color: active ? c.textOnAccent : c.textSecondary,
                         fontFamily: 'Rubik',
                         fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
+                      )),
+                ),
+              );
+            },
           ),
-          const SizedBox(height: 12),
-          Expanded(
-            child: filtered.isEmpty
-                ? Center(
-                    child: Text(
-                      'No exercises found',
-                      style: TextStyle(color: c.textSecondary, fontFamily: 'Rubik'),
-                    ),
-                  )
-                : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-                    itemCount: filtered.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder: (_, i) => _ExerciseTile(entry: filtered[i]),
-                  ),
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 12),
+        Expanded(
+          child: filtered.isEmpty
+              ? Center(child: Text('No exercises found', style: TextStyle(color: c.textSecondary, fontFamily: 'Rubik')))
+              : ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                  itemCount: filtered.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  itemBuilder: (_, i) => _ExerciseTile(entry: filtered[i], repo: _repo),
+                ),
+        ),
+      ],
     );
   }
 }
 
 class _ExerciseTile extends StatelessWidget {
-  final _CatalogEntry entry;
-  const _ExerciseTile({required this.entry});
+  final ExerciseCatalogItem entry;
+  final ExercisesRepository repo;
+  const _ExerciseTile({required this.entry, required this.repo});
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     return GestureDetector(
       onTap: () => Navigator.of(context, rootNavigator: true).push(
-        CupertinoPageRoute(
-          builder: (_) => _ExerciseDetailScreen(entry: entry),
-        ),
+        CupertinoPageRoute(builder: (_) => _ExerciseDetailScreen(entry: entry, repo: repo)),
       ),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
           color: c.card,
           borderRadius: BorderRadius.circular(16),
@@ -161,52 +171,28 @@ class _ExerciseTile extends StatelessWidget {
         ),
         child: Row(
           children: [
+            _Thumb(url: entry.imageUrl),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Text(entry.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: c.textPrimary, fontFamily: 'Rubik')),
+                  const SizedBox(height: 3),
                   Text(
-                    entry.name,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: c.textPrimary,
-                      fontFamily: 'Rubik',
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    entry.description,
+                    [entry.muscleGroup, entry.equipment].where((s) => s.isNotEmpty).join(' · '),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: c.textSecondary,
-                      fontFamily: 'Rubik',
-                    ),
+                    style: TextStyle(fontSize: 12, color: c.textSecondary, fontFamily: 'Rubik'),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: c.iconBg,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                entry.muscleGroup,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: c.accent,
-                  fontFamily: 'Rubik',
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
             const SizedBox(width: 8),
-            Icon(CupertinoIcons.chevron_forward, size: 16, color: c.textSecondary),
+            Icon(CupertinoIcons.arrow_right, size: 16, color: c.textSecondary),
           ],
         ),
       ),
@@ -214,95 +200,638 @@ class _ExerciseTile extends StatelessWidget {
   }
 }
 
-class _ExerciseDetailScreen extends StatelessWidget {
-  final _CatalogEntry entry;
-  const _ExerciseDetailScreen({required this.entry});
+class _Thumb extends StatelessWidget {
+  final String url;
+  final double size;
+  const _Thumb({required this.url, this.size = 52});
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: size,
+        height: size,
+        color: c.iconBg,
+        child: url.isEmpty
+            ? Icon(CupertinoIcons.photo, color: c.textSecondary, size: 20)
+            : Image.network(
+                url,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Icon(CupertinoIcons.photo, color: c.textSecondary, size: 20),
+                loadingBuilder: (ctx, child, prog) =>
+                    prog == null ? child : const Center(child: CupertinoActivityIndicator(radius: 8)),
+              ),
+      ),
+    );
+  }
+}
+
+// ── Detail ────────────────────────────────────────────────────────────────────
+
+class _ExerciseDetailScreen extends StatefulWidget {
+  final ExerciseCatalogItem entry;
+  final ExercisesRepository repo;
+  const _ExerciseDetailScreen({required this.entry, required this.repo});
+
+  @override
+  State<_ExerciseDetailScreen> createState() => _ExerciseDetailScreenState();
+}
+
+class _ExerciseDetailScreenState extends State<_ExerciseDetailScreen> {
+  ExerciseStats? _stats;
+  bool _loadingStats = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStats();
+  }
+
+  Future<void> _loadStats() async {
+    try {
+      final s = await widget.repo.getStats(widget.entry.id);
+      if (mounted) setState(() { _stats = s; _loadingStats = false; });
+    } catch (_) {
+      if (mounted) setState(() => _loadingStats = false);
+    }
+  }
+
+  void _logSet() {
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (_) => _LogSetSheet(
+        repo: widget.repo,
+        exerciseId: widget.entry.id,
+        onLogged: _loadStats,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final e = widget.entry;
     return AppPage(
-      title: entry.name,
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+      title: e.name,
+      body: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: c.card,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: c.border),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: c.accent,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    entry.muscleGroup,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: c.textOnAccent,
-                      fontFamily: 'Rubik',
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                _AnimatedDemo(url1: e.imageUrl, url2: e.imageUrl2),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    if (e.muscleGroup.isNotEmpty) _Chip(e.muscleGroup, accent: true),
+                    if (e.equipment.isNotEmpty) _Chip(e.equipment),
+                    if (e.level.isNotEmpty) _Chip(e.level),
+                    if (e.force.isNotEmpty) _Chip(e.force),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  entry.description,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: c.textSecondary,
-                    fontFamily: 'Rubik',
-                    height: 1.5,
-                  ),
-                ),
+                if (e.instructions.isNotEmpty) ...[
+                  const SizedBox(height: 18),
+                  _SectionLabel('How to'),
+                  const SizedBox(height: 8),
+                  Text(e.instructions,
+                      style: TextStyle(fontSize: 13, color: c.textSecondary, height: 1.5, fontFamily: 'Rubik')),
+                ],
+                const SizedBox(height: 20),
+                _SectionLabel('Your Stats'),
+                const SizedBox(height: 12),
+                if (_loadingStats)
+                  const Center(child: Padding(padding: EdgeInsets.all(20), child: CupertinoActivityIndicator()))
+                else
+                  _StatsBlock(stats: _stats),
+                const SizedBox(height: 12),
               ],
             ),
           ),
-          const SizedBox(height: 20),
-          Text(
-            'History',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              fontFamily: 'Rubik',
-              color: c.textPrimary,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 6, 20, 16),
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _logSet,
+              child: Container(
+                height: 54,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(color: c.accent, borderRadius: BorderRadius.circular(14)),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(CupertinoIcons.plus, size: 18, color: c.textOnAccent),
+                    const SizedBox(width: 8),
+                    Text('LOG A SET',
+                        style: TextStyle(
+                          fontFamily: 'Rubik', fontSize: 15, fontWeight: FontWeight.w800,
+                          letterSpacing: 1.5, color: c.textOnAccent,
+                        )),
+                  ],
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: c.card,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: c.border),
-            ),
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                Icon(CupertinoIcons.clock, size: 28, color: c.textSecondary),
-                const SizedBox(height: 10),
-                Text(
-                  'No history yet',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: c.textPrimary, fontFamily: 'Rubik'),
+        ],
+      ),
+    );
+  }
+}
+
+class _AnimatedDemo extends StatefulWidget {
+  final String url1;
+  final String url2;
+  const _AnimatedDemo({required this.url1, required this.url2});
+
+  @override
+  State<_AnimatedDemo> createState() => _AnimatedDemoState();
+}
+
+class _AnimatedDemoState extends State<_AnimatedDemo> {
+  bool _frame2 = false;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.url2.isNotEmpty && widget.url2 != widget.url1) {
+      _timer = Timer.periodic(const Duration(milliseconds: 800), (_) {
+        if (mounted) setState(() => _frame2 = !_frame2);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final url = _frame2 ? widget.url2 : widget.url1;
+    return AspectRatio(
+      aspectRatio: 4 / 3,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          color: c.iconBg,
+          child: url.isEmpty
+              ? Center(child: Icon(CupertinoIcons.photo, color: c.textSecondary, size: 40))
+              : AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 250),
+                  child: Image.network(
+                    url,
+                    key: ValueKey(url),
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => Center(child: Icon(CupertinoIcons.photo, color: c.textSecondary, size: 40)),
+                    loadingBuilder: (ctx, child, prog) =>
+                        prog == null ? child : const Center(child: CupertinoActivityIndicator()),
+                  ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Log this exercise in a workout\nto track your progress here.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: c.textSecondary, fontFamily: 'Rubik', height: 1.5),
+        ),
+      ),
+    );
+  }
+}
+
+class _StatsBlock extends StatelessWidget {
+  final ExerciseStats? stats;
+  const _StatsBlock({required this.stats});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final s = stats;
+    if (s == null || !s.hasData) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(color: c.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: c.border)),
+        child: Column(children: [
+          Icon(CupertinoIcons.chart_bar, size: 28, color: c.textSecondary),
+          const SizedBox(height: 10),
+          Text('No data yet',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: c.textPrimary, fontFamily: 'Rubik')),
+          const SizedBox(height: 4),
+          Text('Log a set below to start tracking\ntimes done, volume and progression.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, color: c.textSecondary, height: 1.5, fontFamily: 'Rubik')),
+        ]),
+      );
+    }
+
+    return Column(
+      children: [
+        Row(children: [
+          _StatCard(value: '${s.timesPerformed}', label: 'TIMES DONE'),
+          const SizedBox(width: 10),
+          _StatCard(value: '${s.totalSets}', label: 'TOTAL SETS'),
+          const SizedBox(width: 10),
+          _StatCard(value: '${s.totalReps}', label: 'TOTAL REPS'),
+        ]),
+        const SizedBox(height: 10),
+        Row(children: [
+          _StatCard(value: '${s.maxWeightKg.toStringAsFixed(0)} kg', label: 'MAX WEIGHT'),
+          const SizedBox(width: 10),
+          _StatCard(value: '${(s.maxVolumeKg / 1000).toStringAsFixed(1)}t', label: 'MAX VOLUME'),
+          const SizedBox(width: 10),
+          _StatCard(value: s.rank ?? '—', label: 'RANK'),
+        ]),
+        const SizedBox(height: 12),
+        _LoveBar(score: s.loveScore),
+        if (s.progression.length >= 2) ...[
+          const SizedBox(height: 16),
+          _SectionLabel('Progression'),
+          const SizedBox(height: 10),
+          _ProgressionChart(points: s.progression),
+        ],
+      ],
+    );
+  }
+}
+
+class _StatCard extends StatelessWidget {
+  final String value;
+  final String label;
+  const _StatCard({required this.value, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
+        decoration: BoxDecoration(color: c.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: c.border)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: c.textPrimary, fontFamily: 'Rubik')),
+            const SizedBox(height: 4),
+            Text(label, style: TextStyle(fontSize: 9, letterSpacing: 0.5, color: c.textSecondary, fontFamily: 'Rubik')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LoveBar extends StatelessWidget {
+  final int score; // 0..10
+  const _LoveBar({required this.score});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: c.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: c.border)),
+      child: Row(
+        children: [
+          Icon(CupertinoIcons.heart_fill, size: 18, color: c.accent),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Love coefficient  ·  $score/10',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: c.textPrimary, fontFamily: 'Rubik')),
+                const SizedBox(height: 6),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(3),
+                  child: Stack(children: [
+                    Container(height: 6, color: c.iconBg),
+                    FractionallySizedBox(
+                      widthFactor: (score / 10).clamp(0.0, 1.0),
+                      child: Container(height: 6, color: c.accent),
+                    ),
+                  ]),
                 ),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ProgressionChart extends StatelessWidget {
+  final List<ExerciseProgressionPoint> points;
+  const _ProgressionChart({required this.points});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final data = points.length > 12 ? points.sublist(points.length - 12) : points;
+    final maxW = data.map((e) => e.topWeightKg).fold<double>(1, (a, b) => a > b ? a : b);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+      decoration: BoxDecoration(color: c.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: c.border)),
+      child: SizedBox(
+        height: 90,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: data.map((p) {
+            final h = (p.topWeightKg / maxW * 70).clamp(4.0, 70.0);
+            return Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 3),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(p.topWeightKg.toStringAsFixed(0),
+                        style: TextStyle(fontSize: 8, color: c.textSecondary, fontFamily: 'Rubik')),
+                    const SizedBox(height: 3),
+                    Container(height: h, decoration: BoxDecoration(color: c.accent, borderRadius: BorderRadius.circular(4))),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+}
+
+class _Chip extends StatelessWidget {
+  final String text;
+  final bool accent;
+  const _Chip(this.text, {this.accent = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: accent ? c.accent : c.iconBg,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(text,
+          style: TextStyle(
+            fontSize: 11, fontWeight: FontWeight.w600,
+            color: accent ? c.textOnAccent : c.textSecondary, fontFamily: 'Rubik',
+          )),
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  final String text;
+  const _SectionLabel(this.text);
+  @override
+  Widget build(BuildContext context) => Text(text,
+      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Rubik', color: context.colors.textPrimary));
+}
+
+class _ErrorView extends StatelessWidget {
+  final String error;
+  final VoidCallback onRetry;
+  const _ErrorView({required this.error, required this.onRetry});
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Center(
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        const Text('⚠️', style: TextStyle(fontSize: 32)),
+        const SizedBox(height: 8),
+        Text('Could not load exercises', style: TextStyle(color: c.textPrimary, fontFamily: 'Rubik')),
+        const SizedBox(height: 16),
+        CupertinoButton(onPressed: onRetry, child: const Text('Retry')),
+      ]),
+    );
+  }
+}
+
+// ── Log set sheet ─────────────────────────────────────────────────────────────
+
+class _LogSetSheet extends StatefulWidget {
+  final ExercisesRepository repo;
+  final int exerciseId;
+  final VoidCallback onLogged;
+  const _LogSetSheet({required this.repo, required this.exerciseId, required this.onLogged});
+
+  @override
+  State<_LogSetSheet> createState() => _LogSetSheetState();
+}
+
+class _LogSetSheetState extends State<_LogSetSheet> {
+  final _weightCtrl = TextEditingController();
+  final _repsCtrl = TextEditingController(text: '10');
+  bool _saving = false;
+  String? _error;
+
+  Future<void> _save() async {
+    final w = double.tryParse(_weightCtrl.text) ?? 0;
+    final r = int.tryParse(_repsCtrl.text) ?? 0;
+    if (r <= 0) { setState(() => _error = 'Enter reps'); return; }
+    setState(() { _saving = true; _error = null; });
+    try {
+      await widget.repo.logSet(widget.exerciseId, weightKg: w, reps: r);
+      if (mounted) { Navigator.pop(context); widget.onLogged(); }
+    } catch (e) {
+      if (mounted) setState(() { _error = e.toString(); _saving = false; });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Container(
+      decoration: BoxDecoration(color: c.card, borderRadius: const BorderRadius.vertical(top: Radius.circular(20))),
+      padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(context).viewInsets.bottom + 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: c.border, borderRadius: BorderRadius.circular(2)))),
+          const SizedBox(height: 16),
+          Text('Log a set', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: c.textPrimary, fontFamily: 'Rubik')),
+          const SizedBox(height: 16),
+          Row(children: [
+            Expanded(child: _Field(controller: _weightCtrl, label: 'Weight (kg)', placeholder: '60', decimal: true)),
+            const SizedBox(width: 12),
+            Expanded(child: _Field(controller: _repsCtrl, label: 'Reps', placeholder: '10')),
+          ]),
+          if (_error != null) ...[
+            const SizedBox(height: 8),
+            Text(_error!, style: const TextStyle(fontSize: 12, color: Color(0xFFEF4444), fontFamily: 'Rubik')),
+          ],
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: CupertinoButton(
+              padding: EdgeInsets.zero,
+              onPressed: _saving ? null : _save,
+              child: Container(
+                height: 48,
+                decoration: BoxDecoration(color: _saving ? c.iconBg : c.accent, borderRadius: BorderRadius.circular(12)),
+                child: Center(
+                  child: _saving
+                      ? const CupertinoActivityIndicator()
+                      : Text('Save', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: c.textOnAccent, fontFamily: 'Rubik')),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Create custom exercise sheet ──────────────────────────────────────────────
+
+const _muscleGroups = ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Other'];
+
+class _CreateExerciseSheet extends StatefulWidget {
+  final ExercisesRepository repo;
+  final void Function(ExerciseCatalogItem) onCreated;
+  const _CreateExerciseSheet({required this.repo, required this.onCreated});
+
+  @override
+  State<_CreateExerciseSheet> createState() => _CreateExerciseSheetState();
+}
+
+class _CreateExerciseSheetState extends State<_CreateExerciseSheet> {
+  final _nameCtrl = TextEditingController();
+  final _imageCtrl = TextEditingController();
+  final _descCtrl = TextEditingController();
+  String _group = 'Chest';
+  bool _saving = false;
+  String? _error;
+
+  Future<void> _save() async {
+    final name = _nameCtrl.text.trim();
+    if (name.isEmpty) { setState(() => _error = 'Enter a name'); return; }
+    setState(() { _saving = true; _error = null; });
+    try {
+      final item = await widget.repo.createCustom(
+        name: name,
+        description: _descCtrl.text.trim(),
+        imageUrl: _imageCtrl.text.trim(),
+        muscleGroup: _group,
+      );
+      if (mounted) { Navigator.pop(context); widget.onCreated(item); }
+    } catch (e) {
+      if (mounted) setState(() { _error = e.toString().replaceFirst('Exception: ', ''); _saving = false; });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final img = _imageCtrl.text.trim();
+    return Container(
+      decoration: BoxDecoration(color: c.card, borderRadius: const BorderRadius.vertical(top: Radius.circular(20))),
+      padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(context).viewInsets.bottom + 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: c.border, borderRadius: BorderRadius.circular(2)))),
+          const SizedBox(height: 16),
+          Text('New exercise', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: c.textPrimary, fontFamily: 'Rubik')),
+          const SizedBox(height: 16),
+          _Field(controller: _nameCtrl, label: 'Name', placeholder: 'My Cable Crossover'),
+          const SizedBox(height: 12),
+          Text('MUSCLE GROUP', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: c.textSecondary, fontFamily: 'Rubik')),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 8, runSpacing: 8,
+            children: _muscleGroups.map((g) {
+              final active = g == _group;
+              return GestureDetector(
+                onTap: () => setState(() => _group = g),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: active ? c.accent : c.iconBg,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(g, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: active ? c.textOnAccent : c.textSecondary, fontFamily: 'Rubik')),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 12),
+          _Field(controller: _imageCtrl, label: 'Image URL', placeholder: 'https://…/photo.jpg', onChanged: (_) => setState(() {})),
+          if (img.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Center(child: _Thumb(url: img, size: 90)),
+          ],
+          const SizedBox(height: 12),
+          _Field(controller: _descCtrl, label: 'Description', placeholder: 'How to perform it…', maxLines: 3),
+          if (_error != null) ...[
+            const SizedBox(height: 8),
+            Text(_error!, style: const TextStyle(fontSize: 12, color: Color(0xFFEF4444), fontFamily: 'Rubik')),
+          ],
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: CupertinoButton(
+              padding: EdgeInsets.zero,
+              onPressed: _saving ? null : _save,
+              child: Container(
+                height: 48,
+                decoration: BoxDecoration(color: _saving ? c.iconBg : c.accent, borderRadius: BorderRadius.circular(12)),
+                child: Center(
+                  child: _saving
+                      ? const CupertinoActivityIndicator()
+                      : Text('Create', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: c.textOnAccent, fontFamily: 'Rubik')),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Field extends StatelessWidget {
+  final TextEditingController controller;
+  final String label;
+  final String placeholder;
+  final bool decimal;
+  final int maxLines;
+  final ValueChanged<String>? onChanged;
+  const _Field({
+    required this.controller,
+    required this.label,
+    required this.placeholder,
+    this.decimal = false,
+    this.maxLines = 1,
+    this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final numeric = label.contains('kg') || label == 'Reps' || decimal;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label.toUpperCase(), style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: c.textSecondary, fontFamily: 'Rubik')),
+        const SizedBox(height: 6),
+        CupertinoTextField(
+          controller: controller,
+          placeholder: placeholder,
+          maxLines: maxLines,
+          onChanged: onChanged,
+          keyboardType: numeric ? TextInputType.numberWithOptions(decimal: decimal) : TextInputType.text,
+          style: TextStyle(color: c.textPrimary, fontSize: 15, fontFamily: 'Rubik'),
+          placeholderStyle: TextStyle(color: c.textSecondary, fontSize: 15),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(color: c.iconBg, borderRadius: BorderRadius.circular(10), border: Border.all(color: c.border)),
+        ),
+      ],
     );
   }
 }
