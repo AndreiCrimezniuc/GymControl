@@ -201,19 +201,26 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                     children: [
                       _header(c),
                       Expanded(child: _body(c)),
+                      _finishBar(c),
                     ],
                   ),
-                  // Floating rest pill: pinned to the screen, independent of scroll.
+                  // Floating rest pill: pinned to the screen, independent of
+                  // scroll, hovering just above the finish bar.
                   Positioned(
                     left: 0,
                     right: 0,
-                    bottom: 20,
+                    bottom: 92,
                     child: IgnorePointer(
                       ignoring: !_resting,
-                      child: AnimatedOpacity(
-                        opacity: _resting ? 1 : 0,
-                        duration: const Duration(milliseconds: 200),
-                        child: Center(child: _RestPill(secondsLeft: _restLeft, onSkip: _skipRest)),
+                      child: AnimatedSlide(
+                        offset: _resting ? Offset.zero : const Offset(0, 0.4),
+                        duration: const Duration(milliseconds: 220),
+                        curve: const Cubic(0.23, 1, 0.32, 1),
+                        child: AnimatedOpacity(
+                          opacity: _resting ? 1 : 0,
+                          duration: const Duration(milliseconds: 200),
+                          child: Center(child: _RestPill(secondsLeft: _restLeft, onSkip: _skipRest)),
+                        ),
                       ),
                     ),
                   ),
@@ -265,97 +272,141 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
 
   Widget _body(AppColors c) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 40),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 120),
       children: [
         for (var gi = 0; gi < _groups.length; gi++) _exerciseCard(c, gi + 1, _groups[gi]),
-        const SizedBox(height: 8),
-        Pressable(
-          onTap: _finishing ? null : _finish,
-          child: Container(
-            height: 54,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(color: _finishing ? c.iconBg : c.accent, borderRadius: BorderRadius.circular(14)),
-            child: _finishing
-                ? const CupertinoActivityIndicator()
-                : Text(_doneSets >= _totalSets ? 'FINISH · ALL DONE' : 'FINISH WORKOUT',
-                    style: TextStyle(fontFamily: 'Rubik', fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 1.2, color: c.textOnAccent)),
-          ),
-        ),
       ],
+    );
+  }
+
+  Widget _finishBar(AppColors c) {
+    final allDone = _doneSets >= _totalSets;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      decoration: BoxDecoration(
+        color: c.bg,
+        border: Border(top: BorderSide(color: c.border)),
+      ),
+      child: Pressable(
+        onTap: _finishing ? null : _finish,
+        child: Container(
+          height: 56,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: _finishing ? c.iconBg : c.accent,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: _finishing
+              ? const CupertinoActivityIndicator()
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(allDone ? CupertinoIcons.checkmark_alt : CupertinoIcons.flag_fill, size: 18, color: c.textOnAccent),
+                    const SizedBox(width: 8),
+                    Text(allDone ? 'FINISH · ALL DONE' : 'FINISH WORKOUT',
+                        style: TextStyle(fontFamily: 'Rubik', fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 1, color: c.textOnAccent)),
+                  ],
+                ),
+        ),
+      ),
     );
   }
 
   Widget _exerciseCard(AppColors c, int index, _ExGroup g) {
     final doneInEx = g.sets.where((s) => s.done).length;
+    final allDone = doneInEx == g.sets.length;
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(color: c.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: c.border)),
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: BoxDecoration(color: c.card, borderRadius: BorderRadius.circular(18), border: Border.all(color: c.border)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            SizedBox(width: 40, height: 40, child: MuscleIllustration.fromMuscle(g.muscleGroup)),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('$index. ${g.name}',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: c.textPrimary, fontFamily: 'Rubik')),
-                  const SizedBox(height: 2),
-                  Text('$doneInEx / ${g.sets.length} sets  ·  rest ${g.restSeconds}s',
-                      style: TextStyle(fontSize: 11, color: c.textSecondary, fontFamily: 'Rubik')),
-                ],
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(children: [
+              Container(
+                width: 52,
+                height: 52,
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(color: c.iconBg, borderRadius: BorderRadius.circular(14)),
+                child: MuscleIllustration.fromMuscle(g.muscleGroup),
               ),
-            ),
-          ]),
-          const SizedBox(height: 12),
-          // column header
-          Row(children: [
-            SizedBox(width: 30, child: Text('SET', style: _hdr(c))),
-            const Spacer(),
-            SizedBox(width: 84, child: Text('KG', textAlign: TextAlign.center, style: _hdr(c))),
-            const SizedBox(width: 8),
-            SizedBox(width: 84, child: Text('REPS', textAlign: TextAlign.center, style: _hdr(c))),
-            const SizedBox(width: 8),
-            const SizedBox(width: 36),
-          ]),
-          const SizedBox(height: 6),
-          for (var i = 0; i < g.sets.length; i++) _setRow(c, i + 1, g.sets[i]),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('$index. ${g.name}',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: c.textPrimary, fontFamily: 'Rubik')),
+                    const SizedBox(height: 3),
+                    Text('${g.sets.length} sets  ·  rest ${g.restSeconds}s',
+                        style: TextStyle(fontSize: 12, color: c.textSecondary, fontFamily: 'Rubik')),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: allDone ? c.accent : c.iconBg,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text('$doneInEx/${g.sets.length}',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: allDone ? c.textOnAccent : c.textSecondary, fontFamily: 'Rubik')),
+              ),
+            ]),
+          ),
+          Container(height: 1, color: c.border),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+            child: Column(children: [for (var i = 0; i < g.sets.length; i++) _setRow(c, i + 1, g.sets[i])]),
+          ),
         ],
       ),
     );
   }
 
   Widget _setRow(AppColors c, int number, _SetEntry s) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      decoration: BoxDecoration(
+        color: s.done ? c.accent.withValues(alpha: 0.10) : c.iconBg,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Row(
         children: [
-          SizedBox(
+          Container(
             width: 30,
+            height: 30,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: s.done ? c.accent : c.card,
+              borderRadius: BorderRadius.circular(9),
+              border: Border.all(color: s.done ? c.accent : c.border),
+            ),
             child: Text('$number',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: s.done ? c.accent : c.textSecondary, fontFamily: 'Rubik')),
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: s.done ? c.textOnAccent : c.textSecondary, fontFamily: 'Rubik')),
           ),
-          const Spacer(),
-          SizedBox(width: 84, child: _numField(c, s.weight, s.done, 'kg')),
+          const SizedBox(width: 10),
+          Expanded(child: _numField(c, s.weight, s.done, 'kg')),
           const SizedBox(width: 8),
-          SizedBox(width: 84, child: _numField(c, s.reps, s.done, 'reps')),
-          const SizedBox(width: 8),
+          Expanded(child: _numField(c, s.reps, s.done, 'reps')),
+          const SizedBox(width: 10),
           Pressable(
             onTap: () => _toggleSet(s),
             child: Container(
-              width: 36,
-              height: 36,
+              width: 44,
+              height: 44,
+              alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: s.done ? c.accent : c.iconBg,
-                borderRadius: BorderRadius.circular(10),
+                color: s.done ? c.accent : c.card,
+                borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: s.done ? c.accent : c.border),
               ),
-              child: Icon(CupertinoIcons.check_mark, size: 20, color: s.done ? c.textOnAccent : c.textSecondary),
+              child: Icon(CupertinoIcons.check_mark, size: 22, color: s.done ? c.textOnAccent : c.textSecondary),
             ),
           ),
         ],
@@ -363,24 +414,25 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     );
   }
 
-  Widget _numField(AppColors c, TextEditingController ctrl, bool done, String hint) => CupertinoTextField(
+  Widget _numField(AppColors c, TextEditingController ctrl, bool done, String unit) => CupertinoTextField(
         controller: ctrl,
         readOnly: done,
-        placeholder: hint,
+        placeholder: '0',
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         textAlign: TextAlign.center,
-        style: TextStyle(color: done ? c.textSecondary : c.textPrimary, fontSize: 15, fontWeight: FontWeight.w700, fontFamily: 'Rubik'),
-        placeholderStyle: TextStyle(color: c.textSecondary, fontSize: 13),
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        style: TextStyle(color: c.textPrimary, fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'Rubik'),
+        placeholderStyle: TextStyle(color: c.textSecondary, fontSize: 16),
+        suffix: Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: Text(unit, style: TextStyle(fontSize: 11, color: c.textSecondary, fontFamily: 'Rubik')),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 8),
         decoration: BoxDecoration(
-          color: done ? c.card : c.iconBg,
-          borderRadius: BorderRadius.circular(8),
+          color: c.card,
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(color: c.border),
         ),
       );
-
-  TextStyle _hdr(AppColors c) =>
-      TextStyle(fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 0.5, color: c.textSecondary, fontFamily: 'Rubik');
 }
 
 class _RestPill extends StatelessWidget {
