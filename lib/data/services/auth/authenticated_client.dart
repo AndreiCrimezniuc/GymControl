@@ -37,6 +37,9 @@ class AuthenticatedClient {
   Future<http.Response> put(Uri uri, {Object? body}) =>
       _withRetry((h) => _inner.put(uri, headers: h, body: body));
 
+  Future<http.Response> delete(Uri uri, {Object? body}) =>
+      _withRetry((h) => _inner.delete(uri, headers: h, body: body));
+
   Future<http.Response> _withRetry(
     Future<http.Response> Function(Map<String, String>) make,
   ) async {

@@ -4,20 +4,18 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gymboss/data/repositories/ranking_repository.dart';
 import 'package:gymboss/data/repositories/sessions_repository.dart';
-import 'package:gymboss/data/repositories/trainings_api.dart';
+import 'package:gymboss/data/repositories/workouts_repository.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
-import 'package:gymboss/data/services/trainings/trainings.dart';
 import 'package:gymboss/domain/models/ranking/rank_data.dart';
 import 'package:gymboss/domain/models/streak/streak_data.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_scaffold.dart';
 import 'package:gymboss/ui/core/ui/widgets/theme_toggle.dart';
 import 'package:gymboss/ui/menu_options_list/exercises/widgets/exercises.dart';
-import 'package:gymboss/ui/menu_options_list/program/widgets/program.dart';
 import 'package:gymboss/ui/menu_options_list/ranking/widgets/ranking.dart';
 import 'package:gymboss/ui/menu_options_list/settings/widgets/settings.dart';
 import 'package:gymboss/ui/menu_options_list/statistics/widgets/statistics.dart';
-import 'package:gymboss/ui/menu_options_list/training/widgets/training.dart';
+import 'package:gymboss/ui/menu_options_list/workouts/widgets/workouts.dart';
 
 class MenuOptions extends StatefulWidget {
   const MenuOptions({super.key});
@@ -29,7 +27,7 @@ class MenuOptions extends StatefulWidget {
 class _MenuOptionsState extends State<MenuOptions> {
   late final SessionsRepository _sessions;
   late final RankingRepository _ranking;
-  late final TrainingsService _trainings;
+  late final WorkoutsRepository _workoutsRepo;
   StreakData _streak = StreakData.empty;
   int _workouts = 0;
 
@@ -39,15 +37,15 @@ class _MenuOptionsState extends State<MenuOptions> {
     final client = context.read<AuthenticatedClient>();
     _sessions = SessionsRepository(client: client);
     _ranking = RankingRepository(client: client);
-    _trainings = TrainingsService(repository: TrainingsApiRepository(client: client));
+    _workoutsRepo = WorkoutsRepository(client: client);
     _loadStreak();
     _loadWorkouts();
   }
 
   Future<void> _loadWorkouts() async {
     try {
-      final t = await _trainings.fetchAllTrainings();
-      if (mounted) setState(() => _workouts = t.length);
+      final w = await _workoutsRepo.listOwned();
+      if (mounted) setState(() => _workouts = w.length);
     } catch (_) {}
   }
 
@@ -115,6 +113,11 @@ class _MenuOptionsState extends State<MenuOptions> {
 
   void _push(Widget page) {
     Navigator.of(context).push(CupertinoPageRoute<void>(builder: (_) => page));
+  }
+
+  Future<void> _pushAndReload(Widget page) async {
+    await Navigator.of(context).push(CupertinoPageRoute<void>(builder: (_) => page));
+    _loadWorkouts();
   }
 
   @override
@@ -195,9 +198,9 @@ class _MenuOptionsState extends State<MenuOptions> {
                 _MenuRow(
                   icon: Icons.emoji_events_rounded,
                   accentTile: true,
-                  title: 'My Program',
-                  subtitle: 'View routines',
-                  onTap: () => _push(const Program()),
+                  title: 'My Workouts',
+                  subtitle: 'Programs & routines',
+                  onTap: () => _pushAndReload(const Workouts()),
                 ),
                 _MenuRow(
                   icon: Icons.bar_chart_rounded,
@@ -231,7 +234,7 @@ class _MenuOptionsState extends State<MenuOptions> {
           // ── Start workout ───────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-            child: _StartButton(onTap: () => _push(const Training())),
+            child: _StartButton(onTap: () => _pushAndReload(const Workouts())),
           ),
         ],
       ),
