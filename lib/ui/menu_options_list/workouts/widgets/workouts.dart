@@ -36,8 +36,8 @@ class _WorkoutsState extends State<Workouts> {
     _load();
   }
 
-  Future<void> _load() async {
-    setState(() { _loading = true; _error = null; });
+  Future<void> _load({bool spinner = true}) async {
+    if (spinner) setState(() { _loading = true; _error = null; });
     try {
       final results = await Future.wait([_repo.listOwned(), _repo.listPublic()]);
       if (mounted) {
@@ -48,7 +48,7 @@ class _WorkoutsState extends State<Workouts> {
         });
       }
     } catch (e) {
-      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+      if (mounted) setState(() { if (spinner) _error = e.toString(); _loading = false; });
     }
   }
 
@@ -104,14 +104,22 @@ class _WorkoutsState extends State<Workouts> {
           ),
         ),
         Expanded(
-          child: list.isEmpty
-              ? _EmptyView(mine: _tab == 0, onCreate: _create)
-              : ListView.separated(
+          child: CustomScrollView(
+            slivers: [
+              CupertinoSliverRefreshControl(onRefresh: () => _load(spinner: false)),
+              if (list.isEmpty)
+                SliverFillRemaining(hasScrollBody: false, child: _EmptyView(mine: _tab == 0, onCreate: _create))
+              else
+                SliverPadding(
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                  itemCount: list.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
-                  itemBuilder: (_, i) => _WorkoutCard(w: list[i], onTap: () => _openDetail(list[i])),
+                  sliver: SliverList.separated(
+                    itemCount: list.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (_, i) => _WorkoutCard(w: list[i], onTap: () => _openDetail(list[i])),
+                  ),
                 ),
+            ],
+          ),
         ),
       ],
     );

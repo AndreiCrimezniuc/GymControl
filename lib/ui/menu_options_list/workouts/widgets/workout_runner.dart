@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:gymboss/data/repositories/exercises_repository.dart';
 import 'package:gymboss/data/repositories/workouts_repository.dart';
 import 'package:gymboss/domain/models/workouts/workout.dart';
@@ -125,6 +126,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     final w = double.tryParse(s.weight.text.trim()) ?? 0;
     final r = int.tryParse(s.reps.text.trim()) ?? 0;
     if (r <= 0) return; // need reps to count the set
+    HapticFeedback.mediumImpact();
     setState(() {
       s.done = true;
       _loggedSets++;
@@ -164,6 +166,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     try {
       await widget.repo.logRun(widget.workout.id, widget.difficulty);
     } catch (_) {}
+    HapticFeedback.heavyImpact();
     if (mounted) setState(() { _finishing = false; _done = true; });
   }
 
