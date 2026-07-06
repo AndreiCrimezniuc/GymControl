@@ -6,6 +6,7 @@ import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/workout_editor.dart';
+import 'package:gymboss/ui/menu_options_list/workouts/widgets/workout_runner.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/workouts.dart';
 
 const _diffLabels = {'easy': 'Easy', 'medium': 'Medium', 'hard': 'Hard'};
@@ -45,22 +46,17 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   }
 
   Future<void> _launch() async {
-    final w = _w!;
-    try {
-      await widget.repo.logRun(w.id, _difficulty);
-      if (!mounted) return;
-      await showCupertinoDialog<void>(
-        context: context,
-        builder: (_) => CupertinoAlertDialog(
-          title: const Text('Workout logged 💪'),
-          content: Text('“${w.name}” at ${_diffLabels[_difficulty]} difficulty was added to your history.'),
-          actions: [CupertinoDialogAction(isDefaultAction: true, onPressed: () => Navigator.pop(context), child: const Text('Nice'))],
+    await Navigator.of(context, rootNavigator: true).push(
+      CupertinoPageRoute(
+        builder: (_) => WorkoutRunnerScreen(
+          workout: _w!,
+          difficulty: _difficulty,
+          repo: widget.repo,
+          exercises: widget.exercises,
         ),
-      );
-      _load();
-    } catch (_) {
-      _toast('Could not log the workout');
-    }
+      ),
+    );
+    if (mounted) _load();
   }
 
   Future<void> _saveCopy() async {
