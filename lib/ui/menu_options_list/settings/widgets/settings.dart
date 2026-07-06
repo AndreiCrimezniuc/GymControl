@@ -5,6 +5,7 @@ import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/domain/models/ranking/rank_data.dart';
 import 'package:gymboss/ui/auth/view_model/auth_view_model.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
+import 'package:gymboss/ui/core/ui/widgets/app_dialog.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
 
 class Settings extends StatefulWidget {
@@ -443,26 +444,17 @@ class _LogoutButton extends StatelessWidget {
   }
 
   void _confirmLogout(BuildContext context) {
-    showCupertinoDialog<void>(
-      context: context,
-      builder: (_) => CupertinoAlertDialog(
-        title: const Text('Log Out'),
-        content: const Text('Are you sure you want to log out?'),
-        actions: [
-          CupertinoDialogAction(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          CupertinoDialogAction(
-            isDestructiveAction: true,
-            onPressed: () {
-              Navigator.of(context).popUntil((route) => route.isFirst);
-              context.read<AuthViewModel>().logout();
-            },
-            child: const Text('Log Out'),
-          ),
-        ],
-      ),
+    showAppDialog<void>(
+      context,
+      title: 'Log Out',
+      message: 'Are you sure you want to log out?',
+      actions: [
+        AppDialogAction('Cancel', onPressed: () => Navigator.pop(context)),
+        AppDialogAction('Log Out', isDestructive: true, onPressed: () {
+          Navigator.of(context).popUntil((route) => route.isFirst);
+          context.read<AuthViewModel>().logout();
+        }),
+      ],
     );
   }
 }

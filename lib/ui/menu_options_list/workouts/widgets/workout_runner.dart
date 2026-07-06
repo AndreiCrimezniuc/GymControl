@@ -5,6 +5,7 @@ import 'package:gymboss/data/repositories/workouts_repository.dart';
 import 'package:gymboss/domain/models/workouts/workout.dart';
 import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
+import 'package:gymboss/ui/core/ui/widgets/app_dialog.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_scaffold.dart';
 import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
 import 'package:gymboss/ui/menu_options_list/exercises/widgets/muscle_illustration.dart';
@@ -168,16 +169,14 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
 
   Future<void> _confirmQuit() async {
     if (_done) { Navigator.of(context).pop(); return; }
-    final quit = await showCupertinoDialog<bool>(
-      context: context,
-      builder: (_) => CupertinoAlertDialog(
-        title: const Text('Quit workout?'),
-        content: const Text('Sets you already checked off are kept, but the workout won’t be marked as completed.'),
-        actions: [
-          CupertinoDialogAction(onPressed: () => Navigator.pop(context, false), child: const Text('Keep going')),
-          CupertinoDialogAction(isDestructiveAction: true, onPressed: () => Navigator.pop(context, true), child: const Text('Quit')),
-        ],
-      ),
+    final quit = await showAppDialog<bool>(
+      context,
+      title: 'Quit workout?',
+      message: 'Sets you already checked off are kept, but the workout won’t be marked as completed.',
+      actions: [
+        AppDialogAction('Keep going', onPressed: () => Navigator.pop(context, false)),
+        AppDialogAction('Quit', isDestructive: true, onPressed: () => Navigator.pop(context, true)),
+      ],
     );
     if (quit == true && mounted) Navigator.of(context).pop();
   }

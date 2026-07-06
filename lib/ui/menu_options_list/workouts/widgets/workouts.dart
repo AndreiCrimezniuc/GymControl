@@ -1,10 +1,8 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:gymboss/data/repositories/exercises_repository.dart';
 import 'package:gymboss/data/repositories/workouts_repository.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
-import 'package:gymboss/domain/models/exercises/exercise_catalog.dart';
 import 'package:gymboss/domain/models/workouts/workout.dart';
 import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
@@ -68,25 +66,12 @@ class _WorkoutsState extends State<Workouts> {
     if (created == true) _load();
   }
 
-  void _importByCode() {
-    showCupertinoModalPopup<void>(
-      context: context,
-      builder: (_) => _ImportSheet(repo: _repo, onImported: _load),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     return AppPage(
       title: 'Workouts',
       actions: [
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: _importByCode,
-          child: Icon(CupertinoIcons.arrow_down_circle, size: 23, color: c.textSecondary),
-        ),
-        const SizedBox(width: 14),
         GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: _create,
@@ -251,85 +236,6 @@ class _EmptyView extends StatelessWidget {
   }
 }
 
-class _ImportSheet extends StatefulWidget {
-  final WorkoutsRepository repo;
-  final VoidCallback onImported;
-  const _ImportSheet({required this.repo, required this.onImported});
-
-  @override
-  State<_ImportSheet> createState() => _ImportSheetState();
-}
-
-class _ImportSheetState extends State<_ImportSheet> {
-  final _ctrl = TextEditingController();
-  bool _busy = false;
-  String? _error;
-
-  Future<void> _import() async {
-    final code = _ctrl.text.trim();
-    if (code.isEmpty) { setState(() => _error = 'Enter a code'); return; }
-    setState(() { _busy = true; _error = null; });
-    try {
-      await widget.repo.import(code);
-      if (mounted) { Navigator.pop(context); widget.onImported(); }
-    } catch (e) {
-      if (mounted) setState(() { _error = e.toString().replaceFirst('Exception: ', ''); _busy = false; });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return Container(
-      decoration: BoxDecoration(color: c.card, borderRadius: const BorderRadius.vertical(top: Radius.circular(20))),
-      padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(context).viewInsets.bottom + 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: c.border, borderRadius: BorderRadius.circular(2)))),
-          const SizedBox(height: 16),
-          Text('Import a workout', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: c.textPrimary, fontFamily: 'Rubik')),
-          const SizedBox(height: 4),
-          Text('Paste a share code someone sent you.', style: TextStyle(fontSize: 12, color: c.textSecondary, fontFamily: 'Rubik')),
-          const SizedBox(height: 16),
-          CupertinoTextField(
-            controller: _ctrl,
-            placeholder: 'SHARE CODE',
-            autofocus: true,
-            textCapitalization: TextCapitalization.characters,
-            style: TextStyle(color: c.textPrimary, fontSize: 16, letterSpacing: 2, fontFamily: 'Rubik'),
-            placeholderStyle: TextStyle(color: c.textSecondary, fontSize: 15),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            decoration: BoxDecoration(color: c.iconBg, borderRadius: BorderRadius.circular(10), border: Border.all(color: c.border)),
-          ),
-          if (_error != null) ...[
-            const SizedBox(height: 8),
-            Text(_error!, style: const TextStyle(fontSize: 12, color: Color(0xFFEF4444), fontFamily: 'Rubik')),
-          ],
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: CupertinoButton(
-              padding: EdgeInsets.zero,
-              onPressed: _busy ? null : _import,
-              child: Container(
-                height: 48,
-                decoration: BoxDecoration(color: _busy ? c.iconBg : c.accent, borderRadius: BorderRadius.circular(12)),
-                child: Center(
-                  child: _busy
-                      ? const CupertinoActivityIndicator()
-                      : Text('Import', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: c.textOnAccent, fontFamily: 'Rubik')),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _ErrorView extends StatelessWidget {
   final String error;
   final VoidCallback onRetry;
@@ -348,9 +254,3 @@ class _ErrorView extends StatelessWidget {
     );
   }
 }
-
-/// Shared helper: copy a share code to the clipboard.
-Future<void> copyShareCode(String code) => Clipboard.setData(ClipboardData(text: code));
-
-/// Shared: exercise catalog item shim so the picker can pass a selection back.
-typedef PickedExercise = ExerciseCatalogItem;

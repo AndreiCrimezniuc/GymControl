@@ -4,12 +4,12 @@ import 'package:gymboss/data/repositories/workouts_repository.dart';
 import 'package:gymboss/domain/models/workouts/workout.dart';
 import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
+import 'package:gymboss/ui/core/ui/widgets/app_dialog.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
 import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
 import 'package:gymboss/ui/menu_options_list/exercises/widgets/muscle_illustration.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/workout_editor.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/workout_runner.dart';
-import 'package:gymboss/ui/menu_options_list/workouts/widgets/workouts.dart';
 
 const _diffLabels = {'easy': 'Easy', 'medium': 'Medium', 'hard': 'Hard'};
 
@@ -65,13 +65,11 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
     try {
       await widget.repo.copy(_w!.id);
       if (!mounted) return;
-      await showCupertinoDialog<void>(
-        context: context,
-        builder: (_) => CupertinoAlertDialog(
-          title: const Text('Saved 💾'),
-          content: const Text('A private copy was added to your workouts. Open “Mine” to launch or edit it.'),
-          actions: [CupertinoDialogAction(isDefaultAction: true, onPressed: () => Navigator.pop(context), child: const Text('OK'))],
-        ),
+      await showAppDialog<void>(
+        context,
+        title: 'Saved',
+        message: 'A private copy was added to your workouts. Open “Mine” to launch or edit it.',
+        actions: [AppDialogAction('OK', isDefault: true, onPressed: () => Navigator.pop(context))],
       );
       if (mounted) Navigator.of(context).pop();
     } catch (_) {
@@ -96,40 +94,15 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
     }
   }
 
-  Future<void> _share() async {
-    try {
-      final code = await widget.repo.share(_w!.id);
-      await copyShareCode(code);
-      if (!mounted) return;
-      showCupertinoDialog<void>(
-        context: context,
-        builder: (_) => CupertinoAlertDialog(
-          title: const Text('Share code'),
-          content: Column(children: [
-            const SizedBox(height: 8),
-            Text(code, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: 3)),
-            const SizedBox(height: 8),
-            const Text('Copied to clipboard. Anyone with this code can save a copy.', style: TextStyle(fontSize: 12)),
-          ]),
-          actions: [CupertinoDialogAction(isDefaultAction: true, onPressed: () => Navigator.pop(context), child: const Text('Done'))],
-        ),
-      );
-    } catch (_) {
-      _toast('Could not create a share code');
-    }
-  }
-
   Future<void> _delete() async {
-    final ok = await showCupertinoDialog<bool>(
-      context: context,
-      builder: (_) => CupertinoAlertDialog(
-        title: const Text('Delete workout?'),
-        content: Text('“${_w!.name}” will be permanently removed.'),
-        actions: [
-          CupertinoDialogAction(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          CupertinoDialogAction(isDestructiveAction: true, onPressed: () => Navigator.pop(context, true), child: const Text('Delete')),
-        ],
-      ),
+    final ok = await showAppDialog<bool>(
+      context,
+      title: 'Delete workout?',
+      message: '“${_w!.name}” will be permanently removed.',
+      actions: [
+        AppDialogAction('Cancel', onPressed: () => Navigator.pop(context, false)),
+        AppDialogAction('Delete', isDestructive: true, onPressed: () => Navigator.pop(context, true)),
+      ],
     );
     if (ok != true) return;
     try {
@@ -142,30 +115,22 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
 
   void _menu() {
     final w = _w!;
-    showCupertinoModalPopup<void>(
-      context: context,
-      builder: (_) => CupertinoActionSheet(
-        actions: [
-          CupertinoActionSheetAction(onPressed: () { Navigator.pop(context); _edit(); }, child: const Text('Edit')),
-          CupertinoActionSheetAction(onPressed: () { Navigator.pop(context); _share(); }, child: const Text('Share (get code)')),
-          CupertinoActionSheetAction(
-            onPressed: () { Navigator.pop(context); _togglePublic(); },
-            child: Text(w.isPublic ? 'Make private' : 'Publish to library'),
-          ),
-          CupertinoActionSheetAction(isDestructiveAction: true, onPressed: () { Navigator.pop(context); _delete(); }, child: const Text('Delete')),
-        ],
-        cancelButton: CupertinoActionSheetAction(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-      ),
+    showAppActionSheet(
+      context,
+      actions: [
+        AppSheetAction('Edit', onPressed: () { Navigator.pop(context); _edit(); }),
+        AppSheetAction(w.isPublic ? 'Make private' : 'Publish to library',
+            onPressed: () { Navigator.pop(context); _togglePublic(); }),
+        AppSheetAction('Delete', isDestructive: true, onPressed: () { Navigator.pop(context); _delete(); }),
+      ],
     );
   }
 
   void _toast(String msg) {
-    showCupertinoDialog<void>(
-      context: context,
-      builder: (_) => CupertinoAlertDialog(
-        content: Text(msg),
-        actions: [CupertinoDialogAction(isDefaultAction: true, onPressed: () => Navigator.pop(context), child: const Text('OK'))],
-      ),
+    showAppDialog<void>(
+      context,
+      title: msg,
+      actions: [AppDialogAction('OK', isDefault: true, onPressed: () => Navigator.pop(context))],
     );
   }
 

@@ -120,15 +120,22 @@ class _MuscleIllustrationState extends State<MuscleIllustration> with SingleTick
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    // SizedBox.expand so the painter fills the box even under loose constraints
+    // (e.g. inside a Container with alignment); a bare CustomPaint would collapse
+    // to Size.zero and render nothing.
     if (_ctrl == null) {
-      return CustomPaint(painter: _MusclePainter(zone: widget.zone, colors: c, pulse: 1));
+      return SizedBox.expand(
+        child: CustomPaint(painter: _MusclePainter(zone: widget.zone, colors: c, pulse: 1)),
+      );
     }
     return AnimatedBuilder(
       animation: _ctrl!,
       builder: (_, __) {
         // strong ease-out pulse between emphasis 0.55 and 1.0
         final t = Curves.easeInOut.transform(_ctrl!.value);
-        return CustomPaint(painter: _MusclePainter(zone: widget.zone, colors: c, pulse: 0.55 + 0.45 * t));
+        return SizedBox.expand(
+          child: CustomPaint(painter: _MusclePainter(zone: widget.zone, colors: c, pulse: 0.55 + 0.45 * t)),
+        );
       },
     );
   }
@@ -152,7 +159,9 @@ class _MusclePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final w = size.width, h = size.height;
     final cx = w / 2;
-    final body = colors.isDark ? colors.pillBorder : colors.border;
+    // A clearly-visible silhouette colour (the old border tone was almost
+    // identical to the iconBg tile behind it, so the figure looked empty).
+    final body = colors.navInactive;
     final accent = colors.accent;
 
     Paint fill(bool active) => Paint()

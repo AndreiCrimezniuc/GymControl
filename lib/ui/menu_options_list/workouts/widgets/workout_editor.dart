@@ -6,6 +6,7 @@ import 'package:gymboss/domain/models/workouts/workout.dart';
 import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
+import 'package:gymboss/ui/menu_options_list/exercises/widgets/muscle_illustration.dart';
 
 const _diffs = ['easy', 'medium', 'hard'];
 const _diffLabels = {'easy': 'Easy', 'medium': 'Medium', 'hard': 'Hard'};
@@ -445,14 +446,15 @@ class _ExercisePickerState extends State<_ExercisePicker> {
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(color: c.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: c.border)),
                           child: Row(children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: Container(
-                                width: 44, height: 44, color: c.iconBg,
-                                child: e.imageUrl.isEmpty
-                                    ? Icon(CupertinoIcons.photo, size: 18, color: c.textSecondary)
-                                    : Image.network(e.imageUrl, fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) => Icon(CupertinoIcons.photo, size: 18, color: c.textSecondary)),
+                            SizedBox(
+                              width: 44,
+                              height: 44,
+                              child: ExerciseVisual(
+                                muscleGroup: e.muscleGroup,
+                                category: e.category,
+                                imageUrl: e.imageUrl,
+                                radius: 10,
+                                figurePadding: 5,
                               ),
                             ),
                             const SizedBox(width: 12),

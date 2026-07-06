@@ -588,40 +588,77 @@ class _MonthlyWeightDialogState extends State<_MonthlyWeightDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoAlertDialog(
-      title: const Text('Update your weight?'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(height: 8),
-          const Text(
-            'Your weight helps keep rankings accurate.\nTakes 5 seconds.',
-            style: TextStyle(fontSize: 13),
+    final c = context.colors;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: SizedBox(
+          width: 340,
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(22, 22, 22, 16),
+            decoration: BoxDecoration(
+              color: c.card,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: c.border),
+              boxShadow: [BoxShadow(color: const Color(0x40000000), blurRadius: 40, offset: const Offset(0, 18))],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('Update your weight?',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: c.textPrimary, fontFamily: 'Rubik')),
+                const SizedBox(height: 8),
+                Text('Your weight helps keep rankings accurate. Takes 5 seconds.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 13, height: 1.45, color: c.textSecondary, fontFamily: 'Rubik')),
+                const SizedBox(height: 14),
+                CupertinoTextField(
+                  controller: _weightCtrl,
+                  placeholder: 'Weight (kg)',
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  style: TextStyle(color: c.textPrimary, fontSize: 15, fontFamily: 'Rubik'),
+                  placeholderStyle: TextStyle(color: c.textSecondary, fontSize: 15),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(color: c.iconBg, borderRadius: BorderRadius.circular(10), border: Border.all(color: c.border)),
+                ),
+                const SizedBox(height: 18),
+                Pressable(
+                  onTap: _saving ? null : _save,
+                  child: Container(
+                    height: 48,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(color: c.accent, borderRadius: BorderRadius.circular(13)),
+                    child: _saving
+                        ? const CupertinoActivityIndicator()
+                        : Text('Update', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: c.textOnAccent, fontFamily: 'Rubik')),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Pressable(
+                  onTap: _dismiss,
+                  child: Container(
+                    height: 48,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(color: c.iconBg, borderRadius: BorderRadius.circular(13)),
+                    child: Text('Not now', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: c.textPrimary, fontFamily: 'Rubik')),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Pressable(
+                  onTap: _dontAsk,
+                  child: Container(
+                    height: 44,
+                    alignment: Alignment.center,
+                    child: Text("Don't ask again", style: TextStyle(fontSize: 13, color: c.textSecondary, fontFamily: 'Rubik')),
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 12),
-          CupertinoTextField(
-            controller: _weightCtrl,
-            placeholder: 'Weight (kg)',
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            padding: const EdgeInsets.all(8),
-          ),
-        ],
+        ),
       ),
-      actions: [
-        CupertinoDialogAction(
-          onPressed: _dontAsk,
-          child: const Text("Don't ask again", style: TextStyle(fontSize: 13)),
-        ),
-        CupertinoDialogAction(
-          onPressed: _dismiss,
-          child: const Text('Not now'),
-        ),
-        CupertinoDialogAction(
-          isDefaultAction: true,
-          onPressed: _saving ? null : _save,
-          child: _saving ? const CupertinoActivityIndicator() : const Text('Update'),
-        ),
-      ],
     );
   }
 }
