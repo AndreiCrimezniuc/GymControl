@@ -7,34 +7,40 @@ import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_scaffold.dart';
 import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
+import 'package:gymboss/ui/menu_options_list/exercises/widgets/muscle_illustration.dart';
 
 const _diffLabels = {'easy': 'Easy', 'medium': 'Medium', 'hard': 'Hard'};
 
-/// One planned set to perform, flattened across the workout's exercises.
-class _Step {
+/// One set the user performs: planned target + the actual weight/reps they log.
+class _SetEntry {
   final int exerciseId;
-  final String name;
-  final String imageUrl;
-  final int exerciseNo; // 1-based position among exercises
-  final int setNo; // 1-based within the exercise
-  final int setsInExercise;
+  final int restSeconds;
   final double plannedWeight;
   final int plannedReps;
-  final int restSeconds;
-  final bool lastSetOfExercise;
+  final TextEditingController weight;
+  final TextEditingController reps;
+  bool done = false;
 
-  _Step({
+  _SetEntry({
     required this.exerciseId,
-    required this.name,
-    required this.imageUrl,
-    required this.exerciseNo,
-    required this.setNo,
-    required this.setsInExercise,
+    required this.restSeconds,
     required this.plannedWeight,
     required this.plannedReps,
-    required this.restSeconds,
-    required this.lastSetOfExercise,
-  });
+  })  : weight = TextEditingController(text: plannedWeight == 0 ? '' : _fmt(plannedWeight)),
+        reps = TextEditingController(text: plannedReps == 0 ? '' : '$plannedReps');
+
+  void dispose() {
+    weight.dispose();
+    reps.dispose();
+  }
+}
+
+class _ExGroup {
+  final String name;
+  final String muscleGroup;
+  final int restSeconds;
+  final List<_SetEntry> sets;
+  _ExGroup({required this.name, required this.muscleGroup, required this.restSeconds, required this.sets});
 }
 
 class WorkoutRunnerScreen extends StatefulWidget {
@@ -55,11 +61,9 @@ class WorkoutRunnerScreen extends StatefulWidget {
 }
 
 class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
-  late final List<_Step> _steps;
-  final _weightCtrl = TextEditingController();
-  final _repsCtrl = TextEditingController();
+  late final List<_ExGroup> _groups;
+  late final int _totalSets;
 
-  int _current = 0;
   bool _resting = false;
   int _restLeft = 0;
   Timer? _restTimer;
@@ -72,88 +76,77 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
   @override
   void initState() {
     super.initState();
-    _steps = _buildSteps();
-    if (_steps.isEmpty) {
-      // nothing to do — log the run and show the summary immediately
-      WidgetsBinding.instance.addPostFrameCallback((_) => _finish());
-    } else {
-      _seedFields();
-    }
+    _groups = _build();
+    _totalSets = _groups.fold(0, (a, g) => a + g.sets.length);
   }
 
-  List<_Step> _buildSteps() {
-    final out = <_Step>[];
-    var exNo = 0;
+  List<_ExGroup> _build() {
+    final out = <_ExGroup>[];
     for (final ex in widget.workout.exercises) {
-      final sets = ex.setsFor(widget.difficulty);
-      if (sets.isEmpty) continue;
-      exNo++;
-      for (var i = 0; i < sets.length; i++) {
-        out.add(_Step(
-          exerciseId: ex.exerciseId,
-          name: ex.name,
-          imageUrl: ex.imageUrl,
-          exerciseNo: exNo,
-          setNo: i + 1,
-          setsInExercise: sets.length,
-          plannedWeight: sets[i].weightKg,
-          plannedReps: sets[i].reps,
-          restSeconds: ex.restSeconds,
-          lastSetOfExercise: i == sets.length - 1,
-        ));
-      }
+      final planned = ex.setsFor(widget.difficulty);
+      if (planned.isEmpty) continue;
+      out.add(_ExGroup(
+        name: ex.name,
+        muscleGroup: ex.muscleGroup,
+        restSeconds: ex.restSeconds,
+        sets: [
+          for (final s in planned)
+            _SetEntry(
+              exerciseId: ex.exerciseId,
+              restSeconds: ex.restSeconds,
+              plannedWeight: s.weightKg,
+              plannedReps: s.reps,
+            ),
+        ],
+      ));
     }
     return out;
-  }
-
-  void _seedFields() {
-    final s = _steps[_current];
-    _weightCtrl.text = s.plannedWeight == 0 ? '' : s.plannedWeight.toStringAsFixed(s.plannedWeight % 1 == 0 ? 0 : 1);
-    _repsCtrl.text = s.plannedReps == 0 ? '' : '${s.plannedReps}';
   }
 
   @override
   void dispose() {
     _restTimer?.cancel();
-    _weightCtrl.dispose();
-    _repsCtrl.dispose();
+    for (final g in _groups) {
+      for (final s in g.sets) {
+        s.dispose();
+      }
+    }
     super.dispose();
   }
 
-  Future<void> _logCurrentSet() async {
-    final step = _steps[_current];
-    final w = double.tryParse(_weightCtrl.text.trim()) ?? 0;
-    final r = int.tryParse(_repsCtrl.text.trim()) ?? 0;
-    if (r <= 0) {
-      _seedFields();
-      return;
-    }
-    // best-effort logging; a network hiccup shouldn't block the workout
-    try {
-      await widget.exercises.logSet(step.exerciseId, weightKg: w, reps: r);
-    } catch (_) {}
-    _loggedSets++;
-    _loggedVolume += w * r;
+  int get _doneSets => _groups.fold(0, (a, g) => a + g.sets.where((s) => s.done).length);
 
-    if (_current >= _steps.length - 1) {
-      _finish();
+  Future<void> _toggleSet(_SetEntry s) async {
+    if (s.done) {
+      setState(() => s.done = false); // allow correcting a mistaken tap; the log stays (append-only)
       return;
     }
-    _startRest(step.restSeconds);
+    final w = double.tryParse(s.weight.text.trim()) ?? 0;
+    final r = int.tryParse(s.reps.text.trim()) ?? 0;
+    if (r <= 0) return; // need reps to count the set
+    setState(() {
+      s.done = true;
+      _loggedSets++;
+      _loggedVolume += w * r;
+    });
+    try {
+      await widget.exercises.logSet(s.exerciseId, weightKg: w, reps: r);
+    } catch (_) {}
+    _startRest(s.restSeconds);
   }
 
   void _startRest(int seconds) {
     _restTimer?.cancel();
-    if (seconds <= 0) {
-      _advance();
-      return;
-    }
-    setState(() { _resting = true; _restLeft = seconds; });
+    if (seconds <= 0) return;
+    setState(() {
+      _resting = true;
+      _restLeft = seconds;
+    });
     _restTimer = Timer.periodic(const Duration(seconds: 1), (t) {
       if (!mounted) return;
       if (_restLeft <= 1) {
         t.cancel();
-        _advance();
+        setState(() => _resting = false);
       } else {
         setState(() => _restLeft--);
       }
@@ -162,16 +155,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
 
   void _skipRest() {
     _restTimer?.cancel();
-    _advance();
-  }
-
-  void _advance() {
-    if (!mounted) return;
-    setState(() {
-      _resting = false;
-      _current++;
-    });
-    _seedFields();
+    setState(() => _resting = false);
   }
 
   Future<void> _finish() async {
@@ -188,7 +172,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
       context: context,
       builder: (_) => CupertinoAlertDialog(
         title: const Text('Quit workout?'),
-        content: const Text('Sets you already logged are kept, but the workout won’t be marked as completed.'),
+        content: const Text('Sets you already checked off are kept, but the workout won’t be marked as completed.'),
         actions: [
           CupertinoDialogAction(onPressed: () => Navigator.pop(context, false), child: const Text('Keep going')),
           CupertinoDialogAction(isDestructiveAction: true, onPressed: () => Navigator.pop(context, true), child: const Text('Quit')),
@@ -211,15 +195,27 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                 volume: _loggedVolume,
                 onClose: () => Navigator.of(context).pop(),
               )
-            : Column(
+            : Stack(
                 children: [
-                  _header(c),
-                  Expanded(
-                    child: _finishing
-                        ? const Center(child: CupertinoActivityIndicator())
-                        : _resting
-                            ? _restView(c)
-                            : _activeView(c),
+                  Column(
+                    children: [
+                      _header(c),
+                      Expanded(child: _body(c)),
+                    ],
+                  ),
+                  // Floating rest pill: pinned to the screen, independent of scroll.
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 20,
+                    child: IgnorePointer(
+                      ignoring: !_resting,
+                      child: AnimatedOpacity(
+                        opacity: _resting ? 1 : 0,
+                        duration: const Duration(milliseconds: 200),
+                        child: Center(child: _RestPill(secondsLeft: _restLeft, onSkip: _skipRest)),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -228,18 +224,16 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
   }
 
   Widget _header(AppColors c) {
-    final total = _steps.length;
-    final progress = total == 0 ? 0.0 : (_current / total).clamp(0.0, 1.0);
+    final progress = _totalSets == 0 ? 0.0 : (_doneSets / _totalSets).clamp(0.0, 1.0);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Column(
         children: [
           Row(
             children: [
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
+              Pressable(
                 onTap: _confirmQuit,
-                child: Padding(padding: const EdgeInsets.all(6), child: Icon(CupertinoIcons.xmark, size: 22, color: c.textPrimary)),
+                child: SizedBox(width: 40, height: 40, child: Icon(CupertinoIcons.xmark, size: 22, color: c.textPrimary)),
               ),
               Expanded(
                 child: Text(widget.workout.name,
@@ -249,10 +243,10 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: c.textPrimary, fontFamily: 'Rubik')),
               ),
               SizedBox(
-                width: 34,
-                child: Text(_diffLabels[widget.difficulty] ?? '',
+                width: 40,
+                child: Text('$_doneSets/$_totalSets',
                     textAlign: TextAlign.right,
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: c.accent, fontFamily: 'Rubik')),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: c.accent, fontFamily: 'Rubik')),
               ),
             ],
           ),
@@ -269,100 +263,165 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     );
   }
 
-  Widget _activeView(AppColors c) {
-    final s = _steps[_current];
+  Widget _body(AppColors c) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 40),
       children: [
-        Text('EXERCISE ${s.exerciseNo} / ${widget.workout.exerciseCount}',
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.5, color: c.textSecondary, fontFamily: 'Rubik')),
+        for (var gi = 0; gi < _groups.length; gi++) _exerciseCard(c, gi + 1, _groups[gi]),
         const SizedBox(height: 8),
-        AspectRatio(
-          aspectRatio: 16 / 10,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: Container(
-              color: c.iconBg,
-              child: s.imageUrl.isEmpty
-                  ? Center(child: Icon(CupertinoIcons.photo, size: 40, color: c.textSecondary))
-                  : Image.network(s.imageUrl, fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => Center(child: Icon(CupertinoIcons.photo, size: 40, color: c.textSecondary))),
-            ),
-          ),
-        ),
-        const SizedBox(height: 14),
-        Text(s.name,
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: c.textPrimary, fontFamily: 'Rubik')),
-        const SizedBox(height: 4),
-        Text('Set ${s.setNo} of ${s.setsInExercise}   ·   target ${_fmt(s.plannedWeight)} kg × ${s.plannedReps}',
-            style: TextStyle(fontSize: 13, color: c.textSecondary, fontFamily: 'Rubik')),
-        const SizedBox(height: 22),
-        Row(children: [
-          Expanded(child: _bigField(c, _weightCtrl, 'WEIGHT (KG)')),
-          const SizedBox(width: 14),
-          Expanded(child: _bigField(c, _repsCtrl, 'REPS')),
-        ]),
-        const SizedBox(height: 24),
         Pressable(
-          onTap: _logCurrentSet,
+          onTap: _finishing ? null : _finish,
           child: Container(
-            height: 56,
+            height: 54,
             alignment: Alignment.center,
-            decoration: BoxDecoration(color: c.accent, borderRadius: BorderRadius.circular(14)),
-            child: Text(
-              _current >= _steps.length - 1 ? 'LOG SET · FINISH' : 'LOG SET',
-              style: TextStyle(fontFamily: 'Rubik', fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 1.5, color: c.textOnAccent),
-            ),
+            decoration: BoxDecoration(color: _finishing ? c.iconBg : c.accent, borderRadius: BorderRadius.circular(14)),
+            child: _finishing
+                ? const CupertinoActivityIndicator()
+                : Text(_doneSets >= _totalSets ? 'FINISH · ALL DONE' : 'FINISH WORKOUT',
+                    style: TextStyle(fontFamily: 'Rubik', fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 1.2, color: c.textOnAccent)),
           ),
         ),
       ],
     );
   }
 
-  Widget _restView(AppColors c) {
-    final s = _current + 1 < _steps.length ? _steps[_current + 1] : null;
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text('REST', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, letterSpacing: 3, color: c.textSecondary, fontFamily: 'Rubik')),
-        const SizedBox(height: 12),
-        Text('$_restLeft',
-            style: TextStyle(fontSize: 76, fontWeight: FontWeight.w800, color: c.accent, fontFamily: 'Rubik', height: 1)),
-        const SizedBox(height: 4),
-        Text('seconds', style: TextStyle(fontSize: 13, color: c.textSecondary, fontFamily: 'Rubik')),
-        if (s != null) ...[
-          const SizedBox(height: 28),
-          Text('NEXT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 2, color: c.textSecondary, fontFamily: 'Rubik')),
-          const SizedBox(height: 4),
-          Text('${s.name}  ·  set ${s.setNo}/${s.setsInExercise}',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: c.textPrimary, fontFamily: 'Rubik')),
-        ],
-        const SizedBox(height: 32),
-        CupertinoButton(
-          onPressed: _skipRest,
-          child: Text('Skip rest', style: TextStyle(color: c.accent, fontWeight: FontWeight.w700, fontFamily: 'Rubik')),
-        ),
-      ],
-    );
-  }
-
-  Widget _bigField(AppColors c, TextEditingController ctrl, String label) => Column(
+  Widget _exerciseCard(AppColors c, int index, _ExGroup g) {
+    final doneInEx = g.sets.where((s) => s.done).length;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: c.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: c.border)),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: c.textSecondary, fontFamily: 'Rubik')),
+          Row(children: [
+            SizedBox(width: 40, height: 40, child: MuscleIllustration.fromMuscle(g.muscleGroup)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('$index. ${g.name}',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: c.textPrimary, fontFamily: 'Rubik')),
+                  const SizedBox(height: 2),
+                  Text('$doneInEx / ${g.sets.length} sets  ·  rest ${g.restSeconds}s',
+                      style: TextStyle(fontSize: 11, color: c.textSecondary, fontFamily: 'Rubik')),
+                ],
+              ),
+            ),
+          ]),
+          const SizedBox(height: 12),
+          // column header
+          Row(children: [
+            SizedBox(width: 30, child: Text('SET', style: _hdr(c))),
+            const Spacer(),
+            SizedBox(width: 84, child: Text('KG', textAlign: TextAlign.center, style: _hdr(c))),
+            const SizedBox(width: 8),
+            SizedBox(width: 84, child: Text('REPS', textAlign: TextAlign.center, style: _hdr(c))),
+            const SizedBox(width: 8),
+            const SizedBox(width: 36),
+          ]),
           const SizedBox(height: 6),
-          CupertinoTextField(
-            controller: ctrl,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            textAlign: TextAlign.center,
-            style: TextStyle(color: c.textPrimary, fontSize: 26, fontWeight: FontWeight.w800, fontFamily: 'Rubik'),
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            decoration: BoxDecoration(color: c.card, borderRadius: BorderRadius.circular(12), border: Border.all(color: c.border)),
+          for (var i = 0; i < g.sets.length; i++) _setRow(c, i + 1, g.sets[i]),
+        ],
+      ),
+    );
+  }
+
+  Widget _setRow(AppColors c, int number, _SetEntry s) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 30,
+            child: Text('$number',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: s.done ? c.accent : c.textSecondary, fontFamily: 'Rubik')),
+          ),
+          const Spacer(),
+          SizedBox(width: 84, child: _numField(c, s.weight, s.done, 'kg')),
+          const SizedBox(width: 8),
+          SizedBox(width: 84, child: _numField(c, s.reps, s.done, 'reps')),
+          const SizedBox(width: 8),
+          Pressable(
+            onTap: () => _toggleSet(s),
+            child: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: s.done ? c.accent : c.iconBg,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: s.done ? c.accent : c.border),
+              ),
+              child: Icon(CupertinoIcons.check_mark, size: 20, color: s.done ? c.textOnAccent : c.textSecondary),
+            ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _numField(AppColors c, TextEditingController ctrl, bool done, String hint) => CupertinoTextField(
+        controller: ctrl,
+        readOnly: done,
+        placeholder: hint,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        textAlign: TextAlign.center,
+        style: TextStyle(color: done ? c.textSecondary : c.textPrimary, fontSize: 15, fontWeight: FontWeight.w700, fontFamily: 'Rubik'),
+        placeholderStyle: TextStyle(color: c.textSecondary, fontSize: 13),
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: done ? c.card : c.iconBg,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: c.border),
+        ),
       );
 
-  String _fmt(double v) => v.toStringAsFixed(v % 1 == 0 ? 0 : 1);
+  TextStyle _hdr(AppColors c) =>
+      TextStyle(fontSize: 9, fontWeight: FontWeight.w700, letterSpacing: 0.5, color: c.textSecondary, fontFamily: 'Rubik');
+}
+
+class _RestPill extends StatelessWidget {
+  final int secondsLeft;
+  final VoidCallback onSkip;
+  const _RestPill({required this.secondsLeft, required this.onSkip});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final mm = secondsLeft ~/ 60;
+    final ss = secondsLeft % 60;
+    final label = mm > 0 ? '$mm:${ss.toString().padLeft(2, '0')}' : '${ss}s';
+    return Container(
+      padding: const EdgeInsets.fromLTRB(18, 10, 10, 10),
+      decoration: BoxDecoration(
+        color: c.invBg,
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [BoxShadow(color: const Color(0x33000000), blurRadius: 20, offset: const Offset(0, 6))],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(CupertinoIcons.timer, size: 18, color: c.invText),
+          const SizedBox(width: 8),
+          Text('Rest  $label',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: c.invText, fontFamily: 'Rubik')),
+          const SizedBox(width: 12),
+          Pressable(
+            onTap: onSkip,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(color: c.accent, borderRadius: BorderRadius.circular(20)),
+              child: Text('Skip',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: c.textOnAccent, fontFamily: 'Rubik')),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _DoneView extends StatelessWidget {
@@ -388,7 +447,8 @@ class _DoneView extends StatelessWidget {
         children: [
           const Spacer(),
           Container(
-            width: 84, height: 84,
+            width: 84,
+            height: 84,
             decoration: BoxDecoration(color: c.accent.withValues(alpha: 0.14), shape: BoxShape.circle),
             child: Icon(CupertinoIcons.checkmark_alt, size: 44, color: c.accent),
           ),
@@ -434,3 +494,5 @@ class _DoneView extends StatelessWidget {
         ),
       );
 }
+
+String _fmt(double v) => v.toStringAsFixed(v % 1 == 0 ? 0 : 1);

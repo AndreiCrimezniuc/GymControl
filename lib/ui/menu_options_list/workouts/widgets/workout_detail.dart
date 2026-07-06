@@ -6,6 +6,7 @@ import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
 import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
+import 'package:gymboss/ui/menu_options_list/exercises/widgets/muscle_illustration.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/workout_editor.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/workout_runner.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/workouts.dart';
@@ -326,15 +327,10 @@ class _ExerciseBlock extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: Container(
-                width: 44, height: 44, color: c.iconBg,
-                child: exercise.imageUrl.isEmpty
-                    ? Icon(CupertinoIcons.photo, size: 18, color: c.textSecondary)
-                    : Image.network(exercise.imageUrl, fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Icon(CupertinoIcons.photo, size: 18, color: c.textSecondary)),
-              ),
+            SizedBox(
+              width: 44,
+              height: 44,
+              child: MuscleIllustration.fromMuscle(exercise.muscleGroup),
             ),
             const SizedBox(width: 12),
             Expanded(

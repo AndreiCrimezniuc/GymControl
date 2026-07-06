@@ -8,6 +8,7 @@ import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
 import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
+import 'package:gymboss/ui/menu_options_list/exercises/widgets/muscle_illustration.dart';
 
 class Exercises extends StatefulWidget {
   const Exercises({super.key});
@@ -173,7 +174,16 @@ class _ExerciseTile extends StatelessWidget {
         ),
         child: Row(
           children: [
-            _Thumb(url: entry.imageUrl),
+            SizedBox(
+              width: 52,
+              height: 52,
+              child: ExerciseVisual(
+                muscleGroup: entry.muscleGroup,
+                category: entry.category,
+                imageUrl: entry.imageUrl,
+                figurePadding: 5,
+              ),
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -283,7 +293,17 @@ class _ExerciseDetailScreenState extends State<_ExerciseDetailScreen> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
               children: [
-                _AnimatedDemo(url1: e.imageUrl, url2: e.imageUrl2),
+                AspectRatio(
+                  aspectRatio: 4 / 3,
+                  child: ExerciseVisual(
+                    muscleGroup: e.muscleGroup,
+                    category: e.category,
+                    imageUrl: e.imageUrl,
+                    animate: true,
+                    radius: 16,
+                    figurePadding: 20,
+                  ),
+                ),
                 const SizedBox(height: 14),
                 Wrap(
                   spacing: 8,
@@ -337,64 +357,6 @@ class _ExerciseDetailScreenState extends State<_ExerciseDetailScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _AnimatedDemo extends StatefulWidget {
-  final String url1;
-  final String url2;
-  const _AnimatedDemo({required this.url1, required this.url2});
-
-  @override
-  State<_AnimatedDemo> createState() => _AnimatedDemoState();
-}
-
-class _AnimatedDemoState extends State<_AnimatedDemo> {
-  bool _frame2 = false;
-  Timer? _timer;
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.url2.isNotEmpty && widget.url2 != widget.url1) {
-      _timer = Timer.periodic(const Duration(milliseconds: 800), (_) {
-        if (mounted) setState(() => _frame2 = !_frame2);
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    final url = _frame2 ? widget.url2 : widget.url1;
-    return AspectRatio(
-      aspectRatio: 4 / 3,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          color: c.iconBg,
-          child: url.isEmpty
-              ? Center(child: Icon(CupertinoIcons.photo, color: c.textSecondary, size: 40))
-              : AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 250),
-                  child: Image.network(
-                    url,
-                    key: ValueKey(url),
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => Center(child: Icon(CupertinoIcons.photo, color: c.textSecondary, size: 40)),
-                    loadingBuilder: (ctx, child, prog) =>
-                        prog == null ? child : const Center(child: CupertinoActivityIndicator()),
-                  ),
-                ),
-        ),
       ),
     );
   }
