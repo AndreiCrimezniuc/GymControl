@@ -2,9 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:gymboss/data/repositories/ranking_repository.dart';
 import 'package:gymboss/data/repositories/sessions_repository.dart';
-import 'package:gymboss/data/repositories/trainings_api.dart';
+import 'package:gymboss/data/repositories/workouts_repository.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
-import 'package:gymboss/data/services/trainings/trainings.dart';
 import 'package:gymboss/domain/models/ranking/rank_data.dart';
 import 'package:gymboss/domain/models/streak/streak_data.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
@@ -20,7 +19,7 @@ class Statistics extends StatefulWidget {
 class _StatisticsState extends State<Statistics> {
   late final SessionsRepository _sessions;
   late final RankingRepository _ranking;
-  late final TrainingsService _trainings;
+  late final WorkoutsRepository _workoutsRepo;
 
   bool _loading = true;
   StreakData _streak = StreakData.empty;
@@ -33,7 +32,7 @@ class _StatisticsState extends State<Statistics> {
     final client = context.read<AuthenticatedClient>();
     _sessions = SessionsRepository(client: client);
     _ranking = RankingRepository(client: client);
-    _trainings = TrainingsService(repository: TrainingsApiRepository(client: client));
+    _workoutsRepo = WorkoutsRepository(client: client);
     _load();
   }
 
@@ -42,7 +41,7 @@ class _StatisticsState extends State<Statistics> {
       final results = await Future.wait([
         _sessions.getStreakData(),
         _ranking.getUserRanks(),
-        _trainings.fetchAllTrainings(),
+        _workoutsRepo.listOwned(),
       ]);
       if (!mounted) return;
       setState(() {

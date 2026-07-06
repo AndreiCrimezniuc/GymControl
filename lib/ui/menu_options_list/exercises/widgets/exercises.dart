@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:gymboss/data/repositories/exercises_repository.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/domain/models/exercises/exercise_catalog.dart';
+import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
 
@@ -85,7 +86,7 @@ class _ExercisesState extends State<Exercises> {
     );
   }
 
-  Widget _buildList(dynamic c) {
+  Widget _buildList(AppColors c) {
     final filtered = _filtered;
     return Column(
       children: [

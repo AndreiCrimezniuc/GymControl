@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:gymboss/data/repositories/exercises_repository.dart';
 import 'package:gymboss/data/repositories/workouts_repository.dart';
 import 'package:gymboss/domain/models/workouts/workout.dart';
+import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/workout_editor.dart';
@@ -64,13 +65,17 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
 
   Future<void> _saveCopy() async {
     try {
-      final copy = await widget.repo.copy(_w!.id);
+      await widget.repo.copy(_w!.id);
       if (!mounted) return;
-      _toast('Saved to your workouts');
-      Navigator.of(context).pop();
-      Navigator.of(context, rootNavigator: true).push(
-        CupertinoPageRoute(builder: (_) => WorkoutDetailScreen(id: copy.id, repo: widget.repo, exercises: widget.exercises)),
+      await showCupertinoDialog<void>(
+        context: context,
+        builder: (_) => CupertinoAlertDialog(
+          title: const Text('Saved 💾'),
+          content: const Text('A private copy was added to your workouts. Open “Mine” to launch or edit it.'),
+          actions: [CupertinoDialogAction(isDefaultAction: true, onPressed: () => Navigator.pop(context), child: const Text('OK'))],
+        ),
       );
+      if (mounted) Navigator.of(context).pop();
     } catch (_) {
       _toast('Could not save a copy');
     }
@@ -188,7 +193,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
     );
   }
 
-  Widget _buildBody(dynamic c, Workout w) {
+  Widget _buildBody(AppColors c, Workout w) {
     return Column(
       children: [
         Expanded(
@@ -234,7 +239,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
     );
   }
 
-  Widget _statsRow(dynamic c, Workout w) => Row(children: [
+  Widget _statsRow(AppColors c, Workout w) => Row(children: [
         _StatChip(icon: CupertinoIcons.heart_fill, label: 'Love', value: '${_stats?.loveScore ?? w.loveScore}/10'),
         const SizedBox(width: 10),
         _StatChip(icon: CupertinoIcons.flame, label: 'Done', value: '${_stats?.timesPerformed ?? w.timesPerformed}x'),
@@ -242,7 +247,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
         _StatChip(icon: CupertinoIcons.square_stack_3d_up, label: 'Exercises', value: '${w.exerciseCount}'),
       ]);
 
-  Widget _difficultyPicker(dynamic c) => CupertinoSlidingSegmentedControl<String>(
+  Widget _difficultyPicker(AppColors c) => CupertinoSlidingSegmentedControl<String>(
         groupValue: _difficulty,
         backgroundColor: c.iconBg,
         thumbColor: c.accent,
@@ -262,7 +267,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
         },
       );
 
-  Widget _potentialVolumeLine(dynamic c) {
+  Widget _potentialVolumeLine(AppColors c) {
     final vol = _stats?.potentialVolume[_difficulty] ?? 0;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -275,7 +280,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
     );
   }
 
-  Widget _launchButton(dynamic c) => GestureDetector(
+  Widget _launchButton(AppColors c) => GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: _launch,
         child: Container(
@@ -291,7 +296,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
         ),
       );
 
-  Widget _saveCopyButton(dynamic c) => GestureDetector(
+  Widget _saveCopyButton(AppColors c) => GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: _saveCopy,
         child: Container(

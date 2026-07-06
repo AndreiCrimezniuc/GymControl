@@ -3,6 +3,7 @@ import 'package:gymboss/data/repositories/exercises_repository.dart';
 import 'package:gymboss/data/repositories/workouts_repository.dart';
 import 'package:gymboss/domain/models/exercises/exercise_catalog.dart';
 import 'package:gymboss/domain/models/workouts/workout.dart';
+import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
 
@@ -162,7 +163,7 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
     );
   }
 
-  Widget _field(dynamic c, TextEditingController ctrl, String label, String placeholder, {int maxLines = 1}) => Column(
+  Widget _field(AppColors c, TextEditingController ctrl, String label, String placeholder, {int maxLines = 1}) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: c.textSecondary, fontFamily: 'Rubik')),
@@ -255,7 +256,7 @@ class _ExerciseEditor extends StatelessWidget {
     );
   }
 
-  Widget _iconBtn(dynamic c, IconData icon, VoidCallback? onTap, {bool danger = false}) => GestureDetector(
+  Widget _iconBtn(AppColors c, IconData icon, VoidCallback? onTap, {bool danger = false}) => GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
         child: Padding(
