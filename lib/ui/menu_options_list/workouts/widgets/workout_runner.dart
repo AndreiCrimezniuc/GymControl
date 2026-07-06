@@ -6,6 +6,7 @@ import 'package:gymboss/domain/models/workouts/workout.dart';
 import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_scaffold.dart';
+import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
 
 const _diffLabels = {'easy': 'Easy', 'medium': 'Medium', 'hard': 'Hard'};
 
@@ -302,8 +303,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
           Expanded(child: _bigField(c, _repsCtrl, 'REPS')),
         ]),
         const SizedBox(height: 24),
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
+        Pressable(
           onTap: _logCurrentSet,
           child: Container(
             height: 56,
@@ -406,8 +406,7 @@ class _DoneView extends StatelessWidget {
           const Spacer(),
           SizedBox(
             width: double.infinity,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
+            child: Pressable(
               onTap: onClose,
               child: Container(
                 height: 54,

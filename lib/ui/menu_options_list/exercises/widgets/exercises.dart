@@ -7,6 +7,7 @@ import 'package:gymboss/domain/models/exercises/exercise_catalog.dart';
 import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
+import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
 
 class Exercises extends StatefulWidget {
   const Exercises({super.key});
@@ -314,8 +315,7 @@ class _ExerciseDetailScreenState extends State<_ExerciseDetailScreen> {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 6, 20, 16),
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
+            child: Pressable(
               onTap: _logSet,
               child: Container(
                 height: 54,

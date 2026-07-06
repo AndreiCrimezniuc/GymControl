@@ -5,6 +5,7 @@ import 'package:gymboss/domain/models/workouts/workout.dart';
 import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
+import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/workout_editor.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/workout_runner.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/workouts.dart';
@@ -276,8 +277,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
     );
   }
 
-  Widget _launchButton(AppColors c) => GestureDetector(
-        behavior: HitTestBehavior.opaque,
+  Widget _launchButton(AppColors c) => Pressable(
         onTap: _launch,
         child: Container(
           height: 54,
@@ -292,8 +292,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
         ),
       );
 
-  Widget _saveCopyButton(AppColors c) => GestureDetector(
-        behavior: HitTestBehavior.opaque,
+  Widget _saveCopyButton(AppColors c) => Pressable(
         onTap: _saveCopy,
         child: Container(
           height: 54,

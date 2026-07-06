@@ -10,6 +10,7 @@ import 'package:gymboss/domain/models/ranking/rank_data.dart';
 import 'package:gymboss/domain/models/streak/streak_data.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_scaffold.dart';
+import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
 import 'package:gymboss/ui/core/ui/widgets/theme_toggle.dart';
 import 'package:gymboss/ui/menu_options_list/exercises/widgets/exercises.dart';
 import 'package:gymboss/ui/menu_options_list/ranking/widgets/ranking.dart';
@@ -388,8 +389,7 @@ class _StartButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
+    return Pressable(
       onTap: onTap,
       child: Container(
         height: 58,

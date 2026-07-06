@@ -63,7 +63,8 @@ class AppColors {
     border: Color(0xFFEAE4E0),
     pillBorder: Color(0xFFE0D8D3),
     textPrimary: Color(0xFF141312),
-    textSecondary: Color(0xFF8B8480),
+    // Darkened from #8B8480 (~3.5:1) to meet WCAG AA 4.5:1 for small text on bg/card.
+    textSecondary: Color(0xFF736C67),
     textOnAccent: Color(0xFFFFFFFF),
     accent: Color(0xFFDE3B34),
     accentPressed: Color(0xFFC2332D),

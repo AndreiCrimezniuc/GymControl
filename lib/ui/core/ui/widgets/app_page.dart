@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_scaffold.dart';
+import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
 
 /// A themed inner page: warm gradient background, a header row with a back
 /// button + title (and optional trailing actions), and a body that fills the
@@ -25,16 +26,15 @@ class AppPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(8, 6, 16, 8),
+            padding: const EdgeInsets.fromLTRB(4, 4, 12, 8),
             child: Row(
               children: [
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
+                Pressable(
                   onTap: () => Navigator.of(context).maybePop(),
-                  child: Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Icon(CupertinoIcons.chevron_back,
-                        size: 24, color: c.textPrimary),
+                  child: SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: Center(child: Icon(CupertinoIcons.chevron_back, size: 24, color: c.textPrimary)),
                   ),
                 ),
                 const SizedBox(width: 2),
@@ -49,7 +49,12 @@ class AppPage extends StatelessWidget {
                     ),
                   ),
                 ),
-                ...actions,
+                // Enforce a 44x44 minimum hit area for every header action.
+                for (final action in actions)
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+                    child: Center(child: action),
+                  ),
               ],
             ),
           ),
