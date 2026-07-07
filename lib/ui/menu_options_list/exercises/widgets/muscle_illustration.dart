@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
@@ -31,6 +32,7 @@ class ExerciseVisual extends StatelessWidget {
   final String equipment;
   final String category;
   final String imageUrl;
+  final String imageUrl2;
   final bool animate;
   final double radius;
   final double figurePadding;
@@ -41,12 +43,13 @@ class ExerciseVisual extends StatelessWidget {
     this.equipment = '',
     required this.category,
     required this.imageUrl,
+    this.imageUrl2 = '',
     this.animate = false,
     this.radius = 12,
     this.figurePadding = 6,
   });
 
-  bool get _useUserImage => category.toLowerCase() == 'custom' && imageUrl.isNotEmpty;
+  bool get _custom => category.toLowerCase() == 'custom';
 
   @override
   Widget build(BuildContext context) {
@@ -55,27 +58,85 @@ class ExerciseVisual extends StatelessWidget {
       pattern: patternFor(name: name, muscle: muscleGroup, equipment: equipment),
       animate: animate,
     );
+
+    Widget child;
+    if (_custom && imageUrl.isNotEmpty) {
+      // user-uploaded custom image
+      child = Image.network(
+        imageUrl,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+        cacheWidth: 640,
+        errorBuilder: (_, __, ___) => mannequin,
+        loadingBuilder: (ctx, w, prog) => prog == null ? w : const Center(child: CupertinoActivityIndicator(radius: 8)),
+      );
+    } else if (!_custom && imageUrl.isNotEmpty) {
+      // Everkinetic 2-frame muscle-highlight illustration
+      child = Padding(
+        padding: EdgeInsets.all(figurePadding * 0.6),
+        child: _TwoFrame(url1: imageUrl, url2: imageUrl2, animate: animate, fallback: mannequin),
+      );
+    } else {
+      child = Padding(padding: EdgeInsets.all(figurePadding), child: mannequin);
+    }
+
     return Semantics(
       image: true,
       label: name.isNotEmpty ? '$name demonstration' : 'Exercise demonstration',
       child: ClipRRect(
-      borderRadius: BorderRadius.circular(radius),
-      child: Container(
-        color: c.iconBg,
-        alignment: Alignment.center,
-        child: _useUserImage
-            ? Image.network(
-                imageUrl,
-                fit: BoxFit.cover,
-                width: double.infinity,
-                height: double.infinity,
-                cacheWidth: 640,
-                errorBuilder: (_, __, ___) => mannequin,
-                loadingBuilder: (ctx, child, prog) =>
-                    prog == null ? child : const Center(child: CupertinoActivityIndicator(radius: 8)),
-              )
-            : Padding(padding: EdgeInsets.all(figurePadding), child: mannequin),
+        borderRadius: BorderRadius.circular(radius),
+        child: Container(color: c.iconBg, alignment: Alignment.center, child: child),
       ),
+    );
+  }
+}
+
+/// Alternates two illustration frames (relaxation ↔ tension) to animate the
+/// movement; holds the first frame when [animate] is false.
+class _TwoFrame extends StatefulWidget {
+  final String url1;
+  final String url2;
+  final bool animate;
+  final Widget fallback;
+  const _TwoFrame({required this.url1, required this.url2, required this.animate, required this.fallback});
+
+  @override
+  State<_TwoFrame> createState() => _TwoFrameState();
+}
+
+class _TwoFrameState extends State<_TwoFrame> {
+  bool _second = false;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.animate && widget.url2.isNotEmpty) {
+      _timer = Timer.periodic(const Duration(milliseconds: 850), (_) {
+        if (mounted) setState(() => _second = !_second);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final url = (_second && widget.url2.isNotEmpty) ? widget.url2 : widget.url1;
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 220),
+      child: Image.network(
+        url,
+        key: ValueKey(url),
+        fit: BoxFit.contain,
+        cacheWidth: 500,
+        errorBuilder: (_, __, ___) => widget.fallback,
+        loadingBuilder: (ctx, w, prog) => prog == null ? w : const Center(child: CupertinoActivityIndicator(radius: 8)),
       ),
     );
   }

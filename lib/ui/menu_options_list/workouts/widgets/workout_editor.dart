@@ -460,6 +460,7 @@ class _ExercisePickerState extends State<_ExercisePicker> {
                                 equipment: e.equipment,
                                 category: e.category,
                                 imageUrl: e.imageUrl,
+                                imageUrl2: e.imageUrl2,
                                 radius: 10,
                                 figurePadding: 5,
                               ),
