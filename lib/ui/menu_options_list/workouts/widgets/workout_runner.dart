@@ -79,12 +79,27 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
   int _loggedSets = 0;
   double _loggedVolume = 0;
 
+  late final DateTime _startedAt;
+  Timer? _ticker;
+
   @override
   void initState() {
     super.initState();
     _units = context.read<UnitsController>();
     _groups = _build();
     _totalSets = _groups.fold(0, (a, g) => a + g.sets.length);
+    _startedAt = DateTime.now();
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted && !_done) setState(() {});
+    });
+  }
+
+  String get _elapsed {
+    final d = DateTime.now().difference(_startedAt);
+    final h = d.inHours, m = d.inMinutes % 60, s = d.inSeconds % 60;
+    final mm = m.toString().padLeft(2, '0');
+    final ss = s.toString().padLeft(2, '0');
+    return h > 0 ? '$h:$mm:$ss' : '$mm:$ss';
   }
 
   List<_ExGroup> _build() {
@@ -114,6 +129,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
   @override
   void dispose() {
     _restTimer?.cancel();
+    _ticker?.cancel();
     for (final g in _groups) {
       for (final s in g.sets) {
         s.dispose();
@@ -289,6 +305,19 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
               Container(height: 5, color: c.iconBg),
               FractionallySizedBox(widthFactor: progress, child: Container(height: 5, color: c.accent)),
             ]),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Icon(CupertinoIcons.time, size: 14, color: c.textSecondary),
+              const SizedBox(width: 5),
+              Text(_elapsed, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: c.textPrimary, fontFamily: 'Rubik')),
+              const Spacer(),
+              Icon(CupertinoIcons.chart_bar_alt_fill, size: 14, color: c.textSecondary),
+              const SizedBox(width: 5),
+              Text(_units.formatVolume(_loggedVolume),
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: c.textPrimary, fontFamily: 'Rubik')),
+            ],
           ),
         ],
       ),
@@ -559,7 +588,7 @@ class _DoneView extends StatelessWidget {
           Row(children: [
             _stat(c, '$sets', sets == 1 ? 'SET LOGGED' : 'SETS LOGGED'),
             const SizedBox(width: 12),
-            _stat(c, '${(volume / 1000).toStringAsFixed(1)} t', 'VOLUME LIFTED'),
+            _stat(c, context.units.formatVolume(volume), 'VOLUME LIFTED'),
           ]),
           const Spacer(),
           SizedBox(

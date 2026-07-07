@@ -420,7 +420,7 @@ class _StatsBlock extends StatelessWidget {
         Row(children: [
           _StatCard(value: '${units.format(s.maxWeightKg)} ${units.label}', label: 'MAX WEIGHT'),
           const SizedBox(width: 10),
-          _StatCard(value: '${(s.maxVolumeKg / 1000).toStringAsFixed(1)}t', label: 'MAX VOLUME'),
+          _StatCard(value: units.formatVolume(s.maxVolumeKg), label: 'MAX VOLUME'),
           const SizedBox(width: 10),
           _StatCard(value: s.rank ?? '—', label: 'RANK'),
         ]),

@@ -238,7 +238,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
       children: [
         Icon(CupertinoIcons.chart_bar_alt_fill, size: 14, color: c.textSecondary),
         const SizedBox(width: 6),
-        Text('Potential volume: ${(vol / 1000).toStringAsFixed(1)} t',
+        Text('Potential volume: ${context.units.formatVolume(vol)}',
             style: TextStyle(fontSize: 12, color: c.textSecondary, fontFamily: 'Rubik')),
       ],
     );

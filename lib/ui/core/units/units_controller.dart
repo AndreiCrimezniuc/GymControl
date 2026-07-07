@@ -30,6 +30,19 @@ class UnitsController extends ChangeNotifier {
     return v.toStringAsFixed(d);
   }
 
+  /// Formats a tonnage/volume in the display unit with thousands grouping and a
+  /// unit suffix, e.g. "5 240 kg" (kept in kg/lb, never tonnes).
+  String formatVolume(double kg) {
+    final v = fromKg(kg).round();
+    final s = v.toString();
+    final buf = StringBuffer();
+    for (var i = 0; i < s.length; i++) {
+      if (i > 0 && (s.length - i) % 3 == 0) buf.write(' ');
+      buf.write(s[i]);
+    }
+    return '$buf $label';
+  }
+
   Future<void> _restore() async {
     final prefs = await SharedPreferences.getInstance();
     final stored = prefs.getBool(_prefsKey);
