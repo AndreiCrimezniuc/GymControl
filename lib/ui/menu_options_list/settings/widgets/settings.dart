@@ -5,6 +5,7 @@ import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/domain/models/ranking/rank_data.dart';
 import 'package:gymboss/ui/auth/view_model/auth_view_model.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
+import 'package:gymboss/ui/core/units/units_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_dialog.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
 
@@ -98,6 +99,7 @@ class _SettingsState extends State<Settings> {
                 value: theme.isDark,
                 onChanged: (_) => theme.toggle(),
               ),
+              const _UnitsTile(),
             ],
           ),
           const SizedBox(height: 20),
@@ -270,6 +272,45 @@ class _SwitchTile extends StatelessWidget {
       ),
     );
   }
+}
+
+class _UnitsTile extends StatelessWidget {
+  const _UnitsTile();
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final units = context.units;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          Icon(CupertinoIcons.gauge, size: 18, color: c.accent),
+          const SizedBox(width: 12),
+          Expanded(child: Text('Weight units', style: TextStyle(fontSize: 15, color: c.textPrimary, fontFamily: 'Rubik'))),
+          SizedBox(
+            width: 132,
+            child: CupertinoSlidingSegmentedControl<bool>(
+              groupValue: units.isLb,
+              backgroundColor: c.iconBg,
+              thumbColor: c.accent,
+              onValueChanged: (v) => context.unitsController.setLb(v ?? false),
+              children: {
+                false: _seg('kg', !units.isLb, c),
+                true: _seg('lb', units.isLb, c),
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _seg(String label, bool active, dynamic c) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Text(label,
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: active ? c.textOnAccent : c.textSecondary, fontFamily: 'Rubik')),
+      );
 }
 
 class _BodyMetricsSheet extends StatefulWidget {

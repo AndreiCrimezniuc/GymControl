@@ -9,6 +9,7 @@ import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
 import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
 import 'package:gymboss/ui/core/ui/widgets/skeleton.dart';
+import 'package:gymboss/ui/core/units/units_controller.dart';
 import 'package:gymboss/ui/menu_options_list/exercises/widgets/muscle_illustration.dart';
 
 class Exercises extends StatefulWidget {
@@ -386,6 +387,7 @@ class _StatsBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final units = context.units;
     final s = stats;
     if (s == null || !s.hasData) {
       return Container(
@@ -416,7 +418,7 @@ class _StatsBlock extends StatelessWidget {
         ]),
         const SizedBox(height: 10),
         Row(children: [
-          _StatCard(value: '${s.maxWeightKg.toStringAsFixed(0)} kg', label: 'MAX WEIGHT'),
+          _StatCard(value: '${units.format(s.maxWeightKg)} ${units.label}', label: 'MAX WEIGHT'),
           const SizedBox(width: 10),
           _StatCard(value: '${(s.maxVolumeKg / 1000).toStringAsFixed(1)}t', label: 'MAX VOLUME'),
           const SizedBox(width: 10),
@@ -608,12 +610,13 @@ class _LogSetSheetState extends State<_LogSetSheet> {
   String? _error;
 
   Future<void> _save() async {
+    final units = context.unitsController;
     final w = double.tryParse(_weightCtrl.text) ?? 0;
     final r = int.tryParse(_repsCtrl.text) ?? 0;
     if (r <= 0) { setState(() => _error = 'Enter reps'); return; }
     setState(() { _saving = true; _error = null; });
     try {
-      await widget.repo.logSet(widget.exerciseId, weightKg: w, reps: r);
+      await widget.repo.logSet(widget.exerciseId, weightKg: units.toKg(w), reps: r);
       if (mounted) { Navigator.pop(context); widget.onLogged(); }
     } catch (e) {
       if (mounted) setState(() { _error = e.toString(); _saving = false; });
@@ -635,7 +638,7 @@ class _LogSetSheetState extends State<_LogSetSheet> {
           Text('Log a set', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: c.textPrimary, fontFamily: 'Rubik')),
           const SizedBox(height: 16),
           Row(children: [
-            Expanded(child: _Field(controller: _weightCtrl, label: 'Weight (kg)', placeholder: '60', decimal: true)),
+            Expanded(child: _Field(controller: _weightCtrl, label: 'Weight (${context.units.label})', placeholder: '60', decimal: true)),
             const SizedBox(width: 12),
             Expanded(child: _Field(controller: _repsCtrl, label: 'Reps', placeholder: '10')),
           ]),

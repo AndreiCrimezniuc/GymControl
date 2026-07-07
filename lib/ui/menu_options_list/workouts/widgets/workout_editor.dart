@@ -1,10 +1,12 @@
 import 'package:flutter/cupertino.dart';
+import 'package:provider/provider.dart';
 import 'package:gymboss/data/repositories/exercises_repository.dart';
 import 'package:gymboss/data/repositories/workouts_repository.dart';
 import 'package:gymboss/domain/models/exercises/exercise_catalog.dart';
 import 'package:gymboss/domain/models/workouts/workout.dart';
 import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
+import 'package:gymboss/ui/core/units/units_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
 import 'package:gymboss/ui/menu_options_list/exercises/widgets/muscle_illustration.dart';
 
@@ -22,6 +24,7 @@ class WorkoutEditorScreen extends StatefulWidget {
 }
 
 class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
+  late final UnitsController _units;
   final _nameCtrl = TextEditingController();
   final _commentCtrl = TextEditingController();
   final List<_EditExercise> _exercises = [];
@@ -31,12 +34,13 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
   @override
   void initState() {
     super.initState();
+    _units = context.read<UnitsController>();
     final w = widget.existing;
     if (w != null) {
       _nameCtrl.text = w.name;
       _commentCtrl.text = w.comment;
       for (final ex in w.exercises) {
-        _exercises.add(_EditExercise.fromExercise(ex));
+        _exercises.add(_EditExercise.fromExercise(ex, _units));
       }
     }
   }
@@ -75,7 +79,7 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
     if (_exercises.isEmpty) { setState(() => _error = 'Add at least one exercise'); return; }
 
     setState(() { _saving = true; _error = null; });
-    final exercises = _exercises.map((e) => e.toDomain()).toList();
+    final exercises = _exercises.map((e) => e.toDomain(_units)).toList();
     try {
       if (widget.existing != null) {
         await widget.repo.update(widget.existing!.id, name: name, comment: _commentCtrl.text.trim(), exercises: exercises);
@@ -204,6 +208,7 @@ class _ExerciseEditor extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final unit = context.units.label;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
@@ -238,7 +243,7 @@ class _ExerciseEditor extends StatelessWidget {
                     child: Text(_diffLabels[d]!,
                         style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: c.textSecondary, fontFamily: 'Rubik')),
                   ),
-                  Expanded(child: _MiniField(label: 'kg', controller: model.weight[d]!, dense: true)),
+                  Expanded(child: _MiniField(label: unit, controller: model.weight[d]!, dense: true)),
                   const SizedBox(width: 8),
                   Expanded(child: _MiniField(label: 'reps', controller: model.reps[d]!, dense: true)),
                 ]),
@@ -323,7 +328,7 @@ class _EditExercise {
         muscleGroup: item.muscleGroup,
       );
 
-  factory _EditExercise.fromExercise(WorkoutExercise ex) {
+  factory _EditExercise.fromExercise(WorkoutExercise ex, UnitsController units) {
     final m = _EditExercise(
       exerciseId: ex.exerciseId,
       name: ex.name,
@@ -337,7 +342,7 @@ class _EditExercise {
       final sets = ex.setsFor(d);
       if (sets.length > maxCount) maxCount = sets.length;
       if (sets.isNotEmpty) {
-        final w = sets.first.weightKg;
+        final w = units.fromKg(sets.first.weightKg);
         m.weight[d]!.text = w == 0 ? '' : w.toStringAsFixed(w % 1 == 0 ? 0 : 1);
         m.reps[d]!.text = sets.first.reps == 0 ? '' : '${sets.first.reps}';
       }
@@ -346,13 +351,13 @@ class _EditExercise {
     return m;
   }
 
-  WorkoutExercise toDomain() {
+  WorkoutExercise toDomain(UnitsController units) {
     final count = int.tryParse(setsCtrl.text.trim()) ?? 1;
     final rest = int.tryParse(restCtrl.text.trim()) ?? 90;
     final n = count < 1 ? 1 : count;
     final sets = <WorkoutSet>[];
     for (final d in _diffs) {
-      final w = double.tryParse(weight[d]!.text.trim()) ?? 0;
+      final w = units.toKg(double.tryParse(weight[d]!.text.trim()) ?? 0);
       final r = int.tryParse(reps[d]!.text.trim()) ?? 0;
       for (var i = 0; i < n; i++) {
         sets.add(WorkoutSet(difficulty: d, weightKg: w, reps: r));

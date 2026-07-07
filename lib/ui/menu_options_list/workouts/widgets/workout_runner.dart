@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:gymboss/data/repositories/exercises_repository.dart';
 import 'package:gymboss/data/repositories/workouts_repository.dart';
 import 'package:gymboss/domain/models/workouts/workout.dart';
 import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
+import 'package:gymboss/ui/core/units/units_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_dialog.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_scaffold.dart';
 import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
@@ -28,7 +30,8 @@ class _SetEntry {
     required this.restSeconds,
     required this.plannedWeight,
     required this.plannedReps,
-  })  : weight = TextEditingController(text: plannedWeight == 0 ? '' : _fmt(plannedWeight)),
+    required String weightText,
+  })  : weight = TextEditingController(text: weightText),
         reps = TextEditingController(text: plannedReps == 0 ? '' : '$plannedReps');
 
   void dispose() {
@@ -63,6 +66,7 @@ class WorkoutRunnerScreen extends StatefulWidget {
 }
 
 class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
+  late final UnitsController _units;
   late final List<_ExGroup> _groups;
   late final int _totalSets;
 
@@ -78,6 +82,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
   @override
   void initState() {
     super.initState();
+    _units = context.read<UnitsController>();
     _groups = _build();
     _totalSets = _groups.fold(0, (a, g) => a + g.sets.length);
   }
@@ -98,6 +103,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
               restSeconds: ex.restSeconds,
               plannedWeight: s.weightKg,
               plannedReps: s.reps,
+              weightText: s.weightKg == 0 ? '' : _fmt(_units.fromKg(s.weightKg)),
             ),
         ],
       ));
@@ -123,7 +129,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
       setState(() => s.done = false); // allow correcting a mistaken tap; the log stays (append-only)
       return;
     }
-    final w = double.tryParse(s.weight.text.trim()) ?? 0;
+    final w = _units.toKg(double.tryParse(s.weight.text.trim()) ?? 0);
     final r = int.tryParse(s.reps.text.trim()) ?? 0;
     if (r <= 0) return; // need reps to count the set
     HapticFeedback.mediumImpact();
@@ -149,11 +155,21 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
       if (!mounted) return;
       if (_restLeft <= 1) {
         t.cancel();
-        setState(() => _resting = false);
+        _restDone();
       } else {
         setState(() => _restLeft--);
       }
     });
+  }
+
+  void _restDone() {
+    HapticFeedback.heavyImpact();
+    SystemSound.play(SystemSoundType.alert);
+    if (mounted) setState(() => _resting = false);
+  }
+
+  void _adjustRest(int delta) {
+    setState(() => _restLeft = (_restLeft + delta).clamp(0, 3600));
   }
 
   void _skipRest() {
@@ -221,7 +237,14 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                         child: AnimatedOpacity(
                           opacity: _resting ? 1 : 0,
                           duration: const Duration(milliseconds: 200),
-                          child: Center(child: _RestPill(secondsLeft: _restLeft, onSkip: _skipRest)),
+                          child: Center(
+                          child: _RestPill(
+                            secondsLeft: _restLeft,
+                            onSkip: _skipRest,
+                            onAdd: () => _adjustRest(15),
+                            onSub: () => _adjustRest(-15),
+                          ),
+                        ),
                         ),
                       ),
                     ),
@@ -393,7 +416,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: s.done ? c.textOnAccent : c.textSecondary, fontFamily: 'Rubik')),
           ),
           const SizedBox(width: 10),
-          Expanded(child: _numField(c, s.weight, s.done, 'kg')),
+          Expanded(child: _numField(c, s.weight, s.done, _units.label)),
           const SizedBox(width: 8),
           Expanded(child: _numField(c, s.reps, s.done, 'reps')),
           const SizedBox(width: 10),
@@ -440,7 +463,9 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
 class _RestPill extends StatelessWidget {
   final int secondsLeft;
   final VoidCallback onSkip;
-  const _RestPill({required this.secondsLeft, required this.onSkip});
+  final VoidCallback onAdd;
+  final VoidCallback onSub;
+  const _RestPill({required this.secondsLeft, required this.onSkip, required this.onAdd, required this.onSub});
 
   @override
   Widget build(BuildContext context) {
@@ -449,7 +474,7 @@ class _RestPill extends StatelessWidget {
     final ss = secondsLeft % 60;
     final label = mm > 0 ? '$mm:${ss.toString().padLeft(2, '0')}' : '${ss}s';
     return Container(
-      padding: const EdgeInsets.fromLTRB(18, 10, 10, 10),
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
       decoration: BoxDecoration(
         color: c.invBg,
         borderRadius: BorderRadius.circular(30),
@@ -458,15 +483,23 @@ class _RestPill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(CupertinoIcons.timer, size: 18, color: c.invText),
+          _round(c, CupertinoIcons.minus, onSub),
           const SizedBox(width: 8),
-          Text('Rest  $label',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: c.invText, fontFamily: 'Rubik')),
-          const SizedBox(width: 12),
+          Icon(CupertinoIcons.timer, size: 17, color: c.invText),
+          const SizedBox(width: 6),
+          SizedBox(
+            width: 62,
+            child: Text('Rest $label',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: c.invText, fontFamily: 'Rubik')),
+          ),
+          const SizedBox(width: 6),
+          _round(c, CupertinoIcons.plus, onAdd),
+          const SizedBox(width: 8),
           Pressable(
             onTap: onSkip,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(color: c.accent, borderRadius: BorderRadius.circular(20)),
               child: Text('Skip',
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: c.textOnAccent, fontFamily: 'Rubik')),
@@ -476,6 +509,17 @@ class _RestPill extends StatelessWidget {
       ),
     );
   }
+
+  Widget _round(AppColors c, IconData icon, VoidCallback onTap) => Pressable(
+        onTap: onTap,
+        child: Container(
+          width: 32,
+          height: 32,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(color: const Color(0x22FFFFFF), shape: BoxShape.circle),
+          child: Icon(icon, size: 16, color: c.invText),
+        ),
+      );
 }
 
 class _DoneView extends StatelessWidget {

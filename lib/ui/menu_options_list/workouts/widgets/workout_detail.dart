@@ -4,6 +4,7 @@ import 'package:gymboss/data/repositories/workouts_repository.dart';
 import 'package:gymboss/domain/models/workouts/workout.dart';
 import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
+import 'package:gymboss/ui/core/units/units_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_dialog.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
 import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
@@ -283,6 +284,7 @@ class _ExerciseBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final units = context.units;
     final sets = exercise.setsFor(difficulty);
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -325,7 +327,7 @@ class _ExerciseBlock extends StatelessWidget {
                 return Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(color: c.iconBg, borderRadius: BorderRadius.circular(8)),
-                  child: Text('${s.weightKg.toStringAsFixed(s.weightKg % 1 == 0 ? 0 : 1)}kg × ${s.reps}',
+                  child: Text('${units.format(s.weightKg)}${units.label} × ${s.reps}',
                       style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: c.textPrimary, fontFamily: 'Rubik')),
                 );
               }).toList(),

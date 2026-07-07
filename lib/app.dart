@@ -9,6 +9,7 @@ import 'package:gymboss/ui/auth/login_screen.dart';
 import 'package:gymboss/ui/auth/register_screen.dart';
 import 'package:gymboss/ui/auth/view_model/auth_view_model.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
+import 'package:gymboss/ui/core/units/units_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_scaffold.dart';
 import 'package:gymboss/ui/home_screen/home_screen.dart';
 
@@ -45,6 +46,7 @@ class _GymBossAppState extends State<GymBossApp> {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<ThemeController>(create: (_) => ThemeController()),
+        ChangeNotifierProvider<UnitsController>(create: (_) => UnitsController()),
         ChangeNotifierProvider<AuthViewModel>.value(value: _authVm),
         Provider<AuthenticatedClient>.value(value: _client),
       ],
