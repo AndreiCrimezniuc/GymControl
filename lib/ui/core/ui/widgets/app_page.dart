@@ -29,12 +29,16 @@ class AppPage extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(4, 4, 12, 8),
             child: Row(
               children: [
-                Pressable(
-                  onTap: () => Navigator.of(context).maybePop(),
-                  child: SizedBox(
-                    width: 44,
-                    height: 44,
-                    child: Center(child: Icon(CupertinoIcons.chevron_back, size: 24, color: c.textPrimary)),
+                Semantics(
+                  button: true,
+                  label: 'Back',
+                  child: Pressable(
+                    onTap: () => Navigator.of(context).maybePop(),
+                    child: SizedBox(
+                      width: 44,
+                      height: 44,
+                      child: Center(child: Icon(CupertinoIcons.chevron_back, size: 24, color: c.textPrimary)),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 2),

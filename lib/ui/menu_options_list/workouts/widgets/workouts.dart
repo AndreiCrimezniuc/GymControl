@@ -7,6 +7,7 @@ import 'package:gymboss/domain/models/workouts/workout.dart';
 import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
+import 'package:gymboss/ui/core/ui/widgets/skeleton.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/workout_editor.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/workout_detail.dart';
 
@@ -79,7 +80,7 @@ class _WorkoutsState extends State<Workouts> {
         ),
       ],
       body: _loading
-          ? const Center(child: CupertinoActivityIndicator())
+          ? const SkeletonList()
           : _error != null
               ? _ErrorView(error: _error!, onRetry: _load)
               : _buildBody(c),
@@ -148,6 +149,7 @@ class _WorkoutCard extends StatelessWidget {
           color: c.card,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: c.border),
+          boxShadow: c.cardShadow,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

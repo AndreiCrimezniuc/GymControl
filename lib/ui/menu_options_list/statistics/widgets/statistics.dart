@@ -8,6 +8,7 @@ import 'package:gymboss/domain/models/ranking/rank_data.dart';
 import 'package:gymboss/domain/models/streak/streak_data.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
+import 'package:gymboss/ui/core/ui/widgets/skeleton.dart';
 
 class Statistics extends StatefulWidget {
   const Statistics({super.key});
@@ -61,10 +62,14 @@ class _StatisticsState extends State<Statistics> {
     return AppPage(
       title: 'Statistics',
       body: _loading
-          ? const Center(child: CupertinoActivityIndicator())
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-              children: [
+          ? const SkeletonList()
+          : CustomScrollView(
+              slivers: [
+                CupertinoSliverRefreshControl(onRefresh: _load),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate([
                 Row(
                   children: [
                     _StatTile(
@@ -102,6 +107,9 @@ class _StatisticsState extends State<Statistics> {
                   _RecordsList(ranks: ranks),
                 ],
                 const SizedBox(height: 16),
+                    ]),
+                  ),
+                ),
               ],
             ),
     );

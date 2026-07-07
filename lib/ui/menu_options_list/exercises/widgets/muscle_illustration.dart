@@ -55,7 +55,10 @@ class ExerciseVisual extends StatelessWidget {
       pattern: patternFor(name: name, muscle: muscleGroup, equipment: equipment),
       animate: animate,
     );
-    return ClipRRect(
+    return Semantics(
+      image: true,
+      label: name.isNotEmpty ? '$name demonstration' : 'Exercise demonstration',
+      child: ClipRRect(
       borderRadius: BorderRadius.circular(radius),
       child: Container(
         color: c.iconBg,
@@ -72,6 +75,7 @@ class ExerciseVisual extends StatelessWidget {
                     prog == null ? child : const Center(child: CupertinoActivityIndicator(radius: 8)),
               )
             : Padding(padding: EdgeInsets.all(figurePadding), child: mannequin),
+      ),
       ),
     );
   }

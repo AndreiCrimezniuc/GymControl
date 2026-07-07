@@ -53,6 +53,15 @@ class AppColors {
     required this.invText,
   });
 
+  /// A soft, background-tinted card shadow for gentle depth.
+  List<BoxShadow> get cardShadow => [
+        BoxShadow(
+          color: isDark ? const Color(0x4D000000) : const Color(0x14442622),
+          blurRadius: 16,
+          offset: const Offset(0, 6),
+        ),
+      ];
+
   static const light = AppColors(
     isDark: false,
     bg: Color(0xFFFCFAF8),

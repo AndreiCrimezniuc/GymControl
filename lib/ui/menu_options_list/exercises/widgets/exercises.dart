@@ -8,6 +8,7 @@ import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
 import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
+import 'package:gymboss/ui/core/ui/widgets/skeleton.dart';
 import 'package:gymboss/ui/menu_options_list/exercises/widgets/muscle_illustration.dart';
 
 class Exercises extends StatefulWidget {
@@ -40,13 +41,13 @@ class _ExercisesState extends State<Exercises> {
     super.dispose();
   }
 
-  Future<void> _load() async {
-    setState(() { _loading = true; _error = null; });
+  Future<void> _load({bool spinner = true}) async {
+    if (spinner) setState(() { _loading = true; _error = null; });
     try {
       final items = await _repo.getCatalog();
       if (mounted) setState(() { _all = items; _loading = false; });
     } catch (e) {
-      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+      if (mounted) setState(() { if (spinner) _error = e.toString(); _loading = false; });
     }
   }
 
@@ -81,7 +82,7 @@ class _ExercisesState extends State<Exercises> {
         ),
       ],
       body: _loading
-          ? const Center(child: CupertinoActivityIndicator())
+          ? const SkeletonList()
           : _error != null
               ? _ErrorView(error: _error!, onRetry: _load)
               : _buildList(c),
@@ -139,14 +140,25 @@ class _ExercisesState extends State<Exercises> {
         ),
         const SizedBox(height: 12),
         Expanded(
-          child: filtered.isEmpty
-              ? Center(child: Text('No exercises found', style: TextStyle(color: c.textSecondary, fontFamily: 'Rubik')))
-              : ListView.separated(
+          child: CustomScrollView(
+            slivers: [
+              CupertinoSliverRefreshControl(onRefresh: () => _load(spinner: false)),
+              if (filtered.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(child: Text('No exercises found', style: TextStyle(color: c.textSecondary, fontFamily: 'Rubik'))),
+                )
+              else
+                SliverPadding(
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-                  itemCount: filtered.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                  itemBuilder: (_, i) => _ExerciseTile(entry: filtered[i], repo: _repo),
+                  sliver: SliverList.separated(
+                    itemCount: filtered.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (_, i) => _ExerciseTile(entry: filtered[i], repo: _repo),
+                  ),
                 ),
+            ],
+          ),
         ),
       ],
     );
@@ -171,6 +183,7 @@ class _ExerciseTile extends StatelessWidget {
           color: c.card,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: c.border),
+          boxShadow: c.cardShadow,
         ),
         child: Row(
           children: [
