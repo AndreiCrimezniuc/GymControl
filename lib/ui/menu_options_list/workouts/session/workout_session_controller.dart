@@ -15,6 +15,7 @@ class SessionSet {
   final int plannedReps;
   String weight; // in the display unit
   String reps;
+  String type; // warmup | working | failure
   bool done;
 
   SessionSet({
@@ -24,9 +25,12 @@ class SessionSet {
     required this.plannedReps,
     required this.weight,
     required this.reps,
+    this.type = 'working',
     this.done = false,
   });
 }
+
+const setTypes = ['warmup', 'working', 'failure'];
 
 class SessionExercise {
   final String name;
@@ -164,10 +168,18 @@ class WorkoutSessionController extends ChangeNotifier {
     HapticFeedback.mediumImpact();
     s.done = true;
     _loggedSets++;
-    _loggedVolumeKg += w * r;
+    if (s.type != 'warmup') _loggedVolumeKg += w * r; // warmup excluded from working volume
     notifyListeners();
-    _exercises.logSet(s.exerciseId, weightKg: w, reps: r).catchError((_) {});
+    _exercises.logSet(s.exerciseId, weightKg: w, reps: r, setType: s.type).catchError((_) {});
     _startRest(s.restSeconds);
+  }
+
+  /// Cycle a set's type (warmup → working → failure). No-op once logged.
+  void cycleSetType(SessionSet s) {
+    if (s.done) return;
+    final i = setTypes.indexOf(s.type);
+    s.type = setTypes[(i + 1) % setTypes.length];
+    notifyListeners();
   }
 
   void _startRest(int seconds) {

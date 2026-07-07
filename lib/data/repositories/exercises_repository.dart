@@ -26,10 +26,10 @@ class ExercisesRepository {
     return ExerciseStats.fromJson(jsonDecode(resp.body) as Map<String, dynamic>);
   }
 
-  Future<void> logSet(int id, {required double weightKg, required int reps}) async {
+  Future<void> logSet(int id, {required double weightKg, required int reps, String setType = 'working'}) async {
     final resp = await _client.post(
       Uri.parse('$_base/$id/log'),
-      body: jsonEncode({'weight_kg': weightKg, 'reps': reps}),
+      body: jsonEncode({'weight_kg': weightKg, 'reps': reps, 'set_type': setType}),
     ).timeout(const Duration(seconds: 15));
     if (resp.statusCode != 204 && resp.statusCode != 200) {
       throw Exception('POST /exercises/$id/log HTTP ${resp.statusCode}: ${resp.body}');

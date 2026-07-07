@@ -287,8 +287,10 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
       ),
       child: Row(
         children: [
+          _typeChip(c, session, s),
+          const SizedBox(width: 7),
           Container(
-            width: 30,
+            width: 26,
             height: 30,
             alignment: Alignment.center,
             decoration: BoxDecoration(
@@ -299,7 +301,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
             child: Text('$number',
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: s.done ? c.textOnAccent : c.textSecondary, fontFamily: 'Rubik')),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           Expanded(child: _numField(c, _weight[s]!, s.done, units.label)),
           const SizedBox(width: 8),
           Expanded(child: _numField(c, _reps[s]!, s.done, 'reps')),
@@ -319,6 +321,42 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _typeChip(AppColors c, WorkoutSessionController session, SessionSet s) {
+    late final Color bg;
+    late final Color fg;
+    late final String label;
+    switch (s.type) {
+      case 'warmup':
+        bg = const Color(0x33F59E0B);
+        fg = const Color(0xFFB45309);
+        label = 'W';
+        break;
+      case 'failure':
+        bg = c.accent.withValues(alpha: 0.16);
+        fg = c.accent;
+        label = 'F';
+        break;
+      default:
+        bg = c.card;
+        fg = c.textSecondary;
+        label = '•';
+    }
+    return Pressable(
+      onTap: () => session.cycleSetType(s),
+      child: Container(
+        width: 28,
+        height: 30,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(9),
+          border: Border.all(color: s.type == 'working' ? c.border : const Color(0x00000000)),
+        ),
+        child: Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: fg, fontFamily: 'Rubik')),
       ),
     );
   }
