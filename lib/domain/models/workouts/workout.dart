@@ -139,6 +139,39 @@ class WorkoutRunPoint {
       );
 }
 
+class PerformedSetLog {
+  final double weightKg;
+  final int reps;
+  final String setType;
+  const PerformedSetLog({required this.weightKg, required this.reps, required this.setType});
+
+  factory PerformedSetLog.fromJson(Map<String, dynamic> j) => PerformedSetLog(
+        weightKg: (j['weight_kg'] as num?)?.toDouble() ?? 0,
+        reps: (j['reps'] as num?)?.toInt() ?? 0,
+        setType: (j['set_type'] as String?) ?? 'working',
+      );
+}
+
+class PerformedExerciseLog {
+  final int exerciseId;
+  final String name;
+  final String muscleGroup;
+  final List<PerformedSetLog> sets;
+  const PerformedExerciseLog({required this.exerciseId, required this.name, required this.muscleGroup, required this.sets});
+
+  factory PerformedExerciseLog.fromJson(Map<String, dynamic> j) => PerformedExerciseLog(
+        exerciseId: (j['exercise_id'] as num?)?.toInt() ?? 0,
+        name: (j['name'] as String?) ?? '',
+        muscleGroup: (j['muscle_group'] as String?) ?? '',
+        sets: ((j['sets'] as List?) ?? [])
+            .map((e) => PerformedSetLog.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
+
+  double get volumeKg =>
+      sets.where((s) => s.setType != 'warmup').fold(0.0, (a, s) => a + s.weightKg * s.reps);
+}
+
 class WorkoutStats {
   final int timesPerformed;
   final double loveCoefficient;

@@ -33,6 +33,13 @@ class WorkoutsRepository {
     return WorkoutStats.fromJson(jsonDecode(resp.body) as Map<String, dynamic>);
   }
 
+  Future<List<PerformedExerciseLog>> runDetail(String id, String date) async {
+    final resp = await _client.get(Uri.parse('$_base/$id/history/$date')).timeout(const Duration(seconds: 15));
+    if (resp.statusCode != 200) throw Exception('GET run detail HTTP ${resp.statusCode}');
+    final list = jsonDecode(resp.body) as List<dynamic>;
+    return list.map((e) => PerformedExerciseLog.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
   Future<Workout> create({
     required String name,
     required String comment,
