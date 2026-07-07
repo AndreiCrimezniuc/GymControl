@@ -1,7 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:gymboss/data/repositories/exercises_repository.dart';
 import 'package:gymboss/data/repositories/workouts_repository.dart';
+import 'package:gymboss/domain/models/exercises/exercise_catalog.dart';
 import 'package:gymboss/domain/models/workouts/workout.dart';
+import 'package:gymboss/ui/menu_options_list/exercises/widgets/exercises.dart';
 import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/units/units_controller.dart';
@@ -83,6 +85,28 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
       CupertinoPageRoute(builder: (_) => WorkoutEditorScreen(repo: widget.repo, exercises: widget.exercises, existing: _w)),
     );
     if (saved == true) _load();
+  }
+
+  void _openExerciseStats(WorkoutExercise ex) {
+    Navigator.of(context, rootNavigator: true).push(
+      CupertinoPageRoute(
+        builder: (_) => ExerciseDetailScreen(
+          entry: ExerciseCatalogItem(
+            id: ex.exerciseId,
+            name: ex.name,
+            muscleGroup: ex.muscleGroup,
+            equipment: '',
+            category: '',
+            level: '',
+            force: '',
+            imageUrl: ex.imageUrl,
+            imageUrl2: '',
+            instructions: '',
+          ),
+          repo: widget.exercises,
+        ),
+      ),
+    );
   }
 
   Future<void> _togglePublic() async {
@@ -175,7 +199,12 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
               const SizedBox(height: 8),
               _potentialVolumeLine(c),
               const SizedBox(height: 16),
-              ...w.exercises.asMap().entries.map((e) => _ExerciseBlock(index: e.key + 1, exercise: e.value, difficulty: _difficulty)),
+              ...w.exercises.asMap().entries.map((e) => _ExerciseBlock(
+                    index: e.key + 1,
+                    exercise: e.value,
+                    difficulty: _difficulty,
+                    onTap: () => _openExerciseStats(e.value),
+                  )),
               if (_stats != null && _stats!.history.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 _SectionLabel('History'),
@@ -279,14 +308,18 @@ class _ExerciseBlock extends StatelessWidget {
   final int index;
   final WorkoutExercise exercise;
   final String difficulty;
-  const _ExerciseBlock({required this.index, required this.exercise, required this.difficulty});
+  final VoidCallback onTap;
+  const _ExerciseBlock({required this.index, required this.exercise, required this.difficulty, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     final units = context.units;
     final sets = exercise.setsFor(difficulty);
-    return Container(
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(color: c.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: c.border)),
@@ -339,6 +372,7 @@ class _ExerciseBlock extends StatelessWidget {
                 style: TextStyle(fontSize: 12, color: c.textSecondary, fontStyle: FontStyle.italic, fontFamily: 'Rubik')),
           ],
         ],
+      ),
       ),
     );
   }

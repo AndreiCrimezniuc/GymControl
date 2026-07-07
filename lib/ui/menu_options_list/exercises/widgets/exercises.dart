@@ -176,7 +176,7 @@ class _ExerciseTile extends StatelessWidget {
     final c = context.colors;
     return GestureDetector(
       onTap: () => Navigator.of(context, rootNavigator: true).push(
-        CupertinoPageRoute(builder: (_) => _ExerciseDetailScreen(entry: entry, repo: repo)),
+        CupertinoPageRoute(builder: (_) => ExerciseDetailScreen(entry: entry, repo: repo)),
       ),
       child: Container(
         padding: const EdgeInsets.all(10),
@@ -258,16 +258,16 @@ class _Thumb extends StatelessWidget {
 
 // ── Detail ────────────────────────────────────────────────────────────────────
 
-class _ExerciseDetailScreen extends StatefulWidget {
+class ExerciseDetailScreen extends StatefulWidget {
   final ExerciseCatalogItem entry;
   final ExercisesRepository repo;
-  const _ExerciseDetailScreen({required this.entry, required this.repo});
+  const ExerciseDetailScreen({required this.entry, required this.repo});
 
   @override
-  State<_ExerciseDetailScreen> createState() => _ExerciseDetailScreenState();
+  State<ExerciseDetailScreen> createState() => ExerciseDetailScreenState();
 }
 
-class _ExerciseDetailScreenState extends State<_ExerciseDetailScreen> {
+class ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
   ExerciseStats? _stats;
   bool _loadingStats = true;
 
