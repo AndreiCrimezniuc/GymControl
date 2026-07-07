@@ -227,6 +227,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
   Widget _exerciseCard(AppColors c, WorkoutSessionController session, UnitsController units, int index, SessionExercise g) {
     final doneInEx = g.sets.where((s) => s.done).length;
     final allDone = doneInEx == g.sets.length;
+    final pr = g.sets.isNotEmpty ? session.prFor(g.sets.first.exerciseId) : null;
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(color: c.card, borderRadius: BorderRadius.circular(18), border: Border.all(color: c.border), boxShadow: c.cardShadow),
@@ -253,8 +254,11 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: c.textPrimary, fontFamily: 'Rubik')),
                     const SizedBox(height: 3),
-                    Text('${g.sets.length} sets  ·  rest ${g.restSeconds}s',
-                        style: TextStyle(fontSize: 12, color: c.textSecondary, fontFamily: 'Rubik')),
+                    Text(
+                      '${g.sets.length} sets  ·  rest ${g.restSeconds}s'
+                      '${pr != null ? '  ·  PR ${units.format(pr)}${units.label}' : ''}',
+                      style: TextStyle(fontSize: 12, color: c.textSecondary, fontFamily: 'Rubik'),
+                    ),
                   ],
                 ),
               ),

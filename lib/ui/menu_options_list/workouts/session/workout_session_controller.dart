@@ -51,6 +51,7 @@ class WorkoutSessionController extends ChangeNotifier {
   bool _finished = false;
 
   final List<SessionExercise> _groups = [];
+  final Map<int, double> _prKg = {}; // exerciseId → previous best working weight
   int _totalSets = 0;
   int _loggedSets = 0;
   double _loggedVolumeKg = 0;
@@ -79,6 +80,12 @@ class WorkoutSessionController extends ChangeNotifier {
   int get restLeft => _restLeft;
 
   int get doneSets => _groups.fold(0, (a, g) => a + g.sets.where((s) => s.done).length);
+
+  /// Previous best working weight (kg) for an exercise, if loaded.
+  double? prFor(int exerciseId) {
+    final v = _prKg[exerciseId];
+    return (v != null && v > 0) ? v : null;
+  }
 
   String get elapsed {
     if (_startedAt == null) return '00:00';
@@ -118,6 +125,18 @@ class WorkoutSessionController extends ChangeNotifier {
       if (_active && !_finished) notifyListeners();
     });
     notifyListeners();
+    _loadPrs();
+  }
+
+  void _loadPrs() {
+    _prKg.clear();
+    final ids = <int>{for (final g in _groups) for (final s in g.sets) s.exerciseId};
+    for (final id in ids) {
+      _exercises.getStats(id).then((stats) {
+        _prKg[id] = stats.maxWeightKg;
+        if (_active) notifyListeners();
+      }).catchError((_) {});
+    }
   }
 
   List<SessionExercise> _build(Workout w, String difficulty, UnitsController units) {
@@ -237,6 +256,7 @@ class WorkoutSessionController extends ChangeNotifier {
     _finished = false;
     _workout = null;
     _groups.clear();
+    _prKg.clear();
     _loggedSets = 0;
     _loggedVolumeKg = 0;
     notifyListeners();
