@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:provider/provider.dart';
 import 'package:gymboss/data/repositories/exercises_repository.dart';
 import 'package:gymboss/data/repositories/workouts_repository.dart';
 import 'package:gymboss/domain/models/exercises/exercise_catalog.dart';
@@ -12,6 +13,7 @@ import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
 import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
 import 'package:gymboss/ui/menu_options_list/exercises/widgets/exercise_mannequin.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/workout_editor.dart';
+import 'package:gymboss/ui/menu_options_list/workouts/session/workout_session_controller.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/workout_runner.dart';
 
 const _diffLabels = {'easy': 'Easy', 'medium': 'Medium', 'hard': 'Hard'};
@@ -51,15 +53,28 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   }
 
   Future<void> _launch() async {
+    final session = context.read<WorkoutSessionController>();
+    if (session.isActive && !session.isFinished) {
+      final replace = await showAppDialog<bool>(
+        context,
+        title: 'Start a new workout?',
+        message: 'You have an active session in progress. Starting this one will discard it.',
+        actions: [
+          AppDialogAction('Keep active', onPressed: () => Navigator.pop(context, false)),
+          AppDialogAction('Start new', isDestructive: true, onPressed: () => Navigator.pop(context, true)),
+        ],
+      );
+      if (replace != true) return;
+    }
+    session.start(
+      workout: _w!,
+      difficulty: _difficulty,
+      exercises: widget.exercises,
+      workouts: widget.repo,
+      units: context.read<UnitsController>(),
+    );
     await Navigator.of(context, rootNavigator: true).push(
-      CupertinoPageRoute(
-        builder: (_) => WorkoutRunnerScreen(
-          workout: _w!,
-          difficulty: _difficulty,
-          repo: widget.repo,
-          exercises: widget.exercises,
-        ),
-      ),
+      CupertinoPageRoute(builder: (_) => const WorkoutRunnerScreen()),
     );
     if (mounted) _load();
   }

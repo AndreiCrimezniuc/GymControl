@@ -12,6 +12,9 @@ import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/units/units_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_scaffold.dart';
 import 'package:gymboss/ui/home_screen/home_screen.dart';
+import 'package:gymboss/ui/menu_options_list/workouts/session/resume_bar.dart';
+import 'package:gymboss/ui/menu_options_list/workouts/session/workout_session_controller.dart';
+import 'package:gymboss/ui/menu_options_list/workouts/widgets/workout_runner.dart';
 
 class GymBossApp extends StatefulWidget {
   const GymBossApp({super.key});
@@ -23,6 +26,7 @@ class GymBossApp extends StatefulWidget {
 class _GymBossAppState extends State<GymBossApp> {
   final _storage = TokenStorage();
   final _authService = AuthService();
+  final _navKey = GlobalKey<NavigatorState>();
   late final AuthenticatedClient _client;
   late final AuthViewModel _authVm;
 
@@ -47,12 +51,14 @@ class _GymBossAppState extends State<GymBossApp> {
       providers: [
         ChangeNotifierProvider<ThemeController>(create: (_) => ThemeController()),
         ChangeNotifierProvider<UnitsController>(create: (_) => UnitsController()),
+        ChangeNotifierProvider<WorkoutSessionController>(create: (_) => WorkoutSessionController()),
         ChangeNotifierProvider<AuthViewModel>.value(value: _authVm),
         Provider<AuthenticatedClient>.value(value: _client),
       ],
       child: Consumer<ThemeController>(
         builder: (context, theme, _) {
           return CupertinoApp(
+            navigatorKey: _navKey,
             theme: CupertinoThemeData(
               brightness: theme.isDark ? Brightness.dark : Brightness.light,
               scaffoldBackgroundColor: theme.colors.bg,
@@ -62,6 +68,35 @@ class _GymBossAppState extends State<GymBossApp> {
             ),
             debugShowCheckedModeBanner: false,
             home: const _AuthGate(),
+            builder: (context, child) => Stack(
+              children: [
+                child ?? const SizedBox.shrink(),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: Consumer<WorkoutSessionController>(
+                    builder: (ctx, session, __) {
+                      if (!session.isActive || !session.isMinimized || session.isFinished) {
+                        return const SizedBox.shrink();
+                      }
+                      return SafeArea(
+                        top: false,
+                        child: WorkoutResumeBar(
+                          session: session,
+                          onTap: () {
+                            session.resume();
+                            _navKey.currentState?.push(
+                              CupertinoPageRoute(builder: (_) => const WorkoutRunnerScreen()),
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
           );
         },
       ),

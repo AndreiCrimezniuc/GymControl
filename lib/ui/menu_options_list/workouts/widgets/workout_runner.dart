@@ -1,10 +1,5 @@
-import 'dart:async';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:gymboss/data/repositories/exercises_repository.dart';
-import 'package:gymboss/data/repositories/workouts_repository.dart';
-import 'package:gymboss/domain/models/workouts/workout.dart';
 import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/units/units_controller.dart';
@@ -12,198 +7,53 @@ import 'package:gymboss/ui/core/ui/widgets/app_dialog.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_scaffold.dart';
 import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
 import 'package:gymboss/ui/menu_options_list/exercises/widgets/exercise_mannequin.dart';
+import 'package:gymboss/ui/menu_options_list/workouts/session/workout_session_controller.dart';
 
 const _diffLabels = {'easy': 'Easy', 'medium': 'Medium', 'hard': 'Hard'};
 
-/// One set the user performs: planned target + the actual weight/reps they log.
-class _SetEntry {
-  final int exerciseId;
-  final int restSeconds;
-  final double plannedWeight;
-  final int plannedReps;
-  final TextEditingController weight;
-  final TextEditingController reps;
-  bool done = false;
-
-  _SetEntry({
-    required this.exerciseId,
-    required this.restSeconds,
-    required this.plannedWeight,
-    required this.plannedReps,
-    required String weightText,
-  })  : weight = TextEditingController(text: weightText),
-        reps = TextEditingController(text: plannedReps == 0 ? '' : '$plannedReps');
-
-  void dispose() {
-    weight.dispose();
-    reps.dispose();
-  }
-}
-
-class _ExGroup {
-  final String name;
-  final String muscleGroup;
-  final int restSeconds;
-  final List<_SetEntry> sets;
-  _ExGroup({required this.name, required this.muscleGroup, required this.restSeconds, required this.sets});
-}
-
+/// A view over the global [WorkoutSessionController]. Holds no session state of
+/// its own (so the session survives minimize/resume) — only the text
+/// controllers bound to the session's sets.
 class WorkoutRunnerScreen extends StatefulWidget {
-  final Workout workout;
-  final String difficulty;
-  final WorkoutsRepository repo;
-  final ExercisesRepository exercises;
-  const WorkoutRunnerScreen({
-    super.key,
-    required this.workout,
-    required this.difficulty,
-    required this.repo,
-    required this.exercises,
-  });
+  const WorkoutRunnerScreen({super.key});
 
   @override
   State<WorkoutRunnerScreen> createState() => _WorkoutRunnerScreenState();
 }
 
 class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
-  late final UnitsController _units;
-  late final List<_ExGroup> _groups;
-  late final int _totalSets;
-
-  bool _resting = false;
-  int _restLeft = 0;
-  Timer? _restTimer;
-
-  bool _finishing = false;
-  bool _done = false;
-  int _loggedSets = 0;
-  double _loggedVolume = 0;
-
-  late final DateTime _startedAt;
-  Timer? _ticker;
+  final Map<SessionSet, TextEditingController> _weight = {};
+  final Map<SessionSet, TextEditingController> _reps = {};
 
   @override
   void initState() {
     super.initState();
-    _units = context.read<UnitsController>();
-    _groups = _build();
-    _totalSets = _groups.fold(0, (a, g) => a + g.sets.length);
-    _startedAt = DateTime.now();
-    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted && !_done) setState(() {});
-    });
-  }
-
-  String get _elapsed {
-    final d = DateTime.now().difference(_startedAt);
-    final h = d.inHours, m = d.inMinutes % 60, s = d.inSeconds % 60;
-    final mm = m.toString().padLeft(2, '0');
-    final ss = s.toString().padLeft(2, '0');
-    return h > 0 ? '$h:$mm:$ss' : '$mm:$ss';
-  }
-
-  List<_ExGroup> _build() {
-    final out = <_ExGroup>[];
-    for (final ex in widget.workout.exercises) {
-      final planned = ex.setsFor(widget.difficulty);
-      if (planned.isEmpty) continue;
-      out.add(_ExGroup(
-        name: ex.name,
-        muscleGroup: ex.muscleGroup,
-        restSeconds: ex.restSeconds,
-        sets: [
-          for (final s in planned)
-            _SetEntry(
-              exerciseId: ex.exerciseId,
-              restSeconds: ex.restSeconds,
-              plannedWeight: s.weightKg,
-              plannedReps: s.reps,
-              weightText: s.weightKg == 0 ? '' : _fmt(_units.fromKg(s.weightKg)),
-            ),
-        ],
-      ));
+    final session = context.read<WorkoutSessionController>();
+    for (final g in session.groups) {
+      for (final s in g.sets) {
+        _weight[s] = TextEditingController(text: s.weight)..addListener(() => s.weight = _weight[s]!.text);
+        _reps[s] = TextEditingController(text: s.reps)..addListener(() => s.reps = _reps[s]!.text);
+      }
     }
-    return out;
   }
 
   @override
   void dispose() {
-    _restTimer?.cancel();
-    _ticker?.cancel();
-    for (final g in _groups) {
-      for (final s in g.sets) {
-        s.dispose();
-      }
+    for (final c in _weight.values) {
+      c.dispose();
+    }
+    for (final c in _reps.values) {
+      c.dispose();
     }
     super.dispose();
   }
 
-  int get _doneSets => _groups.fold(0, (a, g) => a + g.sets.where((s) => s.done).length);
-
-  Future<void> _toggleSet(_SetEntry s) async {
-    if (s.done) {
-      setState(() => s.done = false); // allow correcting a mistaken tap; the log stays (append-only)
-      return;
-    }
-    final w = _units.toKg(double.tryParse(s.weight.text.trim()) ?? 0);
-    final r = int.tryParse(s.reps.text.trim()) ?? 0;
-    if (r <= 0) return; // need reps to count the set
-    HapticFeedback.mediumImpact();
-    setState(() {
-      s.done = true;
-      _loggedSets++;
-      _loggedVolume += w * r;
-    });
-    try {
-      await widget.exercises.logSet(s.exerciseId, weightKg: w, reps: r);
-    } catch (_) {}
-    _startRest(s.restSeconds);
-  }
-
-  void _startRest(int seconds) {
-    _restTimer?.cancel();
-    if (seconds <= 0) return;
-    setState(() {
-      _resting = true;
-      _restLeft = seconds;
-    });
-    _restTimer = Timer.periodic(const Duration(seconds: 1), (t) {
-      if (!mounted) return;
-      if (_restLeft <= 1) {
-        t.cancel();
-        _restDone();
-      } else {
-        setState(() => _restLeft--);
-      }
-    });
-  }
-
-  void _restDone() {
-    HapticFeedback.heavyImpact();
-    SystemSound.play(SystemSoundType.alert);
-    if (mounted) setState(() => _resting = false);
-  }
-
-  void _adjustRest(int delta) {
-    setState(() => _restLeft = (_restLeft + delta).clamp(0, 3600));
-  }
-
-  void _skipRest() {
-    _restTimer?.cancel();
-    setState(() => _resting = false);
-  }
-
-  Future<void> _finish() async {
-    setState(() => _finishing = true);
-    try {
-      await widget.repo.logRun(widget.workout.id, widget.difficulty);
-    } catch (_) {}
-    HapticFeedback.heavyImpact();
-    if (mounted) setState(() { _finishing = false; _done = true; });
+  void _minimize() {
+    context.read<WorkoutSessionController>().minimize();
+    Navigator.of(context).pop();
   }
 
   Future<void> _confirmQuit() async {
-    if (_done) { Navigator.of(context).pop(); return; }
     final quit = await showAppDialog<bool>(
       context,
       title: 'Quit workout?',
@@ -213,54 +63,69 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
         AppDialogAction('Quit', isDestructive: true, onPressed: () => Navigator.pop(context, true)),
       ],
     );
-    if (quit == true && mounted) Navigator.of(context).pop();
+    if (quit == true && mounted) {
+      context.read<WorkoutSessionController>().clear();
+      Navigator.of(context).pop();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final session = context.watch<WorkoutSessionController>();
+    final units = context.watch<UnitsController>();
+
+    if (!session.isActive) {
+      // session was cleared elsewhere; bail out
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) Navigator.of(context).maybePop();
+      });
+      return const AppScaffold(child: SizedBox.shrink());
+    }
+
     return AppScaffold(
       child: SafeArea(
-        child: _done
+        child: session.isFinished
             ? _DoneView(
-                workoutName: widget.workout.name,
-                difficulty: widget.difficulty,
-                sets: _loggedSets,
-                volume: _loggedVolume,
-                onClose: () => Navigator.of(context).pop(),
+                workoutName: session.workout?.name ?? '',
+                difficulty: session.difficulty,
+                sets: session.loggedSets,
+                volumeKg: session.loggedVolumeKg,
+                onClose: () {
+                  session.clear();
+                  Navigator.of(context).pop();
+                },
               )
             : Stack(
                 children: [
                   Column(
                     children: [
-                      _header(c),
-                      Expanded(child: _body(c)),
-                      _finishBar(c),
+                      _header(c, session),
+                      Expanded(child: _body(c, session, units)),
+                      _finishBar(c, session),
                     ],
                   ),
-                  // Floating rest pill: pinned to the screen, independent of
-                  // scroll, hovering just above the finish bar.
                   Positioned(
                     left: 0,
                     right: 0,
                     bottom: 92,
                     child: IgnorePointer(
-                      ignoring: !_resting,
+                      ignoring: !session.resting,
                       child: AnimatedSlide(
-                        offset: _resting ? Offset.zero : const Offset(0, 0.4),
+                        offset: session.resting ? Offset.zero : const Offset(0, 0.4),
                         duration: const Duration(milliseconds: 220),
                         curve: const Cubic(0.23, 1, 0.32, 1),
                         child: AnimatedOpacity(
-                          opacity: _resting ? 1 : 0,
+                          opacity: session.resting ? 1 : 0,
                           duration: const Duration(milliseconds: 200),
                           child: Center(
-                          child: _RestPill(
-                            secondsLeft: _restLeft,
-                            onSkip: _skipRest,
-                            onAdd: () => _adjustRest(15),
-                            onSub: () => _adjustRest(-15),
+                            child: _RestPill(
+                              secondsLeft: session.restLeft,
+                              onSkip: session.skipRest,
+                              onAdd: () => session.adjustRest(15),
+                              onSub: () => session.adjustRest(-15),
+                            ),
                           ),
-                        ),
                         ),
                       ),
                     ),
@@ -271,34 +136,32 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     );
   }
 
-  Widget _header(AppColors c) {
-    final progress = _totalSets == 0 ? 0.0 : (_doneSets / _totalSets).clamp(0.0, 1.0);
+  Widget _header(AppColors c, WorkoutSessionController s) {
+    final progress = s.totalSets == 0 ? 0.0 : (s.doneSets / s.totalSets).clamp(0.0, 1.0);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
       child: Column(
         children: [
           Row(
             children: [
               Pressable(
-                onTap: _confirmQuit,
-                child: SizedBox(width: 40, height: 40, child: Icon(CupertinoIcons.xmark, size: 22, color: c.textPrimary)),
+                onTap: _minimize,
+                child: SizedBox(width: 40, height: 40, child: Icon(CupertinoIcons.chevron_down, size: 22, color: c.textPrimary)),
               ),
               Expanded(
-                child: Text(widget.workout.name,
+                child: Text(s.workout?.name ?? 'Workout',
                     textAlign: TextAlign.center,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: c.textPrimary, fontFamily: 'Rubik')),
               ),
-              SizedBox(
-                width: 40,
-                child: Text('$_doneSets/$_totalSets',
-                    textAlign: TextAlign.right,
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: c.accent, fontFamily: 'Rubik')),
+              Pressable(
+                onTap: _confirmQuit,
+                child: SizedBox(width: 40, height: 40, child: Icon(CupertinoIcons.xmark, size: 20, color: c.textSecondary)),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           ClipRRect(
             borderRadius: BorderRadius.circular(3),
             child: Stack(children: [
@@ -311,11 +174,14 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
             children: [
               Icon(CupertinoIcons.time, size: 14, color: c.textSecondary),
               const SizedBox(width: 5),
-              Text(_elapsed, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: c.textPrimary, fontFamily: 'Rubik')),
+              Text(s.elapsed, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: c.textPrimary, fontFamily: 'Rubik')),
+              const Spacer(),
+              Text('${s.doneSets}/${s.totalSets} sets',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: c.accent, fontFamily: 'Rubik')),
               const Spacer(),
               Icon(CupertinoIcons.chart_bar_alt_fill, size: 14, color: c.textSecondary),
               const SizedBox(width: 5),
-              Text(_units.formatVolume(_loggedVolume),
+              Text(context.watch<UnitsController>().formatVolume(s.loggedVolumeKg),
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: c.textPrimary, fontFamily: 'Rubik')),
             ],
           ),
@@ -324,54 +190,46 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     );
   }
 
-  Widget _body(AppColors c) {
+  Widget _body(AppColors c, WorkoutSessionController s, UnitsController units) {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 120),
       children: [
-        for (var gi = 0; gi < _groups.length; gi++) _exerciseCard(c, gi + 1, _groups[gi]),
+        for (var gi = 0; gi < s.groups.length; gi++) _exerciseCard(c, s, units, gi + 1, s.groups[gi]),
       ],
     );
   }
 
-  Widget _finishBar(AppColors c) {
-    final allDone = _doneSets >= _totalSets;
+  Widget _finishBar(AppColors c, WorkoutSessionController s) {
+    final allDone = s.doneSets >= s.totalSets;
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-      decoration: BoxDecoration(
-        color: c.bg,
-        border: Border(top: BorderSide(color: c.border)),
-      ),
+      decoration: BoxDecoration(color: c.bg, border: Border(top: BorderSide(color: c.border))),
       child: Pressable(
-        onTap: _finishing ? null : _finish,
+        onTap: () => s.finish(),
         child: Container(
           height: 56,
           alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: _finishing ? c.iconBg : c.accent,
-            borderRadius: BorderRadius.circular(16),
+          decoration: BoxDecoration(color: c.accent, borderRadius: BorderRadius.circular(16)),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(allDone ? CupertinoIcons.checkmark_alt : CupertinoIcons.flag_fill, size: 18, color: c.textOnAccent),
+              const SizedBox(width: 8),
+              Text(allDone ? 'FINISH · ALL DONE' : 'FINISH WORKOUT',
+                  style: TextStyle(fontFamily: 'Rubik', fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 1, color: c.textOnAccent)),
+            ],
           ),
-          child: _finishing
-              ? const CupertinoActivityIndicator()
-              : Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(allDone ? CupertinoIcons.checkmark_alt : CupertinoIcons.flag_fill, size: 18, color: c.textOnAccent),
-                    const SizedBox(width: 8),
-                    Text(allDone ? 'FINISH · ALL DONE' : 'FINISH WORKOUT',
-                        style: TextStyle(fontFamily: 'Rubik', fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 1, color: c.textOnAccent)),
-                  ],
-                ),
         ),
       ),
     );
   }
 
-  Widget _exerciseCard(AppColors c, int index, _ExGroup g) {
+  Widget _exerciseCard(AppColors c, WorkoutSessionController session, UnitsController units, int index, SessionExercise g) {
     final doneInEx = g.sets.where((s) => s.done).length;
     final allDone = doneInEx == g.sets.length;
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
-      decoration: BoxDecoration(color: c.card, borderRadius: BorderRadius.circular(18), border: Border.all(color: c.border)),
+      decoration: BoxDecoration(color: c.card, borderRadius: BorderRadius.circular(18), border: Border.all(color: c.border), boxShadow: c.cardShadow),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -403,10 +261,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
               const SizedBox(width: 10),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: allDone ? c.accent : c.iconBg,
-                  borderRadius: BorderRadius.circular(20),
-                ),
+                decoration: BoxDecoration(color: allDone ? c.accent : c.iconBg, borderRadius: BorderRadius.circular(20)),
                 child: Text('$doneInEx/${g.sets.length}',
                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: allDone ? c.textOnAccent : c.textSecondary, fontFamily: 'Rubik')),
               ),
@@ -415,14 +270,14 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
           Container(height: 1, color: c.border),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-            child: Column(children: [for (var i = 0; i < g.sets.length; i++) _setRow(c, i + 1, g.sets[i])]),
+            child: Column(children: [for (var i = 0; i < g.sets.length; i++) _setRow(c, session, units, i + 1, g.sets[i])]),
           ),
         ],
       ),
     );
   }
 
-  Widget _setRow(AppColors c, int number, _SetEntry s) {
+  Widget _setRow(AppColors c, WorkoutSessionController session, UnitsController units, int number, SessionSet s) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -445,12 +300,12 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: s.done ? c.textOnAccent : c.textSecondary, fontFamily: 'Rubik')),
           ),
           const SizedBox(width: 10),
-          Expanded(child: _numField(c, s.weight, s.done, _units.label)),
+          Expanded(child: _numField(c, _weight[s]!, s.done, units.label)),
           const SizedBox(width: 8),
-          Expanded(child: _numField(c, s.reps, s.done, 'reps')),
+          Expanded(child: _numField(c, _reps[s]!, s.done, 'reps')),
           const SizedBox(width: 10),
           Pressable(
-            onTap: () => _toggleSet(s),
+            onTap: () => session.toggleSet(s),
             child: Container(
               width: 44,
               height: 44,
@@ -481,11 +336,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
           child: Text(unit, style: TextStyle(fontSize: 11, color: c.textSecondary, fontFamily: 'Rubik')),
         ),
         padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 8),
-        decoration: BoxDecoration(
-          color: c.card,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: c.border),
-        ),
+        decoration: BoxDecoration(color: c.card, borderRadius: BorderRadius.circular(10), border: Border.all(color: c.border)),
       );
 }
 
@@ -555,13 +406,13 @@ class _DoneView extends StatelessWidget {
   final String workoutName;
   final String difficulty;
   final int sets;
-  final double volume;
+  final double volumeKg;
   final VoidCallback onClose;
   const _DoneView({
     required this.workoutName,
     required this.difficulty,
     required this.sets,
-    required this.volume,
+    required this.volumeKg,
     required this.onClose,
   });
 
@@ -588,7 +439,7 @@ class _DoneView extends StatelessWidget {
           Row(children: [
             _stat(c, '$sets', sets == 1 ? 'SET LOGGED' : 'SETS LOGGED'),
             const SizedBox(width: 12),
-            _stat(c, context.units.formatVolume(volume), 'VOLUME LIFTED'),
+            _stat(c, context.watch<UnitsController>().formatVolume(volumeKg), 'VOLUME LIFTED'),
           ]),
           const Spacer(),
           SizedBox(
@@ -621,5 +472,3 @@ class _DoneView extends StatelessWidget {
         ),
       );
 }
-
-String _fmt(double v) => v.toStringAsFixed(v % 1 == 0 ? 0 : 1);
