@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
+import 'package:gymboss/ui/menu_options_list/exercises/widgets/exercise_mannequin.dart';
 
 /// Which body region an exercise works. Used to highlight our own drawn figure
 /// instead of shipping stock demonstration photos.
@@ -25,7 +26,9 @@ MuscleZone zoneForMuscle(String raw) {
 /// exercises (never a stock photo), or the user's uploaded image for a custom
 /// exercise that has one. Frames it in a rounded, themed tile.
 class ExerciseVisual extends StatelessWidget {
+  final String name;
   final String muscleGroup;
+  final String equipment;
   final String category;
   final String imageUrl;
   final bool animate;
@@ -33,7 +36,9 @@ class ExerciseVisual extends StatelessWidget {
   final double figurePadding;
   const ExerciseVisual({
     super.key,
+    this.name = '',
     required this.muscleGroup,
+    this.equipment = '',
     required this.category,
     required this.imageUrl,
     this.animate = false,
@@ -46,6 +51,10 @@ class ExerciseVisual extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final mannequin = ExerciseMannequin(
+      pattern: patternFor(name: name, muscle: muscleGroup, equipment: equipment),
+      animate: animate,
+    );
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius),
       child: Container(
@@ -58,14 +67,11 @@ class ExerciseVisual extends StatelessWidget {
                 width: double.infinity,
                 height: double.infinity,
                 cacheWidth: 640,
-                errorBuilder: (_, __, ___) => MuscleIllustration.fromMuscle(muscleGroup, animate: animate),
+                errorBuilder: (_, __, ___) => mannequin,
                 loadingBuilder: (ctx, child, prog) =>
                     prog == null ? child : const Center(child: CupertinoActivityIndicator(radius: 8)),
               )
-            : Padding(
-                padding: EdgeInsets.all(figurePadding),
-                child: MuscleIllustration.fromMuscle(muscleGroup, animate: animate),
-              ),
+            : Padding(padding: EdgeInsets.all(figurePadding), child: mannequin),
       ),
     );
   }

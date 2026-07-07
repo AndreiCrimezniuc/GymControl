@@ -178,7 +178,9 @@ class _ExerciseTile extends StatelessWidget {
               width: 52,
               height: 52,
               child: ExerciseVisual(
+                name: entry.name,
                 muscleGroup: entry.muscleGroup,
+                equipment: entry.equipment,
                 category: entry.category,
                 imageUrl: entry.imageUrl,
                 figurePadding: 5,
@@ -296,7 +298,9 @@ class _ExerciseDetailScreenState extends State<_ExerciseDetailScreen> {
                 AspectRatio(
                   aspectRatio: 4 / 3,
                   child: ExerciseVisual(
+                    name: e.name,
                     muscleGroup: e.muscleGroup,
+                    equipment: e.equipment,
                     category: e.category,
                     imageUrl: e.imageUrl,
                     animate: true,

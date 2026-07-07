@@ -7,7 +7,7 @@ import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_dialog.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
 import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
-import 'package:gymboss/ui/menu_options_list/exercises/widgets/muscle_illustration.dart';
+import 'package:gymboss/ui/menu_options_list/exercises/widgets/exercise_mannequin.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/workout_editor.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/workout_runner.dart';
 
@@ -295,7 +295,9 @@ class _ExerciseBlock extends StatelessWidget {
             SizedBox(
               width: 44,
               height: 44,
-              child: MuscleIllustration.fromMuscle(exercise.muscleGroup),
+              child: ExerciseMannequin(
+                pattern: patternFor(name: exercise.name, muscle: exercise.muscleGroup, equipment: ''),
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(

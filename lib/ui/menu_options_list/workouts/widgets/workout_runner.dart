@@ -9,7 +9,7 @@ import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_dialog.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_scaffold.dart';
 import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
-import 'package:gymboss/ui/menu_options_list/exercises/widgets/muscle_illustration.dart';
+import 'package:gymboss/ui/menu_options_list/exercises/widgets/exercise_mannequin.dart';
 
 const _diffLabels = {'easy': 'Easy', 'medium': 'Medium', 'hard': 'Hard'};
 
@@ -331,7 +331,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                 height: 52,
                 padding: const EdgeInsets.all(7),
                 decoration: BoxDecoration(color: c.iconBg, borderRadius: BorderRadius.circular(14)),
-                child: MuscleIllustration.fromMuscle(g.muscleGroup),
+                child: ExerciseMannequin(pattern: patternFor(name: g.name, muscle: g.muscleGroup, equipment: '')),
               ),
               const SizedBox(width: 12),
               Expanded(

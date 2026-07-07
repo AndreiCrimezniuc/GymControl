@@ -450,7 +450,9 @@ class _ExercisePickerState extends State<_ExercisePicker> {
                               width: 44,
                               height: 44,
                               child: ExerciseVisual(
+                                name: e.name,
                                 muscleGroup: e.muscleGroup,
+                                equipment: e.equipment,
                                 category: e.category,
                                 imageUrl: e.imageUrl,
                                 radius: 10,
