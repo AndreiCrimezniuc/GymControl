@@ -26,6 +26,7 @@ class WorkoutExercise {
   final int exerciseId;
   final String name;
   final String imageUrl;
+  final String imageUrl2;
   final String muscleGroup;
   final int restSeconds;
   final String comment;
@@ -35,6 +36,7 @@ class WorkoutExercise {
     required this.exerciseId,
     required this.name,
     required this.imageUrl,
+    this.imageUrl2 = "",
     required this.muscleGroup,
     required this.restSeconds,
     required this.comment,
@@ -45,6 +47,7 @@ class WorkoutExercise {
         exerciseId: (j['exercise_id'] as num?)?.toInt() ?? 0,
         name: (j['name'] as String?) ?? '',
         imageUrl: (j['image_url'] as String?) ?? '',
+        imageUrl2: (j['image_url2'] as String?) ?? '',
         muscleGroup: (j['muscle_group'] as String?) ?? '',
         restSeconds: (j['rest_seconds'] as num?)?.toInt() ?? 90,
         comment: (j['comment'] as String?) ?? '',
@@ -67,6 +70,7 @@ class WorkoutExercise {
         exerciseId: exerciseId,
         name: name,
         imageUrl: imageUrl,
+        imageUrl2: imageUrl2,
         muscleGroup: muscleGroup,
         restSeconds: restSeconds ?? this.restSeconds,
         comment: comment ?? this.comment,

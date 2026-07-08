@@ -35,9 +35,18 @@ const setTypes = ['warmup', 'working', 'failure'];
 class SessionExercise {
   final String name;
   final String muscleGroup;
+  final String imageUrl;
+  final String imageUrl2;
   final int restSeconds;
   final List<SessionSet> sets;
-  SessionExercise({required this.name, required this.muscleGroup, required this.restSeconds, required this.sets});
+  SessionExercise({
+    required this.name,
+    required this.muscleGroup,
+    this.imageUrl = '',
+    this.imageUrl2 = '',
+    required this.restSeconds,
+    required this.sets,
+  });
 }
 
 /// A global, app-lived controller for the one active workout session. Holds all
@@ -147,6 +156,8 @@ class WorkoutSessionController extends ChangeNotifier {
       out.add(SessionExercise(
         name: ex.name,
         muscleGroup: ex.muscleGroup,
+        imageUrl: ex.imageUrl,
+        imageUrl2: ex.imageUrl2,
         restSeconds: ex.restSeconds,
         sets: [
           for (final s in planned)
