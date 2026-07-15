@@ -35,7 +35,7 @@ class _GymBossAppState extends State<GymBossApp> {
     super.initState();
     _client = AuthenticatedClient(storage: _storage, authService: _authService);
     _authVm = AuthViewModel(
-      AuthRepository(service: _authService, storage: _storage),
+      AuthRepository(service: _authService, storage: _storage, client: _client),
     )..checkAuth();
   }
 

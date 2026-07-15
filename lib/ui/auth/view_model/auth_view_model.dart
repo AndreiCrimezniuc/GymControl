@@ -71,6 +71,22 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Permanently deletes the account. On success flips to unauthenticated,
+  /// same as [logout]; on failure sets [errorCode] and leaves the caller
+  /// still logged in so they can retry.
+  Future<void> deleteAccount() async {
+    _setLoading(true);
+    try {
+      await _repo.deleteAccount();
+      _status = AuthStatus.unauthenticated;
+      _errorCode = null;
+    } catch (e, s) {
+      _errorCode = _handleError(e, s);
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   void clearError() {
     _errorCode = null;
     notifyListeners();

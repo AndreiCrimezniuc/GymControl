@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
+import 'package:gymboss/core/errors/app_error.dart';
 import 'package:gymboss/data/repositories/ranking_repository.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/domain/models/ranking/rank_data.dart';
@@ -126,6 +127,8 @@ class _SettingsState extends State<Settings> {
           ),
           const SizedBox(height: 32),
           const _LogoutButton(),
+          const SizedBox(height: 12),
+          const _DeleteAccountButton(),
         ],
       ),
     );
@@ -497,5 +500,82 @@ class _LogoutButton extends StatelessWidget {
         }),
       ],
     );
+  }
+}
+
+class _DeleteAccountButton extends StatelessWidget {
+  const _DeleteAccountButton();
+
+  @override
+  Widget build(BuildContext context) {
+    const red = Color(0xFFEF4444);
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: () => _confirmDelete(context),
+          child: Container(
+            height: 52,
+            decoration: BoxDecoration(
+              color: const Color(0x14EF4444),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0x33EF4444), width: 1),
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(CupertinoIcons.trash_fill, color: red, size: 18),
+                SizedBox(width: 8),
+                Text(
+                  'Delete Account',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: red,
+                    fontFamily: 'Rubik',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Permanently deletes your workouts, exercise history and profile. This cannot be undone.',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 11, color: context.colors.textSecondary, fontFamily: 'Rubik'),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    final ok = await showAppDialog<bool>(
+      context,
+      title: 'Delete Account',
+      message:
+          'This will permanently delete your account, workouts, exercise history and profile. This cannot be undone.',
+      actions: [
+        AppDialogAction('Cancel', onPressed: () => Navigator.pop(context, false)),
+        AppDialogAction('Delete', isDestructive: true, onPressed: () => Navigator.pop(context, true)),
+      ],
+    );
+    if (ok != true || !context.mounted) return;
+
+    final vm = context.read<AuthViewModel>();
+    await vm.deleteAccount();
+    if (!context.mounted) return;
+
+    if (vm.errorCode != null) {
+      final code = vm.errorCode!;
+      vm.clearError();
+      showAppDialog<void>(
+        context,
+        title: 'Could not delete account',
+        message: AppErrorCodeExt.messageFor(code),
+        actions: [AppDialogAction('OK', isDefault: true, onPressed: () => Navigator.pop(context))],
+      );
+      return;
+    }
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 }

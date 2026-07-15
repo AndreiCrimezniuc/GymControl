@@ -16,6 +16,7 @@ enum AppErrorCode {
   dataLoadFailed,
   dataSaveFailed,
   dataParseError,
+  accountDeleteFailed,
   // INPUT VALIDATION
   validationRequired,
   validationPasswordTooShort,
@@ -37,6 +38,7 @@ extension AppErrorCodeExt on AppErrorCode {
       case AppErrorCode.dataLoadFailed:             return 'DATA_001';
       case AppErrorCode.dataSaveFailed:             return 'DATA_002';
       case AppErrorCode.dataParseError:             return 'DATA_003';
+      case AppErrorCode.accountDeleteFailed:        return 'DATA_004';
       case AppErrorCode.validationRequired:         return 'INPUT_001';
       case AppErrorCode.validationPasswordTooShort: return 'INPUT_002';
       case AppErrorCode.validationPasswordMismatch: return 'INPUT_003';
@@ -56,6 +58,7 @@ extension AppErrorCodeExt on AppErrorCode {
       case AppErrorCode.dataLoadFailed:             return 'Failed to load data';
       case AppErrorCode.dataSaveFailed:             return 'Failed to save';
       case AppErrorCode.dataParseError:             return 'Unexpected data from server';
+      case AppErrorCode.accountDeleteFailed:        return 'Failed to delete account, please try again';
       case AppErrorCode.validationRequired:         return 'Please fill in all fields';
       case AppErrorCode.validationPasswordTooShort: return 'Password must be at least 8 characters';
       case AppErrorCode.validationPasswordMismatch: return 'Passwords do not match';
