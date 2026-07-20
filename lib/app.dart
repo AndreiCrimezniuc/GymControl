@@ -5,6 +5,7 @@ import 'package:gymboss/data/repositories/auth_repository.dart';
 import 'package:gymboss/data/services/auth/auth_service.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/data/services/auth/token_storage.dart';
+import 'package:gymboss/data/sync/sync_service.dart';
 import 'package:gymboss/ui/auth/login_screen.dart';
 import 'package:gymboss/ui/auth/register_screen.dart';
 import 'package:gymboss/ui/auth/view_model/auth_view_model.dart';
@@ -34,6 +35,9 @@ class _GymBossAppState extends State<GymBossApp> {
   void initState() {
     super.initState();
     _client = AuthenticatedClient(storage: _storage, authService: _authService);
+    // Drain any queued offline mutations once we have an authenticated client
+    // and whenever connectivity returns.
+    SyncService.instance.bind(_client);
     _authVm = AuthViewModel(
       AuthRepository(service: _authService, storage: _storage, client: _client),
     )..checkAuth();
