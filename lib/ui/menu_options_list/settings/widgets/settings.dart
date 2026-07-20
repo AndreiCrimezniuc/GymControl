@@ -54,6 +54,13 @@ class _SettingsState extends State<Settings> {
     } catch (_) {}
   }
 
+  void _openAbout() {
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (_) => const _AboutSheet(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = context.watch<ThemeController>();
@@ -121,7 +128,7 @@ class _SettingsState extends State<Settings> {
               _SettingsTile(
                 icon: CupertinoIcons.info_circle_fill,
                 label: 'About',
-                onTap: () {},
+                onTap: _openAbout,
               ),
             ],
           ),
@@ -412,6 +419,82 @@ class _BodyMetricsSheetState extends State<_BodyMetricsSheet> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _AboutSheet extends StatelessWidget {
+  const _AboutSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Container(
+      decoration: BoxDecoration(
+        color: c.card,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: EdgeInsets.only(
+        left: 20, right: 20, top: 20,
+        bottom: MediaQuery.of(context).padding.bottom + 24,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(color: c.border, borderRadius: BorderRadius.circular(2)),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text('About',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: c.textPrimary, fontFamily: 'Rubik')),
+          const SizedBox(height: 16),
+          _Credit(
+            title: 'Exercise illustrations',
+            body: 'Muscle-highlight illustrations © Everkinetic, used under '
+                'the Creative Commons Attribution-ShareAlike license (CC BY-SA).',
+            url: 'https://github.com/everkinetic/data',
+          ),
+          const SizedBox(height: 14),
+          _Credit(
+            title: 'Exercise data',
+            body: 'Exercise catalog based on the free-exercise-db, released '
+                'into the public domain under The Unlicense.',
+            url: 'https://github.com/yuhonas/free-exercise-db',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Credit extends StatelessWidget {
+  final String title;
+  final String body;
+  final String url;
+  const _Credit({required this.title, required this.body, required this.url});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title.toUpperCase(),
+            style: TextStyle(
+              fontSize: 11, fontWeight: FontWeight.w600,
+              color: c.textSecondary, fontFamily: 'Rubik', letterSpacing: 0.8,
+            )),
+        const SizedBox(height: 6),
+        Text(body,
+            style: TextStyle(fontSize: 13, color: c.textPrimary, height: 1.4, fontFamily: 'Rubik')),
+        const SizedBox(height: 4),
+        Text(url,
+            style: TextStyle(fontSize: 12, color: c.accent, fontFamily: 'Rubik')),
+      ],
     );
   }
 }
