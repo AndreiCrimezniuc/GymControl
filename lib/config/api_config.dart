@@ -59,6 +59,17 @@ class ApiConfig {
   /// Gym entities API — nginx → backend-api
   static String get apiBaseUrl => _apiOverride.isNotEmpty ? _apiOverride : _base;
 
+  /// Resolves a possibly-relative media path to an absolute URL against the API
+  /// host. Exercise illustrations are stored as "/api/v1/exercise-images/x.png";
+  /// absolute URLs (custom user images) and empty strings are returned as-is.
+  static String resolveImageUrl(String url) {
+    if (url.isEmpty || url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    if (url.startsWith('/')) return '$apiBaseUrl$url';
+    return url;
+  }
+
   /// One-line summary for startup logging.
   static String get summary =>
       'env=${environment.name} api=$apiBaseUrl auth=$authBaseUrl';

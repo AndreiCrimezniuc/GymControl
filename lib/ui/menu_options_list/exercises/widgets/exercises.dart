@@ -7,6 +7,7 @@ import 'package:gymboss/domain/models/exercises/exercise_catalog.dart';
 import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
+import 'package:gymboss/ui/core/ui/widgets/net_image.dart';
 import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
 import 'package:gymboss/ui/core/ui/widgets/skeleton.dart';
 import 'package:gymboss/ui/core/units/units_controller.dart';
@@ -245,12 +246,12 @@ class _Thumb extends StatelessWidget {
         color: c.iconBg,
         child: url.isEmpty
             ? Icon(CupertinoIcons.photo, color: c.textSecondary, size: 20)
-            : Image.network(
-                url,
+            : NetImage(
+                url: url,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Icon(CupertinoIcons.photo, color: c.textSecondary, size: 20),
-                loadingBuilder: (ctx, child, prog) =>
-                    prog == null ? child : const Center(child: CupertinoActivityIndicator(radius: 8)),
+                width: size,
+                height: size,
+                fallback: (_) => Icon(CupertinoIcons.photo, color: c.textSecondary, size: 20),
               ),
       ),
     );
