@@ -1,9 +1,12 @@
+import 'dart:convert';
+
 import 'package:gymboss/config/api_config.dart';
 import 'package:gymboss/core/errors/app_error.dart';
 import 'package:gymboss/data/services/auth/auth_service.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/data/services/auth/google_sign_in_service.dart';
 import 'package:gymboss/data/services/auth/token_storage.dart';
+import 'package:gymboss/data/local/local_store.dart';
 import 'package:gymboss/domain/models/auth/user.dart';
 
 class AuthRepository {
@@ -17,28 +20,36 @@ class AuthRepository {
     required TokenStorage storage,
     required AuthenticatedClient client,
     GoogleSignInService? google,
-  })  : _service = service,
-        _storage = storage,
-        _client = client,
-        _google = google ?? GoogleSignInService();
+  }) : _service = service,
+       _storage = storage,
+       _client = client,
+       _google = google ?? GoogleSignInService();
 
-  Future<bool> get isLoggedIn => _storage.hasToken();
+  Future<bool> get isLoggedIn async {
+    final token = await _storage.getAccessToken();
+    if (token == null || token.isEmpty) return false;
+    await _activateScope(token);
+    return true;
+  }
 
   Future<String?> get accessToken => _storage.getAccessToken();
 
   Future<void> login(String email, String password) async {
     final tokens = await _service.login(email, password);
     await _storage.save(tokens.accessToken, tokens.refreshToken);
+    await _activateScope(tokens.accessToken);
   }
 
   Future<void> register(String email, String password) async {
     final tokens = await _service.register(email, password);
     await _storage.save(tokens.accessToken, tokens.refreshToken);
+    await _activateScope(tokens.accessToken);
   }
 
   Future<void> logout() async {
     await _google.signOut();
     await _storage.clear();
+    await LocalStore.instance.setScope('anonymous', migrateLegacy: false);
   }
 
   /// Returns false if the user cancelled the Google sign-in sheet.
@@ -47,6 +58,7 @@ class AuthRepository {
     if (idToken == null) return false;
     final tokens = await _service.loginWithGoogle(idToken);
     await _storage.save(tokens.accessToken, tokens.refreshToken);
+    await _activateScope(tokens.accessToken);
     return true;
   }
 
@@ -60,20 +72,26 @@ class AuthRepository {
         .delete(Uri.parse('${ApiConfig.apiBaseUrl}/api/v1/account'))
         .timeout(const Duration(seconds: 10));
     if (apiResp.statusCode != 204) {
-      throw AppError(AppErrorCode.accountDeleteFailed,
-          message: 'DELETE /api/v1/account HTTP ${apiResp.statusCode}');
+      throw AppError(
+        AppErrorCode.accountDeleteFailed,
+        message: 'DELETE /api/v1/account HTTP ${apiResp.statusCode}',
+      );
     }
 
     final authResp = await _client
         .delete(Uri.parse('${ApiConfig.authBaseUrl}/account'))
         .timeout(const Duration(seconds: 10));
     if (authResp.statusCode != 204) {
-      throw AppError(AppErrorCode.accountDeleteFailed,
-          message: 'DELETE /account HTTP ${authResp.statusCode}');
+      throw AppError(
+        AppErrorCode.accountDeleteFailed,
+        message: 'DELETE /account HTTP ${authResp.statusCode}',
+      );
     }
 
     await _google.signOut();
     await _storage.clear();
+    await LocalStore.instance.clear();
+    await LocalStore.instance.setScope('anonymous', migrateLegacy: false);
   }
 
   Future<AuthTokens?> tryRefresh() async {
@@ -82,10 +100,40 @@ class AuthRepository {
     try {
       final tokens = await _service.refresh(refreshToken);
       await _storage.save(tokens.accessToken, tokens.refreshToken);
+      await _activateScope(tokens.accessToken);
       return tokens;
     } catch (_) {
       await _storage.clear();
+      await LocalStore.instance.setScope('anonymous', migrateLegacy: false);
       return null;
+    }
+  }
+
+  Future<void> _activateScope(String accessToken) async {
+    final parts = accessToken.split('.');
+    if (parts.length != 3) {
+      throw const AppError(
+        AppErrorCode.authTokenExpired,
+        message: 'invalid JWT',
+      );
+    }
+    try {
+      final payload =
+          jsonDecode(
+                utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
+              )
+              as Map<String, dynamic>;
+      final subject = payload['sub'] as String?;
+      if (subject == null || subject.isEmpty) {
+        throw const FormatException('JWT sub is missing');
+      }
+      await LocalStore.instance.setScope(subject);
+    } on Object catch (error) {
+      throw AppError(
+        AppErrorCode.authTokenExpired,
+        message: 'invalid JWT',
+        cause: error,
+      );
     }
   }
 }

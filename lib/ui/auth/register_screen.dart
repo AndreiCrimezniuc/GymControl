@@ -42,11 +42,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
     if (pass.length < 8) {
-      setState(() => _localError = AppErrorCode.validationPasswordTooShort.code);
+      setState(
+        () => _localError = AppErrorCode.validationPasswordTooShort.code,
+      );
       return;
     }
     if (pass != confirm) {
-      setState(() => _localError = AppErrorCode.validationPasswordMismatch.code);
+      setState(
+        () => _localError = AppErrorCode.validationPasswordMismatch.code,
+      );
       return;
     }
 
@@ -64,92 +68,92 @@ class _RegisterScreenState extends State<RegisterScreen> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
-                children: [
-                  const SizedBox(height: 48),
-                  const GymLogo(),
-                  const SizedBox(height: 40),
-                  AuthCard(
-                    children: [
-                      const Text(
-                        'Create Account',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w700,
-                          color: CupertinoColors.white,
-                          fontFamily: 'Rubik',
-                        ),
+              children: [
+                const SizedBox(height: 48),
+                const GymLogo(),
+                const SizedBox(height: 40),
+                AuthCard(
+                  children: [
+                    const Text(
+                      'Create Account',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: CupertinoColors.white,
+                        fontFamily: 'Rubik',
                       ),
-                      const SizedBox(height: 28),
-                      AuthField(
-                        controller: _emailCtrl,
-                        placeholder: 'Email',
-                        icon: CupertinoIcons.envelope_fill,
-                        keyboardType: TextInputType.emailAddress,
-                      ),
-                      const SizedBox(height: 14),
-                      AuthField(
-                        controller: _passCtrl,
-                        placeholder: 'Password (min 8 chars)',
-                        icon: CupertinoIcons.lock_fill,
-                        obscureText: true,
-                      ),
-                      const SizedBox(height: 14),
-                      AuthField(
-                        controller: _confirmCtrl,
-                        placeholder: 'Confirm Password',
-                        icon: CupertinoIcons.lock_shield_fill,
-                        obscureText: true,
-                      ),
-                      if (errorMsg != null) ...[
-                        const SizedBox(height: 12),
-                        ErrorBanner(errorMsg),
-                      ],
-                      const SizedBox(height: 28),
-                      GradientButton(
-                        label: 'Create Account',
-                        loading: vm.loading,
-                        onTap: () => _submit(vm),
-                      ),
-                      const SizedBox(height: 16),
-                      SocialButton(
-                        label: 'Continue with Google',
-                        loading: vm.loading,
-                        onTap: () => vm.loginWithGoogle(),
-                        icon: const GoogleIcon(),
-                      ),
-                      const SizedBox(height: 20),
-                      _Divider(),
-                      const SizedBox(height: 16),
-                      CupertinoButton(
-                        padding: EdgeInsets.zero,
-                        onPressed: widget.onGoToLogin,
-                        child: RichText(
-                          text: const TextSpan(
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontFamily: 'Rubik',
-                              color: Color(0xFF8B9EAE),
-                            ),
-                            children: [
-                              TextSpan(text: 'Already have an account? '),
-                              TextSpan(
-                                text: 'Sign In',
-                                style: TextStyle(
-                                  color: Color(0xFF06B6D4),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    AuthField(
+                      controller: _emailCtrl,
+                      placeholder: 'Email',
+                      icon: CupertinoIcons.envelope_fill,
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+                    const SizedBox(height: 14),
+                    AuthField(
+                      controller: _passCtrl,
+                      placeholder: 'Password (min 8 chars)',
+                      icon: CupertinoIcons.lock_fill,
+                      obscureText: true,
+                    ),
+                    const SizedBox(height: 14),
+                    AuthField(
+                      controller: _confirmCtrl,
+                      placeholder: 'Confirm Password',
+                      icon: CupertinoIcons.lock_shield_fill,
+                      obscureText: true,
+                    ),
+                    if (errorMsg != null) ...[
+                      const SizedBox(height: 12),
+                      ErrorBanner(errorMsg),
                     ],
-                  ),
-                  const SizedBox(height: 40),
-                ],
-              ),
+                    const SizedBox(height: 28),
+                    GradientButton(
+                      label: 'Create Account',
+                      loading: vm.loading,
+                      onTap: () => _submit(vm),
+                    ),
+                    const SizedBox(height: 16),
+                    SocialButton(
+                      label: 'Continue with Google',
+                      loading: vm.loading,
+                      onTap: () => vm.loginWithGoogle(),
+                      icon: const GoogleIcon(),
+                    ),
+                    const SizedBox(height: 20),
+                    _Divider(),
+                    const SizedBox(height: 16),
+                    CupertinoButton(
+                      padding: EdgeInsets.zero,
+                      onPressed: widget.onGoToLogin,
+                      child: RichText(
+                        text: const TextSpan(
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontFamily: 'Rubik',
+                            color: Color(0xFF8B9EAE),
+                          ),
+                          children: [
+                            TextSpan(text: 'Already have an account? '),
+                            TextSpan(
+                              text: 'Sign In',
+                              style: TextStyle(
+                                color: Color(0xFF06B6D4),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 40),
+              ],
             ),
-          );
+          ),
+        );
       },
     );
   }
@@ -165,7 +169,11 @@ class _Divider extends StatelessWidget {
           padding: EdgeInsets.symmetric(horizontal: 12),
           child: Text(
             'or',
-            style: TextStyle(color: Color(0xFF546A7B), fontFamily: 'Rubik', fontSize: 13),
+            style: TextStyle(
+              color: Color(0xFF546A7B),
+              fontFamily: 'Rubik',
+              fontSize: 13,
+            ),
           ),
         ),
         Expanded(child: Container(height: 1, color: const Color(0xFF1E3A50))),

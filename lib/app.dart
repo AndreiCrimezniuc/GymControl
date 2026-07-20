@@ -53,9 +53,15 @@ class _GymBossAppState extends State<GymBossApp> {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider<ThemeController>(create: (_) => ThemeController()),
-        ChangeNotifierProvider<UnitsController>(create: (_) => UnitsController()),
-        ChangeNotifierProvider<WorkoutSessionController>(create: (_) => WorkoutSessionController()),
+        ChangeNotifierProvider<ThemeController>(
+          create: (_) => ThemeController(),
+        ),
+        ChangeNotifierProvider<UnitsController>(
+          create: (_) => UnitsController(),
+        ),
+        ChangeNotifierProvider<WorkoutSessionController>(
+          create: (_) => WorkoutSessionController(),
+        ),
         ChangeNotifierProvider<AuthViewModel>.value(value: _authVm),
         Provider<AuthenticatedClient>.value(value: _client),
       ],
@@ -72,35 +78,40 @@ class _GymBossAppState extends State<GymBossApp> {
             ),
             debugShowCheckedModeBanner: false,
             home: const _AuthGate(),
-            builder: (context, child) => Stack(
-              children: [
-                child ?? const SizedBox.shrink(),
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: Consumer<WorkoutSessionController>(
-                    builder: (ctx, session, __) {
-                      if (!session.isActive || !session.isMinimized || session.isFinished) {
-                        return const SizedBox.shrink();
-                      }
-                      return SafeArea(
-                        top: false,
-                        child: WorkoutResumeBar(
-                          session: session,
-                          onTap: () {
-                            session.resume();
-                            _navKey.currentState?.push(
-                              CupertinoPageRoute(builder: (_) => const WorkoutRunnerScreen()),
-                            );
-                          },
-                        ),
-                      );
-                    },
-                  ),
+            builder:
+                (context, child) => Stack(
+                  children: [
+                    child ?? const SizedBox.shrink(),
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: Consumer<WorkoutSessionController>(
+                        builder: (ctx, session, __) {
+                          if (!session.isActive ||
+                              !session.isMinimized ||
+                              session.isFinished) {
+                            return const SizedBox.shrink();
+                          }
+                          return SafeArea(
+                            top: false,
+                            child: WorkoutResumeBar(
+                              session: session,
+                              onTap: () {
+                                session.resume();
+                                _navKey.currentState?.push(
+                                  CupertinoPageRoute(
+                                    builder: (_) => const WorkoutRunnerScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
           );
         },
       ),
@@ -168,8 +179,6 @@ class _AuthFlowState extends State<_AuthFlow> {
         onGoToRegister: () => setState(() => _showLogin = false),
       );
     }
-    return RegisterScreen(
-      onGoToLogin: () => setState(() => _showLogin = true),
-    );
+    return RegisterScreen(onGoToLogin: () => setState(() => _showLogin = true));
   }
 }

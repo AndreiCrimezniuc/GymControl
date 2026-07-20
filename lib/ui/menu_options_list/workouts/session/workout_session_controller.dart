@@ -60,7 +60,8 @@ class WorkoutSessionController extends ChangeNotifier {
   bool _finished = false;
 
   final List<SessionExercise> _groups = [];
-  final Map<int, double> _prKg = {}; // exerciseId → previous best working weight
+  final Map<int, double> _prKg =
+      {}; // exerciseId → previous best working weight
   int _totalSets = 0;
   int _loggedSets = 0;
   double _loggedVolumeKg = 0;
@@ -88,7 +89,8 @@ class WorkoutSessionController extends ChangeNotifier {
   bool get resting => _resting;
   int get restLeft => _restLeft;
 
-  int get doneSets => _groups.fold(0, (a, g) => a + g.sets.where((s) => s.done).length);
+  int get doneSets =>
+      _groups.fold(0, (a, g) => a + g.sets.where((s) => s.done).length);
 
   /// Previous best working weight (kg) for an exercise, if loaded.
   double? prFor(int exerciseId) {
@@ -139,38 +141,50 @@ class WorkoutSessionController extends ChangeNotifier {
 
   void _loadPrs() {
     _prKg.clear();
-    final ids = <int>{for (final g in _groups) for (final s in g.sets) s.exerciseId};
+    final ids = <int>{
+      for (final g in _groups)
+        for (final s in g.sets) s.exerciseId,
+    };
     for (final id in ids) {
-      _exercises.getStats(id).then((stats) {
-        _prKg[id] = stats.maxWeightKg;
-        if (_active) notifyListeners();
-      }).catchError((_) {});
+      _exercises
+          .getStats(id)
+          .then((stats) {
+            _prKg[id] = stats.maxWeightKg;
+            if (_active) notifyListeners();
+          })
+          .catchError((_) {});
     }
   }
 
-  List<SessionExercise> _build(Workout w, String difficulty, UnitsController units) {
+  List<SessionExercise> _build(
+    Workout w,
+    String difficulty,
+    UnitsController units,
+  ) {
     final out = <SessionExercise>[];
     for (final ex in w.exercises) {
       final planned = ex.setsFor(difficulty);
       if (planned.isEmpty) continue;
-      out.add(SessionExercise(
-        name: ex.name,
-        muscleGroup: ex.muscleGroup,
-        imageUrl: ex.imageUrl,
-        imageUrl2: ex.imageUrl2,
-        restSeconds: ex.restSeconds,
-        sets: [
-          for (final s in planned)
-            SessionSet(
-              exerciseId: ex.exerciseId,
-              restSeconds: ex.restSeconds,
-              plannedWeightKg: s.weightKg,
-              plannedReps: s.reps,
-              weight: s.weightKg == 0 ? '' : _fmt(units.fromKg(s.weightKg)),
-              reps: s.reps == 0 ? '' : '${s.reps}',
-            ),
-        ],
-      ));
+      out.add(
+        SessionExercise(
+          name: ex.name,
+          muscleGroup: ex.muscleGroup,
+          imageUrl: ex.imageUrl,
+          imageUrl2: ex.imageUrl2,
+          restSeconds: ex.restSeconds,
+          sets: [
+            for (final s in planned)
+              SessionSet(
+                exerciseId: ex.exerciseId,
+                restSeconds: ex.restSeconds,
+                plannedWeightKg: s.weightKg,
+                plannedReps: s.reps,
+                weight: s.weightKg == 0 ? '' : _fmt(units.fromKg(s.weightKg)),
+                reps: s.reps == 0 ? '' : '${s.reps}',
+              ),
+          ],
+        ),
+      );
     }
     return out;
   }
@@ -188,7 +202,8 @@ class WorkoutSessionController extends ChangeNotifier {
   /// Toggle a set done/undone. Logs the performed set on completion.
   void toggleSet(SessionSet s) {
     if (s.done) {
-      s.done = false; // allow correcting a mistaken tap; the log stays (append-only)
+      s.done =
+          false; // allow correcting a mistaken tap; the log stays (append-only)
       notifyListeners();
       return;
     }
@@ -198,9 +213,13 @@ class WorkoutSessionController extends ChangeNotifier {
     HapticFeedback.mediumImpact();
     s.done = true;
     _loggedSets++;
-    if (s.type != 'warmup') _loggedVolumeKg += w * r; // warmup excluded from working volume
+    if (s.type != 'warmup') {
+      _loggedVolumeKg += w * r; // warmup excluded from working volume
+    }
     notifyListeners();
-    _exercises.logSet(s.exerciseId, weightKg: w, reps: r, setType: s.type).catchError((_) {});
+    _exercises
+        .logSet(s.exerciseId, weightKg: w, reps: r, setType: s.type)
+        .catchError((_) {});
     _startRest(s.restSeconds);
   }
 

@@ -38,11 +38,12 @@ class _SettingsState extends State<Settings> {
   void _openBodyMetrics() {
     showCupertinoModalPopup<void>(
       context: context,
-      builder: (_) => _BodyMetricsSheet(
-        ranking: _ranking,
-        profile: _profile,
-        onSaved: (p) => setState(() => _profile = p),
-      ),
+      builder:
+          (_) => _BodyMetricsSheet(
+            ranking: _ranking,
+            profile: _profile,
+            onSaved: (p) => setState(() => _profile = p),
+          ),
     );
   }
 
@@ -80,13 +81,19 @@ class _SettingsState extends State<Settings> {
               _ValueTile(
                 icon: CupertinoIcons.chart_bar_circle_fill,
                 label: 'Weight',
-                value: weight != null ? '${weight.toStringAsFixed(1)} kg' : 'Not set',
+                value:
+                    weight != null
+                        ? '${weight.toStringAsFixed(1)} kg'
+                        : 'Not set',
                 onTap: _openBodyMetrics,
               ),
               _ValueTile(
                 icon: CupertinoIcons.person_fill,
                 label: 'Height',
-                value: height != null ? '${height.toStringAsFixed(0)} cm' : 'Not set',
+                value:
+                    height != null
+                        ? '${height.toStringAsFixed(0)} cm'
+                        : 'Not set',
                 onTap: _openBodyMetrics,
               ),
               if (dontAsk)
@@ -102,7 +109,10 @@ class _SettingsState extends State<Settings> {
             title: 'Appearance',
             children: [
               _SwitchTile(
-                icon: theme.isDark ? CupertinoIcons.moon_fill : CupertinoIcons.sun_max_fill,
+                icon:
+                    theme.isDark
+                        ? CupertinoIcons.moon_fill
+                        : CupertinoIcons.sun_max_fill,
                 label: 'Dark Mode',
                 value: theme.isDark,
                 onChanged: (_) => theme.toggle(),
@@ -176,11 +186,12 @@ class _Section extends StatelessWidget {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: children.length,
-            separatorBuilder: (_, __) => Container(
-              height: 1,
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              color: c.border,
-            ),
+            separatorBuilder:
+                (_, __) => Container(
+                  height: 1,
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  color: c.border,
+                ),
             itemBuilder: (_, i) => children[i],
           ),
         ),
@@ -193,7 +204,11 @@ class _SettingsTile extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  const _SettingsTile({required this.icon, required this.label, required this.onTap});
+  const _SettingsTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -208,10 +223,20 @@ class _SettingsTile extends StatelessWidget {
             Icon(icon, size: 18, color: c.accent),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(label,
-                  style: TextStyle(fontSize: 15, color: c.textPrimary, fontFamily: 'Rubik')),
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 15,
+                  color: c.textPrimary,
+                  fontFamily: 'Rubik',
+                ),
+              ),
             ),
-            Icon(CupertinoIcons.chevron_forward, size: 14, color: c.textSecondary),
+            Icon(
+              CupertinoIcons.chevron_forward,
+              size: 14,
+              color: c.textSecondary,
+            ),
           ],
         ),
       ),
@@ -224,7 +249,12 @@ class _ValueTile extends StatelessWidget {
   final String label;
   final String value;
   final VoidCallback onTap;
-  const _ValueTile({required this.icon, required this.label, required this.value, required this.onTap});
+  const _ValueTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -239,13 +269,29 @@ class _ValueTile extends StatelessWidget {
             Icon(icon, size: 18, color: c.accent),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(label,
-                  style: TextStyle(fontSize: 15, color: c.textPrimary, fontFamily: 'Rubik')),
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 15,
+                  color: c.textPrimary,
+                  fontFamily: 'Rubik',
+                ),
+              ),
             ),
-            Text(value,
-                style: TextStyle(fontSize: 14, color: c.textSecondary, fontFamily: 'Rubik')),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 14,
+                color: c.textSecondary,
+                fontFamily: 'Rubik',
+              ),
+            ),
             const SizedBox(width: 6),
-            Icon(CupertinoIcons.chevron_forward, size: 14, color: c.textSecondary),
+            Icon(
+              CupertinoIcons.chevron_forward,
+              size: 14,
+              color: c.textSecondary,
+            ),
           ],
         ),
       ),
@@ -258,7 +304,12 @@ class _SwitchTile extends StatelessWidget {
   final String label;
   final bool value;
   final ValueChanged<bool> onChanged;
-  const _SwitchTile({required this.icon, required this.label, required this.value, required this.onChanged});
+  const _SwitchTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -270,8 +321,14 @@ class _SwitchTile extends StatelessWidget {
           Icon(icon, size: 18, color: c.accent),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(label,
-                style: TextStyle(fontSize: 15, color: c.textPrimary, fontFamily: 'Rubik')),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 15,
+                color: c.textPrimary,
+                fontFamily: 'Rubik',
+              ),
+            ),
           ),
           CupertinoSwitch(
             value: value,
@@ -297,7 +354,16 @@ class _UnitsTile extends StatelessWidget {
         children: [
           Icon(CupertinoIcons.gauge, size: 18, color: c.accent),
           const SizedBox(width: 12),
-          Expanded(child: Text('Weight units', style: TextStyle(fontSize: 15, color: c.textPrimary, fontFamily: 'Rubik'))),
+          Expanded(
+            child: Text(
+              'Weight units',
+              style: TextStyle(
+                fontSize: 15,
+                color: c.textPrimary,
+                fontFamily: 'Rubik',
+              ),
+            ),
+          ),
           SizedBox(
             width: 132,
             child: CupertinoSlidingSegmentedControl<bool>(
@@ -317,17 +383,28 @@ class _UnitsTile extends StatelessWidget {
   }
 
   Widget _seg(String label, bool active, dynamic c) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: Text(label,
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: active ? c.textOnAccent : c.textSecondary, fontFamily: 'Rubik')),
-      );
+    padding: const EdgeInsets.symmetric(vertical: 6),
+    child: Text(
+      label,
+      style: TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w700,
+        color: active ? c.textOnAccent : c.textSecondary,
+        fontFamily: 'Rubik',
+      ),
+    ),
+  );
 }
 
 class _BodyMetricsSheet extends StatefulWidget {
   final RankingRepository ranking;
   final RankProfile? profile;
   final void Function(RankProfile) onSaved;
-  const _BodyMetricsSheet({required this.ranking, this.profile, required this.onSaved});
+  const _BodyMetricsSheet({
+    required this.ranking,
+    this.profile,
+    required this.onSaved,
+  });
 
   @override
   State<_BodyMetricsSheet> createState() => _BodyMetricsSheetState();
@@ -371,7 +448,9 @@ class _BodyMetricsSheetState extends State<_BodyMetricsSheet> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.only(
-        left: 20, right: 20, top: 20,
+        left: 20,
+        right: 20,
+        top: 20,
         bottom: MediaQuery.of(context).viewInsets.bottom + 24,
       ),
       child: Column(
@@ -380,19 +459,44 @@ class _BodyMetricsSheetState extends State<_BodyMetricsSheet> {
         children: [
           Center(
             child: Container(
-              width: 40, height: 4,
-              decoration: BoxDecoration(color: c.border, borderRadius: BorderRadius.circular(2)),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: c.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
           ),
           const SizedBox(height: 16),
-          Text('Body Metrics',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: c.textPrimary, fontFamily: 'Rubik')),
+          Text(
+            'Body Metrics',
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+              color: c.textPrimary,
+              fontFamily: 'Rubik',
+            ),
+          ),
           const SizedBox(height: 16),
-          Row(children: [
-            Expanded(child: _MetricInput(controller: _weightCtrl, label: 'Weight (kg)', placeholder: '80')),
-            const SizedBox(width: 12),
-            Expanded(child: _MetricInput(controller: _heightCtrl, label: 'Height (cm)', placeholder: '175')),
-          ]),
+          Row(
+            children: [
+              Expanded(
+                child: _MetricInput(
+                  controller: _weightCtrl,
+                  label: 'Weight (kg)',
+                  placeholder: '80',
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _MetricInput(
+                  controller: _heightCtrl,
+                  label: 'Height (cm)',
+                  placeholder: '175',
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
@@ -406,13 +510,18 @@ class _BodyMetricsSheetState extends State<_BodyMetricsSheet> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
-                  child: _saving
-                      ? const CupertinoActivityIndicator()
-                      : Text('Save',
-                          style: TextStyle(
-                            fontSize: 15, fontWeight: FontWeight.w700,
-                            color: c.textOnAccent, fontFamily: 'Rubik',
-                          )),
+                  child:
+                      _saving
+                          ? const CupertinoActivityIndicator()
+                          : Text(
+                            'Save',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: c.textOnAccent,
+                              fontFamily: 'Rubik',
+                            ),
+                          ),
                 ),
               ),
             ),
@@ -435,7 +544,9 @@ class _AboutSheet extends StatelessWidget {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.only(
-        left: 20, right: 20, top: 20,
+        left: 20,
+        right: 20,
+        top: 20,
         bottom: MediaQuery.of(context).padding.bottom + 24,
       ),
       child: Column(
@@ -444,24 +555,37 @@ class _AboutSheet extends StatelessWidget {
         children: [
           Center(
             child: Container(
-              width: 40, height: 4,
-              decoration: BoxDecoration(color: c.border, borderRadius: BorderRadius.circular(2)),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: c.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
           ),
           const SizedBox(height: 16),
-          Text('About',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: c.textPrimary, fontFamily: 'Rubik')),
+          Text(
+            'About',
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+              color: c.textPrimary,
+              fontFamily: 'Rubik',
+            ),
+          ),
           const SizedBox(height: 16),
           _Credit(
             title: 'Exercise illustrations',
-            body: 'Muscle-highlight illustrations © Everkinetic, used under '
+            body:
+                'Muscle-highlight illustrations © Everkinetic, used under '
                 'the Creative Commons Attribution-ShareAlike license (CC BY-SA).',
             url: 'https://github.com/everkinetic/data',
           ),
           const SizedBox(height: 14),
           _Credit(
             title: 'Exercise data',
-            body: 'Exercise catalog based on the free-exercise-db, released '
+            body:
+                'Exercise catalog based on the free-exercise-db, released '
                 'into the public domain under The Unlicense.',
             url: 'https://github.com/yuhonas/free-exercise-db',
           ),
@@ -483,17 +607,31 @@ class _Credit extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title.toUpperCase(),
-            style: TextStyle(
-              fontSize: 11, fontWeight: FontWeight.w600,
-              color: c.textSecondary, fontFamily: 'Rubik', letterSpacing: 0.8,
-            )),
+        Text(
+          title.toUpperCase(),
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: c.textSecondary,
+            fontFamily: 'Rubik',
+            letterSpacing: 0.8,
+          ),
+        ),
         const SizedBox(height: 6),
-        Text(body,
-            style: TextStyle(fontSize: 13, color: c.textPrimary, height: 1.4, fontFamily: 'Rubik')),
+        Text(
+          body,
+          style: TextStyle(
+            fontSize: 13,
+            color: c.textPrimary,
+            height: 1.4,
+            fontFamily: 'Rubik',
+          ),
+        ),
         const SizedBox(height: 4),
-        Text(url,
-            style: TextStyle(fontSize: 12, color: c.accent, fontFamily: 'Rubik')),
+        Text(
+          url,
+          style: TextStyle(fontSize: 12, color: c.accent, fontFamily: 'Rubik'),
+        ),
       ],
     );
   }
@@ -503,7 +641,11 @@ class _MetricInput extends StatelessWidget {
   final TextEditingController controller;
   final String label;
   final String placeholder;
-  const _MetricInput({required this.controller, required this.label, required this.placeholder});
+  const _MetricInput({
+    required this.controller,
+    required this.label,
+    required this.placeholder,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -511,17 +653,25 @@ class _MetricInput extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: TextStyle(
-              fontSize: 11, fontWeight: FontWeight.w600,
-              color: c.textSecondary, fontFamily: 'Rubik',
-            )),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: c.textSecondary,
+            fontFamily: 'Rubik',
+          ),
+        ),
         const SizedBox(height: 6),
         CupertinoTextField(
           controller: controller,
           placeholder: placeholder,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          style: TextStyle(color: c.textPrimary, fontSize: 15, fontFamily: 'Rubik'),
+          style: TextStyle(
+            color: c.textPrimary,
+            fontSize: 15,
+            fontFamily: 'Rubik',
+          ),
           placeholderStyle: TextStyle(color: c.textSecondary, fontSize: 15),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
@@ -577,10 +727,14 @@ class _LogoutButton extends StatelessWidget {
       message: 'Are you sure you want to log out?',
       actions: [
         AppDialogAction('Cancel', onPressed: () => Navigator.pop(context)),
-        AppDialogAction('Log Out', isDestructive: true, onPressed: () {
-          Navigator.of(context).popUntil((route) => route.isFirst);
-          context.read<AuthViewModel>().logout();
-        }),
+        AppDialogAction(
+          'Log Out',
+          isDestructive: true,
+          onPressed: () {
+            Navigator.of(context).popUntil((route) => route.isFirst);
+            context.read<AuthViewModel>().logout();
+          },
+        ),
       ],
     );
   }
@@ -625,7 +779,11 @@ class _DeleteAccountButton extends StatelessWidget {
         Text(
           'Permanently deletes your workouts, exercise history and profile. This cannot be undone.',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 11, color: context.colors.textSecondary, fontFamily: 'Rubik'),
+          style: TextStyle(
+            fontSize: 11,
+            color: context.colors.textSecondary,
+            fontFamily: 'Rubik',
+          ),
         ),
       ],
     );
@@ -638,8 +796,15 @@ class _DeleteAccountButton extends StatelessWidget {
       message:
           'This will permanently delete your account, workouts, exercise history and profile. This cannot be undone.',
       actions: [
-        AppDialogAction('Cancel', onPressed: () => Navigator.pop(context, false)),
-        AppDialogAction('Delete', isDestructive: true, onPressed: () => Navigator.pop(context, true)),
+        AppDialogAction(
+          'Cancel',
+          onPressed: () => Navigator.pop(context, false),
+        ),
+        AppDialogAction(
+          'Delete',
+          isDestructive: true,
+          onPressed: () => Navigator.pop(context, true),
+        ),
       ],
     );
     if (ok != true || !context.mounted) return;
@@ -655,7 +820,13 @@ class _DeleteAccountButton extends StatelessWidget {
         context,
         title: 'Could not delete account',
         message: AppErrorCodeExt.messageFor(code),
-        actions: [AppDialogAction('OK', isDefault: true, onPressed: () => Navigator.pop(context))],
+        actions: [
+          AppDialogAction(
+            'OK',
+            isDefault: true,
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
       );
       return;
     }
