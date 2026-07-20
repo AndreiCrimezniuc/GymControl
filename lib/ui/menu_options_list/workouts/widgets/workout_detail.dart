@@ -134,12 +134,11 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   Future<void> _edit() async {
     final saved = await Navigator.of(context, rootNavigator: true).push<bool>(
       CupertinoPageRoute(
-        builder:
-            (_) => WorkoutEditorScreen(
-              repo: widget.repo,
-              exercises: widget.exercises,
-              existing: _w,
-            ),
+        builder: (_) => WorkoutEditorScreen(
+          repo: widget.repo,
+          exercises: widget.exercises,
+          existing: _w,
+        ),
       ),
     );
     if (saved == true) _load();
@@ -148,13 +147,12 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   void _openRunDetail(String date, String difficulty) {
     Navigator.of(context, rootNavigator: true).push(
       CupertinoPageRoute(
-        builder:
-            (_) => _RunDetailScreen(
-              workoutId: _w!.id,
-              date: date,
-              difficulty: difficulty,
-              repo: widget.repo,
-            ),
+        builder: (_) => _RunDetailScreen(
+          workoutId: _w!.id,
+          date: date,
+          difficulty: difficulty,
+          repo: widget.repo,
+        ),
       ),
     );
   }
@@ -162,22 +160,21 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   void _openExerciseStats(WorkoutExercise ex) {
     Navigator.of(context, rootNavigator: true).push(
       CupertinoPageRoute(
-        builder:
-            (_) => ExerciseDetailScreen(
-              entry: ExerciseCatalogItem(
-                id: ex.exerciseId,
-                name: ex.name,
-                muscleGroup: ex.muscleGroup,
-                equipment: '',
-                category: '',
-                level: '',
-                force: '',
-                imageUrl: ex.imageUrl,
-                imageUrl2: '',
-                instructions: '',
-              ),
-              repo: widget.exercises,
-            ),
+        builder: (_) => ExerciseDetailScreen(
+          entry: ExerciseCatalogItem(
+            id: ex.exerciseId,
+            name: ex.name,
+            muscleGroup: ex.muscleGroup,
+            equipment: '',
+            category: '',
+            level: '',
+            force: '',
+            imageUrl: ex.imageUrl,
+            imageUrl2: '',
+            instructions: '',
+          ),
+          repo: widget.exercises,
+        ),
       ),
     );
   }
@@ -281,17 +278,16 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
             ),
           ),
       ],
-      body:
-          _loading
-              ? const Center(child: CupertinoActivityIndicator())
-              : _error != null || w == null
-              ? Center(
-                child: Text(
-                  'Could not load',
-                  style: TextStyle(color: c.textSecondary, fontFamily: 'Rubik'),
-                ),
-              )
-              : _buildBody(c, w),
+      body: _loading
+          ? const Center(child: CupertinoActivityIndicator())
+          : _error != null || w == null
+          ? Center(
+              child: Text(
+                'Could not load',
+                style: TextStyle(color: c.textSecondary, fontFamily: 'Rubik'),
+              ),
+            )
+          : _buildBody(c, w),
     );
   }
 
@@ -614,29 +610,28 @@ class _ExerciseBlock extends StatelessWidget {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children:
-                    sets.asMap().entries.map((e) {
-                      final s = e.value;
-                      return Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: c.iconBg,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          '${units.format(s.weightKg)}${units.label} × ${s.reps}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: c.textPrimary,
-                            fontFamily: 'Rubik',
-                          ),
-                        ),
-                      );
-                    }).toList(),
+                children: sets.asMap().entries.map((e) {
+                  final s = e.value;
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: c.iconBg,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '${units.format(s.weightKg)}${units.label} × ${s.reps}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: c.textPrimary,
+                        fontFamily: 'Rubik',
+                      ),
+                    ),
+                  );
+                }).toList(),
               ),
             ],
             if (exercise.comment.isNotEmpty) ...[
@@ -776,34 +771,33 @@ class _RunDetailScreenState extends State<_RunDetailScreen> {
     final totalVol = items.fold<double>(0, (a, e) => a + e.volumeKg);
     return AppPage(
       title: widget.date,
-      body:
-          _loading
-              ? const Center(child: CupertinoActivityIndicator())
-              : items.isEmpty
-              ? Center(
-                child: Text(
-                  'No logged sets for this session',
-                  style: TextStyle(color: c.textSecondary, fontFamily: 'Rubik'),
-                ),
-              )
-              : ListView(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                children: [
-                  Row(
-                    children: [
-                      _summaryTile(
-                        c,
-                        _runDiffLabels[widget.difficulty] ?? widget.difficulty,
-                        'DIFFICULTY',
-                      ),
-                      const SizedBox(width: 10),
-                      _summaryTile(c, units.formatVolume(totalVol), 'VOLUME'),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  ...items.map((e) => _exerciseTile(c, units, e)),
-                ],
+      body: _loading
+          ? const Center(child: CupertinoActivityIndicator())
+          : items.isEmpty
+          ? Center(
+              child: Text(
+                'No logged sets for this session',
+                style: TextStyle(color: c.textSecondary, fontFamily: 'Rubik'),
               ),
+            )
+          : ListView(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              children: [
+                Row(
+                  children: [
+                    _summaryTile(
+                      c,
+                      _runDiffLabels[widget.difficulty] ?? widget.difficulty,
+                      'DIFFICULTY',
+                    ),
+                    const SizedBox(width: 10),
+                    _summaryTile(c, units.formatVolume(totalVol), 'VOLUME'),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                ...items.map((e) => _exerciseTile(c, units, e)),
+              ],
+            ),
     );
   }
 
@@ -886,39 +880,34 @@ class _RunDetailScreenState extends State<_RunDetailScreen> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children:
-                e.sets.map<Widget>((s) {
-                  final warm = s.setType == 'warmup';
-                  final fail = s.setType == 'failure';
-                  final prefix = warm ? 'W ' : (fail ? 'F ' : '');
-                  return Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color:
-                          warm
-                              ? c.iconBg
-                              : (fail
-                                  ? c.accent.withValues(alpha: 0.12)
-                                  : c.iconBg),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      '$prefix${units.format(s.weightKg)}${units.label} × ${s.reps}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color:
-                            warm
-                                ? c.textSecondary
-                                : (fail ? c.accent : c.textPrimary),
-                        fontFamily: 'Rubik',
-                      ),
-                    ),
-                  );
-                }).toList(),
+            children: e.sets.map<Widget>((s) {
+              final warm = s.setType == 'warmup';
+              final fail = s.setType == 'failure';
+              final prefix = warm ? 'W ' : (fail ? 'F ' : '');
+              return Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: warm
+                      ? c.iconBg
+                      : (fail ? c.accent.withValues(alpha: 0.12) : c.iconBg),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '$prefix${units.format(s.weightKg)}${units.label} × ${s.reps}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: warm
+                        ? c.textSecondary
+                        : (fail ? c.accent : c.textPrimary),
+                    fontFamily: 'Rubik',
+                  ),
+                ),
+              );
+            }).toList(),
           ),
         ],
       ),

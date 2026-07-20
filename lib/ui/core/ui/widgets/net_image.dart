@@ -36,8 +36,8 @@ class NetImage extends StatelessWidget {
       memCacheWidth: cacheWidth,
       fadeInDuration: Duration.zero,
       fadeOutDuration: Duration.zero,
-      placeholder:
-          (_, __) => const Center(child: CupertinoActivityIndicator(radius: 8)),
+      placeholder: (_, __) =>
+          const Center(child: CupertinoActivityIndicator(radius: 8)),
       errorWidget: (ctx, _, __) => fallback(ctx),
     );
   }

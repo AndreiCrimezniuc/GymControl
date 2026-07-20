@@ -9,12 +9,9 @@ class StreakData {
 
   factory StreakData.fromJson(Map<String, dynamic> json) {
     final rawWeeks = json['active_weeks'];
-    final weeks =
-        rawWeeks == null
-            ? <int>[]
-            : (rawWeeks as List<dynamic>)
-                .map((e) => (e as num).toInt())
-                .toList();
+    final weeks = rawWeeks == null
+        ? <int>[]
+        : (rawWeeks as List<dynamic>).map((e) => (e as num).toInt()).toList();
     return StreakData(
       currentStreakWeeks: (json['current_streak_weeks'] as num?)?.toInt() ?? 0,
       activeWeeks: weeks,
