@@ -14,8 +14,7 @@ class ConnectivityService {
   static bool _online(List<ConnectivityResult> r) =>
       r.any((c) => c != ConnectivityResult.none);
 
-  Future<bool> isOnline() async =>
-      _online(await _connectivity.checkConnectivity());
+  Future<bool> isOnline() async => _online(await _connectivity.checkConnectivity());
 
   /// Emits whenever the online/offline state changes.
   Stream<bool> get onlineChanges =>

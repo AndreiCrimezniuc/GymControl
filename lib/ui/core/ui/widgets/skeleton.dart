@@ -8,13 +8,7 @@ class Skeleton extends StatelessWidget {
   final double height;
   final double radius;
   final double opacity;
-  const Skeleton({
-    super.key,
-    this.width,
-    this.height = 14,
-    this.radius = 8,
-    this.opacity = 1,
-  });
+  const Skeleton({super.key, this.width, this.height = 14, this.radius = 8, this.opacity = 1});
 
   @override
   Widget build(BuildContext context) {
@@ -24,10 +18,7 @@ class Skeleton extends StatelessWidget {
       child: Container(
         width: width,
         height: height,
-        decoration: BoxDecoration(
-          color: c.iconBg,
-          borderRadius: BorderRadius.circular(radius),
-        ),
+        decoration: BoxDecoration(color: c.iconBg, borderRadius: BorderRadius.circular(radius)),
       ),
     );
   }
@@ -43,12 +34,9 @@ class SkeletonList extends StatefulWidget {
   State<SkeletonList> createState() => _SkeletonListState();
 }
 
-class _SkeletonListState extends State<SkeletonList>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 900),
-  )..repeat(reverse: true);
+class _SkeletonListState extends State<SkeletonList> with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 900))..repeat(reverse: true);
 
   @override
   void dispose() {
@@ -68,43 +56,39 @@ class _SkeletonListState extends State<SkeletonList>
           physics: const NeverScrollableScrollPhysics(),
           itemCount: widget.rows,
           separatorBuilder: (_, __) => const SizedBox(height: 10),
-          itemBuilder:
-              (_, __) => Opacity(
-                opacity: o,
-                child: Container(
-                  height: widget.rowHeight,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: c.card,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: c.border),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: widget.rowHeight - 24,
-                        height: widget.rowHeight - 24,
-                        decoration: BoxDecoration(
-                          color: c.iconBg,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Skeleton(width: 160, height: 13, radius: 6),
-                            const SizedBox(height: 8),
-                            Skeleton(width: 90, height: 11, radius: 6),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+          itemBuilder: (_, __) => Opacity(
+            opacity: o,
+            child: Container(
+              height: widget.rowHeight,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: c.card,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: c.border),
               ),
+              child: Row(
+                children: [
+                  Container(
+                    width: widget.rowHeight - 24,
+                    height: widget.rowHeight - 24,
+                    decoration: BoxDecoration(color: c.iconBg, borderRadius: BorderRadius.circular(12)),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Skeleton(width: 160, height: 13, radius: 6),
+                        const SizedBox(height: 8),
+                        Skeleton(width: 90, height: 11, radius: 6),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         );
       },
     );

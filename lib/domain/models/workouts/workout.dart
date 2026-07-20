@@ -5,26 +5,17 @@ class WorkoutSet {
   final double weightKg;
   final int reps;
 
-  const WorkoutSet({
-    required this.difficulty,
-    required this.weightKg,
-    required this.reps,
-  });
+  const WorkoutSet({required this.difficulty, required this.weightKg, required this.reps});
 
   factory WorkoutSet.fromJson(Map<String, dynamic> j) => WorkoutSet(
-    difficulty: (j['difficulty'] as String?) ?? 'medium',
-    weightKg: (j['weight_kg'] as num?)?.toDouble() ?? 0,
-    reps: (j['reps'] as num?)?.toInt() ?? 0,
-  );
+        difficulty: (j['difficulty'] as String?) ?? 'medium',
+        weightKg: (j['weight_kg'] as num?)?.toDouble() ?? 0,
+        reps: (j['reps'] as num?)?.toInt() ?? 0,
+      );
 
-  Map<String, dynamic> toJson() => {
-    'difficulty': difficulty,
-    'weight_kg': weightKg,
-    'reps': reps,
-  };
+  Map<String, dynamic> toJson() => {'difficulty': difficulty, 'weight_kg': weightKg, 'reps': reps};
 
-  WorkoutSet copyWith({String? difficulty, double? weightKg, int? reps}) =>
-      WorkoutSet(
+  WorkoutSet copyWith({String? difficulty, double? weightKg, int? reps}) => WorkoutSet(
         difficulty: difficulty ?? this.difficulty,
         weightKg: weightKg ?? this.weightKg,
         reps: reps ?? this.reps,
@@ -53,43 +44,38 @@ class WorkoutExercise {
   });
 
   factory WorkoutExercise.fromJson(Map<String, dynamic> j) => WorkoutExercise(
-    exerciseId: (j['exercise_id'] as num?)?.toInt() ?? 0,
-    name: (j['name'] as String?) ?? '',
-    imageUrl: (j['image_url'] as String?) ?? '',
-    imageUrl2: (j['image_url2'] as String?) ?? '',
-    muscleGroup: (j['muscle_group'] as String?) ?? '',
-    restSeconds: (j['rest_seconds'] as num?)?.toInt() ?? 90,
-    comment: (j['comment'] as String?) ?? '',
-    sets:
-        ((j['sets'] as List?) ?? [])
+        exerciseId: (j['exercise_id'] as num?)?.toInt() ?? 0,
+        name: (j['name'] as String?) ?? '',
+        imageUrl: (j['image_url'] as String?) ?? '',
+        imageUrl2: (j['image_url2'] as String?) ?? '',
+        muscleGroup: (j['muscle_group'] as String?) ?? '',
+        restSeconds: (j['rest_seconds'] as num?)?.toInt() ?? 90,
+        comment: (j['comment'] as String?) ?? '',
+        sets: ((j['sets'] as List?) ?? [])
             .map((e) => WorkoutSet.fromJson(e as Map<String, dynamic>))
             .toList(),
-  );
+      );
 
   Map<String, dynamic> toJson() => {
-    'exercise_id': exerciseId,
-    'rest_seconds': restSeconds,
-    'comment': comment,
-    'sets': sets.map((s) => s.toJson()).toList(),
-  };
+        'exercise_id': exerciseId,
+        'rest_seconds': restSeconds,
+        'comment': comment,
+        'sets': sets.map((s) => s.toJson()).toList(),
+      };
 
   List<WorkoutSet> setsFor(String difficulty) =>
       sets.where((s) => s.difficulty == difficulty).toList();
 
-  WorkoutExercise copyWith({
-    int? restSeconds,
-    String? comment,
-    List<WorkoutSet>? sets,
-  }) => WorkoutExercise(
-    exerciseId: exerciseId,
-    name: name,
-    imageUrl: imageUrl,
-    imageUrl2: imageUrl2,
-    muscleGroup: muscleGroup,
-    restSeconds: restSeconds ?? this.restSeconds,
-    comment: comment ?? this.comment,
-    sets: sets ?? this.sets,
-  );
+  WorkoutExercise copyWith({int? restSeconds, String? comment, List<WorkoutSet>? sets}) => WorkoutExercise(
+        exerciseId: exerciseId,
+        name: name,
+        imageUrl: imageUrl,
+        imageUrl2: imageUrl2,
+        muscleGroup: muscleGroup,
+        restSeconds: restSeconds ?? this.restSeconds,
+        comment: comment ?? this.comment,
+        sets: sets ?? this.sets,
+      );
 }
 
 class Workout {
@@ -121,28 +107,26 @@ class Workout {
   int get loveScore => (loveCoefficient * 10).round().clamp(0, 10);
 
   factory Workout.fromJson(Map<String, dynamic> j) => Workout(
-    id: (j['id'] as String?) ?? '',
-    name: (j['name'] as String?) ?? '',
-    comment: (j['comment'] as String?) ?? '',
-    visibility: (j['visibility'] as String?) ?? 'private',
-    owned: (j['owned'] as bool?) ?? false,
-    shareCode: (j['share_code'] as String?) ?? '',
-    exerciseCount: (j['exercise_count'] as num?)?.toInt() ?? 0,
-    timesPerformed: (j['times_performed'] as num?)?.toInt() ?? 0,
-    loveCoefficient: (j['love_coefficient'] as num?)?.toDouble() ?? 0,
-    exercises:
-        ((j['exercises'] as List?) ?? [])
+        id: (j['id'] as String?) ?? '',
+        name: (j['name'] as String?) ?? '',
+        comment: (j['comment'] as String?) ?? '',
+        visibility: (j['visibility'] as String?) ?? 'private',
+        owned: (j['owned'] as bool?) ?? false,
+        shareCode: (j['share_code'] as String?) ?? '',
+        exerciseCount: (j['exercise_count'] as num?)?.toInt() ?? 0,
+        timesPerformed: (j['times_performed'] as num?)?.toInt() ?? 0,
+        loveCoefficient: (j['love_coefficient'] as num?)?.toDouble() ?? 0,
+        exercises: ((j['exercises'] as List?) ?? [])
             .map((e) => WorkoutExercise.fromJson(e as Map<String, dynamic>))
             .toList(),
-  );
+      );
 
   /// Distinct muscle groups across the workout's exercises, for card chips.
   List<String> get muscleGroups {
     final seen = <String>{};
     final out = <String>[];
     for (final e in exercises) {
-      if (e.muscleGroup.isNotEmpty && seen.add(e.muscleGroup))
-        out.add(e.muscleGroup);
+      if (e.muscleGroup.isNotEmpty && seen.add(e.muscleGroup)) out.add(e.muscleGroup);
     }
     return out;
   }
@@ -154,26 +138,22 @@ class WorkoutRunPoint {
   const WorkoutRunPoint({required this.date, required this.difficulty});
 
   factory WorkoutRunPoint.fromJson(Map<String, dynamic> j) => WorkoutRunPoint(
-    date: (j['date'] as String?) ?? '',
-    difficulty: (j['difficulty'] as String?) ?? '',
-  );
+        date: (j['date'] as String?) ?? '',
+        difficulty: (j['difficulty'] as String?) ?? '',
+      );
 }
 
 class PerformedSetLog {
   final double weightKg;
   final int reps;
   final String setType;
-  const PerformedSetLog({
-    required this.weightKg,
-    required this.reps,
-    required this.setType,
-  });
+  const PerformedSetLog({required this.weightKg, required this.reps, required this.setType});
 
   factory PerformedSetLog.fromJson(Map<String, dynamic> j) => PerformedSetLog(
-    weightKg: (j['weight_kg'] as num?)?.toDouble() ?? 0,
-    reps: (j['reps'] as num?)?.toInt() ?? 0,
-    setType: (j['set_type'] as String?) ?? 'working',
-  );
+        weightKg: (j['weight_kg'] as num?)?.toDouble() ?? 0,
+        reps: (j['reps'] as num?)?.toInt() ?? 0,
+        setType: (j['set_type'] as String?) ?? 'working',
+      );
 }
 
 class PerformedExerciseLog {
@@ -181,27 +161,19 @@ class PerformedExerciseLog {
   final String name;
   final String muscleGroup;
   final List<PerformedSetLog> sets;
-  const PerformedExerciseLog({
-    required this.exerciseId,
-    required this.name,
-    required this.muscleGroup,
-    required this.sets,
-  });
+  const PerformedExerciseLog({required this.exerciseId, required this.name, required this.muscleGroup, required this.sets});
 
-  factory PerformedExerciseLog.fromJson(Map<String, dynamic> j) =>
-      PerformedExerciseLog(
+  factory PerformedExerciseLog.fromJson(Map<String, dynamic> j) => PerformedExerciseLog(
         exerciseId: (j['exercise_id'] as num?)?.toInt() ?? 0,
         name: (j['name'] as String?) ?? '',
         muscleGroup: (j['muscle_group'] as String?) ?? '',
-        sets:
-            ((j['sets'] as List?) ?? [])
-                .map((e) => PerformedSetLog.fromJson(e as Map<String, dynamic>))
-                .toList(),
+        sets: ((j['sets'] as List?) ?? [])
+            .map((e) => PerformedSetLog.fromJson(e as Map<String, dynamic>))
+            .toList(),
       );
 
-  double get volumeKg => sets
-      .where((s) => s.setType != 'warmup')
-      .fold(0.0, (a, s) => a + s.weightKg * s.reps);
+  double get volumeKg =>
+      sets.where((s) => s.setType != 'warmup').fold(0.0, (a, s) => a + s.weightKg * s.reps);
 }
 
 class WorkoutStats {
@@ -229,10 +201,9 @@ class WorkoutStats {
         'medium': (pv['medium'] as num?)?.toDouble() ?? 0,
         'hard': (pv['hard'] as num?)?.toDouble() ?? 0,
       },
-      history:
-          ((j['history'] as List?) ?? [])
-              .map((e) => WorkoutRunPoint.fromJson(e as Map<String, dynamic>))
-              .toList(),
+      history: ((j['history'] as List?) ?? [])
+          .map((e) => WorkoutRunPoint.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
   }
 }

@@ -14,29 +14,12 @@ class SyncOutcome {
   final String? remapToId;
   final Map<String, dynamic>? realDoc;
 
-  const SyncOutcome._(
-    this.success,
-    this.permanent, {
-    this.collection,
-    this.remapFromId,
-    this.remapToId,
-    this.realDoc,
-  });
+  const SyncOutcome._(this.success, this.permanent,
+      {this.collection, this.remapFromId, this.remapToId, this.realDoc});
 
   /// Applied; optionally reconcile a temp id to the server id.
-  const SyncOutcome.done({
-    String? collection,
-    String? remapFromId,
-    String? remapToId,
-    Map<String, dynamic>? realDoc,
-  }) : this._(
-         true,
-         false,
-         collection: collection,
-         remapFromId: remapFromId,
-         remapToId: remapToId,
-         realDoc: realDoc,
-       );
+  const SyncOutcome.done({String? collection, String? remapFromId, String? remapToId, Map<String, dynamic>? realDoc})
+      : this._(true, false, collection: collection, remapFromId: remapFromId, remapToId: remapToId, realDoc: realDoc);
 
   /// Transient failure (offline / server down) — keep and retry later.
   const SyncOutcome.retry() : this._(false, false);
@@ -45,8 +28,7 @@ class SyncOutcome {
   const SyncOutcome.drop() : this._(false, true);
 }
 
-typedef MutationHandler =
-    Future<SyncOutcome> Function(AuthenticatedClient client, Mutation m);
+typedef MutationHandler = Future<SyncOutcome> Function(AuthenticatedClient client, Mutation m);
 
 /// Drains the outbox against the backend whenever the app is online. Handlers
 /// are registered per mutation kind by the offline-first repositories.
@@ -61,8 +43,7 @@ class SyncService {
   StreamSubscription<bool>? _sub;
   bool _flushing = false;
 
-  void registerHandler(String kind, MutationHandler handler) =>
-      _handlers[kind] = handler;
+  void registerHandler(String kind, MutationHandler handler) => _handlers[kind] = handler;
 
   /// Wire up the authenticated client and start reacting to connectivity.
   /// Safe to call once the client exists (e.g. from the app's initState).
@@ -93,15 +74,8 @@ class SyncService {
         }
         final out = await handler(client, m);
         if (out.success) {
-          if (out.remapFromId != null &&
-              out.remapToId != null &&
-              out.collection != null) {
-            await _store.remapId(
-              out.collection!,
-              out.remapFromId!,
-              out.remapToId!,
-              out.realDoc ?? const {},
-            );
+          if (out.remapFromId != null && out.remapToId != null && out.collection != null) {
+            await _store.remapId(out.collection!, out.remapFromId!, out.remapToId!, out.realDoc ?? const {});
           }
           await _store.removeMutation(m.id);
         } else if (out.permanent) {

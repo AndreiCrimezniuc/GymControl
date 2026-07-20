@@ -46,14 +46,10 @@ class LocalStore {
     return s == null ? null : jsonDecode(s) as Map<String, dynamic>;
   }
 
-  Future<void> putDoc(
-    String collection,
-    String id,
-    Map<String, dynamic> body,
-  ) => _docs.put(_docKey(collection, id), jsonEncode(body));
+  Future<void> putDoc(String collection, String id, Map<String, dynamic> body) =>
+      _docs.put(_docKey(collection, id), jsonEncode(body));
 
-  Future<void> deleteDoc(String collection, String id) =>
-      _docs.delete(_docKey(collection, id));
+  Future<void> deleteDoc(String collection, String id) => _docs.delete(_docKey(collection, id));
 
   // ── Ordered list snapshots ───────────────────────────────────────────────
 
@@ -64,16 +60,14 @@ class LocalStore {
     return s == null ? const [] : (jsonDecode(s) as List).cast<String>();
   }
 
-  Future<void> putListIds(String key, List<String> ids) =>
-      _lists.put(key, jsonEncode(ids));
+  Future<void> putListIds(String key, List<String> ids) => _lists.put(key, jsonEncode(ids));
 
   /// Hydrates a list snapshot into the documents it references (skipping any
   /// that were evicted).
-  List<Map<String, dynamic>> getListDocs(String collection, String key) =>
-      getListIds(key)
-          .map((id) => getDoc(collection, id))
-          .whereType<Map<String, dynamic>>()
-          .toList();
+  List<Map<String, dynamic>> getListDocs(String collection, String key) => getListIds(key)
+      .map((id) => getDoc(collection, id))
+      .whereType<Map<String, dynamic>>()
+      .toList();
 
   Future<void> prependToList(String key, String id) async {
     final ids = getListIds(key).toList()..remove(id);
@@ -95,12 +89,7 @@ class LocalStore {
 
   /// Pending mutations in application (seq) order.
   List<Mutation> pending() {
-    final list =
-        _outbox.values
-            .map(
-              (s) => Mutation.fromJson(jsonDecode(s) as Map<String, dynamic>),
-            )
-            .toList();
+    final list = _outbox.values.map((s) => Mutation.fromJson(jsonDecode(s) as Map<String, dynamic>)).toList();
     list.sort((a, b) => a.seq.compareTo(b.seq));
     return list;
   }
@@ -115,12 +104,7 @@ class LocalStore {
   /// After an offline-created entity is accepted by the server, swap its
   /// temporary id for the real one across the document cache, every list
   /// snapshot, and the args of any still-pending mutation that referenced it.
-  Future<void> remapId(
-    String collection,
-    String fromId,
-    String toId,
-    Map<String, dynamic> realDoc,
-  ) async {
+  Future<void> remapId(String collection, String fromId, String toId, Map<String, dynamic> realDoc) async {
     await deleteDoc(collection, fromId);
     await putDoc(collection, toId, realDoc);
     for (final key in _lists.keys.cast<String>()) {

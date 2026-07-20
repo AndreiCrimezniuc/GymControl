@@ -12,23 +12,19 @@ class RankProfile {
   });
 
   factory RankProfile.fromJson(Map<String, dynamic> j) => RankProfile(
-    weightKg: (j['weight_kg'] as num?)?.toDouble(),
-    heightCm: (j['height_cm'] as num?)?.toDouble(),
-    dontAskWeight: (j['dont_ask_weight'] as bool?) ?? false,
-    updatedAt:
-        DateTime.tryParse(j['updated_at'] as String? ?? '') ?? DateTime(2000),
-  );
+        weightKg: (j['weight_kg'] as num?)?.toDouble(),
+        heightCm: (j['height_cm'] as num?)?.toDouble(),
+        dontAskWeight: (j['dont_ask_weight'] as bool?) ?? false,
+        updatedAt: DateTime.tryParse(j['updated_at'] as String? ?? '') ?? DateTime(2000),
+      );
 
-  RankProfile copyWith({
-    double? weightKg,
-    double? heightCm,
-    bool? dontAskWeight,
-  }) => RankProfile(
-    weightKg: weightKg ?? this.weightKg,
-    heightCm: heightCm ?? this.heightCm,
-    dontAskWeight: dontAskWeight ?? this.dontAskWeight,
-    updatedAt: updatedAt,
-  );
+  RankProfile copyWith({double? weightKg, double? heightCm, bool? dontAskWeight}) =>
+      RankProfile(
+        weightKg: weightKg ?? this.weightKg,
+        heightCm: heightCm ?? this.heightCm,
+        dontAskWeight: dontAskWeight ?? this.dontAskWeight,
+        updatedAt: updatedAt,
+      );
 }
 
 class ExerciseRank {
@@ -51,14 +47,14 @@ class ExerciseRank {
   });
 
   factory ExerciseRank.fromJson(Map<String, dynamic> j) => ExerciseRank(
-    exerciseId: j['exercise_id'] as String,
-    exerciseName: j['exercise_name'] as String,
-    weightKg: (j['weight_kg'] as num).toDouble(),
-    reps: j['reps'] as int,
-    oneRmKg: (j['one_rm_kg'] as num).toDouble(),
-    percentile: (j['percentile'] as num).toDouble(),
-    rank: j['rank'] as String,
-  );
+        exerciseId: j['exercise_id'] as String,
+        exerciseName: j['exercise_name'] as String,
+        weightKg: (j['weight_kg'] as num).toDouble(),
+        reps: j['reps'] as int,
+        oneRmKg: (j['one_rm_kg'] as num).toDouble(),
+        percentile: (j['percentile'] as num).toDouble(),
+        rank: j['rank'] as String,
+      );
 }
 
 class UserRanks {
@@ -75,17 +71,19 @@ class UserRanks {
   });
 
   factory UserRanks.fromJson(Map<String, dynamic> j) => UserRanks(
-    profile: RankProfile.fromJson(j['profile'] as Map<String, dynamic>),
-    exerciseRanks:
-        (j['exercise_ranks'] as List<dynamic>)
+        profile: RankProfile.fromJson(j['profile'] as Map<String, dynamic>),
+        exerciseRanks: (j['exercise_ranks'] as List<dynamic>)
             .map((e) => ExerciseRank.fromJson(e as Map<String, dynamic>))
             .toList(),
-    overallRank: j['overall_rank'] as String?,
-    overallPct: (j['overall_pct'] as num?)?.toDouble(),
-  );
+        overallRank: j['overall_rank'] as String?,
+        overallPct: (j['overall_pct'] as num?)?.toDouble(),
+      );
 
   static UserRanks get empty => UserRanks(
-    profile: RankProfile(dontAskWeight: false, updatedAt: DateTime(2000)),
-    exerciseRanks: const [],
-  );
+        profile: RankProfile(
+          dontAskWeight: false,
+          updatedAt: DateTime(2000),
+        ),
+        exerciseRanks: const [],
+      );
 }

@@ -17,10 +17,10 @@ class AuthRepository {
     required TokenStorage storage,
     required AuthenticatedClient client,
     GoogleSignInService? google,
-  }) : _service = service,
-       _storage = storage,
-       _client = client,
-       _google = google ?? GoogleSignInService();
+  })  : _service = service,
+        _storage = storage,
+        _client = client,
+        _google = google ?? GoogleSignInService();
 
   Future<bool> get isLoggedIn => _storage.hasToken();
 
@@ -60,20 +60,16 @@ class AuthRepository {
         .delete(Uri.parse('${ApiConfig.apiBaseUrl}/api/v1/account'))
         .timeout(const Duration(seconds: 10));
     if (apiResp.statusCode != 204) {
-      throw AppError(
-        AppErrorCode.accountDeleteFailed,
-        message: 'DELETE /api/v1/account HTTP ${apiResp.statusCode}',
-      );
+      throw AppError(AppErrorCode.accountDeleteFailed,
+          message: 'DELETE /api/v1/account HTTP ${apiResp.statusCode}');
     }
 
     final authResp = await _client
         .delete(Uri.parse('${ApiConfig.authBaseUrl}/account'))
         .timeout(const Duration(seconds: 10));
     if (authResp.statusCode != 204) {
-      throw AppError(
-        AppErrorCode.accountDeleteFailed,
-        message: 'DELETE /account HTTP ${authResp.statusCode}',
-      );
+      throw AppError(AppErrorCode.accountDeleteFailed,
+          message: 'DELETE /account HTTP ${authResp.statusCode}');
     }
 
     await _google.signOut();

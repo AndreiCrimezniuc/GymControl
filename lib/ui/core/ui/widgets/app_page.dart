@@ -37,13 +37,7 @@ class AppPage extends StatelessWidget {
                     child: SizedBox(
                       width: 44,
                       height: 44,
-                      child: Center(
-                        child: Icon(
-                          CupertinoIcons.chevron_back,
-                          size: 24,
-                          color: c.textPrimary,
-                        ),
-                      ),
+                      child: Center(child: Icon(CupertinoIcons.chevron_back, size: 24, color: c.textPrimary)),
                     ),
                   ),
                 ),
@@ -62,10 +56,7 @@ class AppPage extends StatelessWidget {
                 // Enforce a 44x44 minimum hit area for every header action.
                 for (final action in actions)
                   ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      minWidth: 44,
-                      minHeight: 44,
-                    ),
+                    constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
                     child: Center(child: action),
                   ),
               ],

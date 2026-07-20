@@ -31,10 +31,8 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     final session = context.read<WorkoutSessionController>();
     for (final g in session.groups) {
       for (final s in g.sets) {
-        _weight[s] = TextEditingController(text: s.weight)
-          ..addListener(() => s.weight = _weight[s]!.text);
-        _reps[s] = TextEditingController(text: s.reps)
-          ..addListener(() => s.reps = _reps[s]!.text);
+        _weight[s] = TextEditingController(text: s.weight)..addListener(() => s.weight = _weight[s]!.text);
+        _reps[s] = TextEditingController(text: s.reps)..addListener(() => s.reps = _reps[s]!.text);
       }
     }
   }
@@ -59,18 +57,10 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     final quit = await showAppDialog<bool>(
       context,
       title: 'Quit workout?',
-      message:
-          'Sets you already checked off are kept, but the workout won’t be marked as completed.',
+      message: 'Sets you already checked off are kept, but the workout won’t be marked as completed.',
       actions: [
-        AppDialogAction(
-          'Keep going',
-          onPressed: () => Navigator.pop(context, false),
-        ),
-        AppDialogAction(
-          'Quit',
-          isDestructive: true,
-          onPressed: () => Navigator.pop(context, true),
-        ),
+        AppDialogAction('Keep going', onPressed: () => Navigator.pop(context, false)),
+        AppDialogAction('Quit', isDestructive: true, onPressed: () => Navigator.pop(context, true)),
       ],
     );
     if (quit == true && mounted) {
@@ -95,64 +85,59 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
 
     return AppScaffold(
       child: SafeArea(
-        child:
-            session.isFinished
-                ? _DoneView(
-                  workoutName: session.workout?.name ?? '',
-                  difficulty: session.difficulty,
-                  sets: session.loggedSets,
-                  volumeKg: session.loggedVolumeKg,
-                  onClose: () {
-                    session.clear();
-                    Navigator.of(context).pop();
-                  },
-                )
-                : Stack(
-                  children: [
-                    Column(
-                      children: [
-                        _header(c, session),
-                        Expanded(child: _body(c, session, units)),
-                        _finishBar(c, session),
-                      ],
-                    ),
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 92,
-                      child: IgnorePointer(
-                        ignoring: !session.resting,
-                        child: AnimatedSlide(
-                          offset:
-                              session.resting
-                                  ? Offset.zero
-                                  : const Offset(0, 0.4),
-                          duration: const Duration(milliseconds: 220),
-                          curve: const Cubic(0.23, 1, 0.32, 1),
-                          child: AnimatedOpacity(
-                            opacity: session.resting ? 1 : 0,
-                            duration: const Duration(milliseconds: 200),
-                            child: Center(
-                              child: _RestPill(
-                                secondsLeft: session.restLeft,
-                                onSkip: session.skipRest,
-                                onAdd: () => session.adjustRest(15),
-                                onSub: () => session.adjustRest(-15),
-                              ),
+        child: session.isFinished
+            ? _DoneView(
+                workoutName: session.workout?.name ?? '',
+                difficulty: session.difficulty,
+                sets: session.loggedSets,
+                volumeKg: session.loggedVolumeKg,
+                onClose: () {
+                  session.clear();
+                  Navigator.of(context).pop();
+                },
+              )
+            : Stack(
+                children: [
+                  Column(
+                    children: [
+                      _header(c, session),
+                      Expanded(child: _body(c, session, units)),
+                      _finishBar(c, session),
+                    ],
+                  ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 92,
+                    child: IgnorePointer(
+                      ignoring: !session.resting,
+                      child: AnimatedSlide(
+                        offset: session.resting ? Offset.zero : const Offset(0, 0.4),
+                        duration: const Duration(milliseconds: 220),
+                        curve: const Cubic(0.23, 1, 0.32, 1),
+                        child: AnimatedOpacity(
+                          opacity: session.resting ? 1 : 0,
+                          duration: const Duration(milliseconds: 200),
+                          child: Center(
+                            child: _RestPill(
+                              secondsLeft: session.restLeft,
+                              onSkip: session.skipRest,
+                              onAdd: () => session.adjustRest(15),
+                              onSub: () => session.adjustRest(-15),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
+              ),
       ),
     );
   }
 
   Widget _header(AppColors c, WorkoutSessionController s) {
-    final progress =
-        s.totalSets == 0 ? 0.0 : (s.doneSets / s.totalSets).clamp(0.0, 1.0);
+    final progress = s.totalSets == 0 ? 0.0 : (s.doneSets / s.totalSets).clamp(0.0, 1.0);
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
       child: Column(
@@ -161,97 +146,43 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
             children: [
               Pressable(
                 onTap: _minimize,
-                child: SizedBox(
-                  width: 40,
-                  height: 40,
-                  child: Icon(
-                    CupertinoIcons.chevron_down,
-                    size: 22,
-                    color: c.textPrimary,
-                  ),
-                ),
+                child: SizedBox(width: 40, height: 40, child: Icon(CupertinoIcons.chevron_down, size: 22, color: c.textPrimary)),
               ),
               Expanded(
-                child: Text(
-                  s.workout?.name ?? 'Workout',
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: c.textPrimary,
-                    fontFamily: 'Rubik',
-                  ),
-                ),
+                child: Text(s.workout?.name ?? 'Workout',
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: c.textPrimary, fontFamily: 'Rubik')),
               ),
               Pressable(
                 onTap: _confirmQuit,
-                child: SizedBox(
-                  width: 40,
-                  height: 40,
-                  child: Icon(
-                    CupertinoIcons.xmark,
-                    size: 20,
-                    color: c.textSecondary,
-                  ),
-                ),
+                child: SizedBox(width: 40, height: 40, child: Icon(CupertinoIcons.xmark, size: 20, color: c.textSecondary)),
               ),
             ],
           ),
           const SizedBox(height: 8),
           ClipRRect(
             borderRadius: BorderRadius.circular(3),
-            child: Stack(
-              children: [
-                Container(height: 5, color: c.iconBg),
-                FractionallySizedBox(
-                  widthFactor: progress,
-                  child: Container(height: 5, color: c.accent),
-                ),
-              ],
-            ),
+            child: Stack(children: [
+              Container(height: 5, color: c.iconBg),
+              FractionallySizedBox(widthFactor: progress, child: Container(height: 5, color: c.accent)),
+            ]),
           ),
           const SizedBox(height: 10),
           Row(
             children: [
               Icon(CupertinoIcons.time, size: 14, color: c.textSecondary),
               const SizedBox(width: 5),
-              Text(
-                s.elapsed,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: c.textPrimary,
-                  fontFamily: 'Rubik',
-                ),
-              ),
+              Text(s.elapsed, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: c.textPrimary, fontFamily: 'Rubik')),
               const Spacer(),
-              Text(
-                '${s.doneSets}/${s.totalSets} sets',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: c.accent,
-                  fontFamily: 'Rubik',
-                ),
-              ),
+              Text('${s.doneSets}/${s.totalSets} sets',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: c.accent, fontFamily: 'Rubik')),
               const Spacer(),
-              Icon(
-                CupertinoIcons.chart_bar_alt_fill,
-                size: 14,
-                color: c.textSecondary,
-              ),
+              Icon(CupertinoIcons.chart_bar_alt_fill, size: 14, color: c.textSecondary),
               const SizedBox(width: 5),
-              Text(
-                context.watch<UnitsController>().formatVolume(s.loggedVolumeKg),
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: c.textPrimary,
-                  fontFamily: 'Rubik',
-                ),
-              ),
+              Text(context.watch<UnitsController>().formatVolume(s.loggedVolumeKg),
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: c.textPrimary, fontFamily: 'Rubik')),
             ],
           ),
         ],
@@ -263,8 +194,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 120),
       children: [
-        for (var gi = 0; gi < s.groups.length; gi++)
-          _exerciseCard(c, s, units, gi + 1, s.groups[gi]),
+        for (var gi = 0; gi < s.groups.length; gi++) _exerciseCard(c, s, units, gi + 1, s.groups[gi]),
       ],
     );
   }
@@ -273,40 +203,20 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     final allDone = s.doneSets >= s.totalSets;
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-      decoration: BoxDecoration(
-        color: c.bg,
-        border: Border(top: BorderSide(color: c.border)),
-      ),
+      decoration: BoxDecoration(color: c.bg, border: Border(top: BorderSide(color: c.border))),
       child: Pressable(
         onTap: () => s.finish(),
         child: Container(
           height: 56,
           alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: c.accent,
-            borderRadius: BorderRadius.circular(16),
-          ),
+          decoration: BoxDecoration(color: c.accent, borderRadius: BorderRadius.circular(16)),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                allDone
-                    ? CupertinoIcons.checkmark_alt
-                    : CupertinoIcons.flag_fill,
-                size: 18,
-                color: c.textOnAccent,
-              ),
+              Icon(allDone ? CupertinoIcons.checkmark_alt : CupertinoIcons.flag_fill, size: 18, color: c.textOnAccent),
               const SizedBox(width: 8),
-              Text(
-                allDone ? 'FINISH · ALL DONE' : 'FINISH WORKOUT',
-                style: TextStyle(
-                  fontFamily: 'Rubik',
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1,
-                  color: c.textOnAccent,
-                ),
-              ),
+              Text(allDone ? 'FINISH · ALL DONE' : 'FINISH WORKOUT',
+                  style: TextStyle(fontFamily: 'Rubik', fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 1, color: c.textOnAccent)),
             ],
           ),
         ),
@@ -314,119 +224,70 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     );
   }
 
-  Widget _exerciseCard(
-    AppColors c,
-    WorkoutSessionController session,
-    UnitsController units,
-    int index,
-    SessionExercise g,
-  ) {
+  Widget _exerciseCard(AppColors c, WorkoutSessionController session, UnitsController units, int index, SessionExercise g) {
     final doneInEx = g.sets.where((s) => s.done).length;
     final allDone = doneInEx == g.sets.length;
-    final pr =
-        g.sets.isNotEmpty ? session.prFor(g.sets.first.exerciseId) : null;
+    final pr = g.sets.isNotEmpty ? session.prFor(g.sets.first.exerciseId) : null;
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
-      decoration: BoxDecoration(
-        color: c.card,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: c.border),
-        boxShadow: c.cardShadow,
-      ),
+      decoration: BoxDecoration(color: c.card, borderRadius: BorderRadius.circular(18), border: Border.all(color: c.border), boxShadow: c.cardShadow),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
             padding: const EdgeInsets.all(14),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 52,
-                  height: 52,
-                  child: ExerciseVisual(
-                    name: g.name,
-                    muscleGroup: g.muscleGroup,
-                    category: '',
-                    imageUrl: g.imageUrl,
-                    imageUrl2: g.imageUrl2,
-                    radius: 14,
-                    figurePadding: 6,
-                  ),
+            child: Row(children: [
+              SizedBox(
+                width: 52,
+                height: 52,
+                child: ExerciseVisual(
+                  name: g.name,
+                  muscleGroup: g.muscleGroup,
+                  category: '',
+                  imageUrl: g.imageUrl,
+                  imageUrl2: g.imageUrl2,
+                  radius: 14,
+                  figurePadding: 6,
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '$index. ${g.name}',
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('$index. ${g.name}',
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: c.textPrimary,
-                          fontFamily: 'Rubik',
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        '${g.sets.length} sets  ·  rest ${g.restSeconds}s'
-                        '${pr != null ? '  ·  PR ${units.format(pr)}${units.label}' : ''}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: c.textSecondary,
-                          fontFamily: 'Rubik',
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: allDone ? c.accent : c.iconBg,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    '$doneInEx/${g.sets.length}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      color: allDone ? c.textOnAccent : c.textSecondary,
-                      fontFamily: 'Rubik',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: c.textPrimary, fontFamily: 'Rubik')),
+                    const SizedBox(height: 3),
+                    Text(
+                      '${g.sets.length} sets  ·  rest ${g.restSeconds}s'
+                      '${pr != null ? '  ·  PR ${units.format(pr)}${units.label}' : ''}',
+                      style: TextStyle(fontSize: 12, color: c.textSecondary, fontFamily: 'Rubik'),
                     ),
-                  ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(color: allDone ? c.accent : c.iconBg, borderRadius: BorderRadius.circular(20)),
+                child: Text('$doneInEx/${g.sets.length}',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: allDone ? c.textOnAccent : c.textSecondary, fontFamily: 'Rubik')),
+              ),
+            ]),
           ),
           Container(height: 1, color: c.border),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-            child: Column(
-              children: [
-                for (var i = 0; i < g.sets.length; i++)
-                  _setRow(c, session, units, i + 1, g.sets[i]),
-              ],
-            ),
+            child: Column(children: [for (var i = 0; i < g.sets.length; i++) _setRow(c, session, units, i + 1, g.sets[i])]),
           ),
         ],
       ),
     );
   }
 
-  Widget _setRow(
-    AppColors c,
-    WorkoutSessionController session,
-    UnitsController units,
-    int number,
-    SessionSet s,
-  ) {
+  Widget _setRow(AppColors c, WorkoutSessionController session, UnitsController units, int number, SessionSet s) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -447,15 +308,8 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
               borderRadius: BorderRadius.circular(9),
               border: Border.all(color: s.done ? c.accent : c.border),
             ),
-            child: Text(
-              '$number',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-                color: s.done ? c.textOnAccent : c.textSecondary,
-                fontFamily: 'Rubik',
-              ),
-            ),
+            child: Text('$number',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: s.done ? c.textOnAccent : c.textSecondary, fontFamily: 'Rubik')),
           ),
           const SizedBox(width: 8),
           Expanded(child: _numField(c, _weight[s]!, s.done, units.label)),
@@ -473,11 +327,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: s.done ? c.accent : c.border),
               ),
-              child: Icon(
-                CupertinoIcons.check_mark,
-                size: 22,
-                color: s.done ? c.textOnAccent : c.textSecondary,
-              ),
+              child: Icon(CupertinoIcons.check_mark, size: 22, color: s.done ? c.textOnAccent : c.textSecondary),
             ),
           ),
         ],
@@ -485,11 +335,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     );
   }
 
-  Widget _typeChip(
-    AppColors c,
-    WorkoutSessionController session,
-    SessionSet s,
-  ) {
+  Widget _typeChip(AppColors c, WorkoutSessionController session, SessionSet s) {
     late final Color bg;
     late final Color fg;
     late final String label;
@@ -518,59 +364,28 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
         decoration: BoxDecoration(
           color: bg,
           borderRadius: BorderRadius.circular(9),
-          border: Border.all(
-            color: s.type == 'working' ? c.border : const Color(0x00000000),
-          ),
+          border: Border.all(color: s.type == 'working' ? c.border : const Color(0x00000000)),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w800,
-            color: fg,
-            fontFamily: 'Rubik',
-          ),
-        ),
+        child: Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: fg, fontFamily: 'Rubik')),
       ),
     );
   }
 
-  Widget _numField(
-    AppColors c,
-    TextEditingController ctrl,
-    bool done,
-    String unit,
-  ) => CupertinoTextField(
-    controller: ctrl,
-    readOnly: done,
-    placeholder: '0',
-    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-    textAlign: TextAlign.center,
-    style: TextStyle(
-      color: c.textPrimary,
-      fontSize: 18,
-      fontWeight: FontWeight.w800,
-      fontFamily: 'Rubik',
-    ),
-    placeholderStyle: TextStyle(color: c.textSecondary, fontSize: 16),
-    suffix: Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: Text(
-        unit,
-        style: TextStyle(
-          fontSize: 11,
-          color: c.textSecondary,
-          fontFamily: 'Rubik',
+  Widget _numField(AppColors c, TextEditingController ctrl, bool done, String unit) => CupertinoTextField(
+        controller: ctrl,
+        readOnly: done,
+        placeholder: '0',
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        textAlign: TextAlign.center,
+        style: TextStyle(color: c.textPrimary, fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'Rubik'),
+        placeholderStyle: TextStyle(color: c.textSecondary, fontSize: 16),
+        suffix: Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: Text(unit, style: TextStyle(fontSize: 11, color: c.textSecondary, fontFamily: 'Rubik')),
         ),
-      ),
-    ),
-    padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 8),
-    decoration: BoxDecoration(
-      color: c.card,
-      borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: c.border),
-    ),
-  );
+        padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 8),
+        decoration: BoxDecoration(color: c.card, borderRadius: BorderRadius.circular(10), border: Border.all(color: c.border)),
+      );
 }
 
 class _RestPill extends StatelessWidget {
@@ -578,12 +393,7 @@ class _RestPill extends StatelessWidget {
   final VoidCallback onSkip;
   final VoidCallback onAdd;
   final VoidCallback onSub;
-  const _RestPill({
-    required this.secondsLeft,
-    required this.onSkip,
-    required this.onAdd,
-    required this.onSub,
-  });
+  const _RestPill({required this.secondsLeft, required this.onSkip, required this.onAdd, required this.onSub});
 
   @override
   Widget build(BuildContext context) {
@@ -596,13 +406,7 @@ class _RestPill extends StatelessWidget {
       decoration: BoxDecoration(
         color: c.invBg,
         borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0x33000000),
-            blurRadius: 20,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: const Color(0x33000000), blurRadius: 20, offset: const Offset(0, 6))],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -613,16 +417,9 @@ class _RestPill extends StatelessWidget {
           const SizedBox(width: 6),
           SizedBox(
             width: 62,
-            child: Text(
-              'Rest $label',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w800,
-                color: c.invText,
-                fontFamily: 'Rubik',
-              ),
-            ),
+            child: Text('Rest $label',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: c.invText, fontFamily: 'Rubik')),
           ),
           const SizedBox(width: 6),
           _round(c, CupertinoIcons.plus, onAdd),
@@ -631,19 +428,9 @@ class _RestPill extends StatelessWidget {
             onTap: onSkip,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: c.accent,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                'Skip',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: c.textOnAccent,
-                  fontFamily: 'Rubik',
-                ),
-              ),
+              decoration: BoxDecoration(color: c.accent, borderRadius: BorderRadius.circular(20)),
+              child: Text('Skip',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: c.textOnAccent, fontFamily: 'Rubik')),
             ),
           ),
         ],
@@ -652,18 +439,15 @@ class _RestPill extends StatelessWidget {
   }
 
   Widget _round(AppColors c, IconData icon, VoidCallback onTap) => Pressable(
-    onTap: onTap,
-    child: Container(
-      width: 32,
-      height: 32,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: const Color(0x22FFFFFF),
-        shape: BoxShape.circle,
-      ),
-      child: Icon(icon, size: 16, color: c.invText),
-    ),
-  );
+        onTap: onTap,
+        child: Container(
+          width: 32,
+          height: 32,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(color: const Color(0x22FFFFFF), shape: BoxShape.circle),
+          child: Icon(icon, size: 16, color: c.invText),
+        ),
+      );
 }
 
 class _DoneView extends StatelessWidget {
@@ -691,47 +475,20 @@ class _DoneView extends StatelessWidget {
           Container(
             width: 84,
             height: 84,
-            decoration: BoxDecoration(
-              color: c.accent.withValues(alpha: 0.14),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              CupertinoIcons.checkmark_alt,
-              size: 44,
-              color: c.accent,
-            ),
+            decoration: BoxDecoration(color: c.accent.withValues(alpha: 0.14), shape: BoxShape.circle),
+            child: Icon(CupertinoIcons.checkmark_alt, size: 44, color: c.accent),
           ),
           const SizedBox(height: 20),
-          Text(
-            'Workout complete',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              color: c.textPrimary,
-              fontFamily: 'Rubik',
-            ),
-          ),
+          Text('Workout complete', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: c.textPrimary, fontFamily: 'Rubik')),
           const SizedBox(height: 6),
-          Text(
-            '$workoutName  ·  ${_diffLabels[difficulty] ?? difficulty}',
-            style: TextStyle(
-              fontSize: 13,
-              color: c.textSecondary,
-              fontFamily: 'Rubik',
-            ),
-          ),
+          Text('$workoutName  ·  ${_diffLabels[difficulty] ?? difficulty}',
+              style: TextStyle(fontSize: 13, color: c.textSecondary, fontFamily: 'Rubik')),
           const SizedBox(height: 28),
-          Row(
-            children: [
-              _stat(c, '$sets', sets == 1 ? 'SET LOGGED' : 'SETS LOGGED'),
-              const SizedBox(width: 12),
-              _stat(
-                c,
-                context.watch<UnitsController>().formatVolume(volumeKg),
-                'VOLUME LIFTED',
-              ),
-            ],
-          ),
+          Row(children: [
+            _stat(c, '$sets', sets == 1 ? 'SET LOGGED' : 'SETS LOGGED'),
+            const SizedBox(width: 12),
+            _stat(c, context.watch<UnitsController>().formatVolume(volumeKg), 'VOLUME LIFTED'),
+          ]),
           const Spacer(),
           SizedBox(
             width: double.infinity,
@@ -740,20 +497,9 @@ class _DoneView extends StatelessWidget {
               child: Container(
                 height: 54,
                 alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: c.accent,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Text(
-                  'DONE',
-                  style: TextStyle(
-                    fontFamily: 'Rubik',
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 2,
-                    color: c.textOnAccent,
-                  ),
-                ),
+                decoration: BoxDecoration(color: c.accent, borderRadius: BorderRadius.circular(14)),
+                child: Text('DONE',
+                    style: TextStyle(fontFamily: 'Rubik', fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 2, color: c.textOnAccent)),
               ),
             ),
           ),
@@ -763,36 +509,14 @@ class _DoneView extends StatelessWidget {
   }
 
   Widget _stat(AppColors c, String value, String label) => Expanded(
-    child: Container(
-      padding: const EdgeInsets.symmetric(vertical: 18),
-      decoration: BoxDecoration(
-        color: c.card,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: c.border),
-      ),
-      child: Column(
-        children: [
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              color: c.textPrimary,
-              fontFamily: 'Rubik',
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              letterSpacing: 0.5,
-              color: c.textSecondary,
-              fontFamily: 'Rubik',
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          decoration: BoxDecoration(color: c.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: c.border)),
+          child: Column(children: [
+            Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: c.textPrimary, fontFamily: 'Rubik')),
+            const SizedBox(height: 4),
+            Text(label, style: TextStyle(fontSize: 10, letterSpacing: 0.5, color: c.textSecondary, fontFamily: 'Rubik')),
+          ]),
+        ),
+      );
 }

@@ -68,11 +68,7 @@ class MenuCard extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(
-              CupertinoIcons.chevron_forward,
-              size: 18,
-              color: c.textSecondary,
-            ),
+            Icon(CupertinoIcons.chevron_forward, size: 18, color: c.textSecondary),
           ],
         ),
       ),

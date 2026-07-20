@@ -24,9 +24,9 @@ class AuthenticatedClient {
     required TokenStorage storage,
     required AuthService authService,
     http.Client? inner,
-  }) : _storage = storage,
-       _authService = authService,
-       _inner = inner ?? http.Client();
+  })  : _storage = storage,
+        _authService = authService,
+        _inner = inner ?? http.Client();
 
   Future<http.Response> get(Uri uri) =>
       _withRetry((h) => _inner.get(uri, headers: h));
@@ -62,17 +62,9 @@ class AuthenticatedClient {
     } on AppError {
       rethrow;
     } on SocketException catch (e, s) {
-      throw AppError(
-        AppErrorCode.networkUnavailable,
-        message: e.toString(),
-        cause: e,
-      )..log(s);
+      throw AppError(AppErrorCode.networkUnavailable, message: e.toString(), cause: e)..log(s);
     } on TimeoutException catch (e, s) {
-      throw AppError(
-        AppErrorCode.networkTimeout,
-        message: e.toString(),
-        cause: e,
-      )..log(s);
+      throw AppError(AppErrorCode.networkTimeout, message: e.toString(), cause: e)..log(s);
     } catch (e, s) {
       throw wrapUnknown(e, s);
     }

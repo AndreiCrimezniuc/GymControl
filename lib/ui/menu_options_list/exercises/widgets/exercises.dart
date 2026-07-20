@@ -44,52 +44,30 @@ class _ExercisesState extends State<Exercises> {
   }
 
   Future<void> _load({bool spinner = true}) async {
-    if (spinner)
-      setState(() {
-        _loading = true;
-        _error = null;
-      });
+    if (spinner) setState(() { _loading = true; _error = null; });
     try {
       final items = await _repo.getCatalog();
-      if (mounted)
-        setState(() {
-          _all = items;
-          _loading = false;
-        });
+      if (mounted) setState(() { _all = items; _loading = false; });
     } catch (e) {
-      if (mounted)
-        setState(() {
-          if (spinner) _error = e.toString();
-          _loading = false;
-        });
+      if (mounted) setState(() { if (spinner) _error = e.toString(); _loading = false; });
     }
   }
 
   List<String> get _groups {
-    final s =
-        _all
-            .map((e) => e.muscleGroup)
-            .where((g) => g.isNotEmpty)
-            .toSet()
-            .toList()
-          ..sort();
+    final s = _all.map((e) => e.muscleGroup).where((g) => g.isNotEmpty).toSet().toList()..sort();
     return ['All', ...s];
   }
 
-  List<ExerciseCatalogItem> get _filtered =>
-      _all.where((e) {
+  List<ExerciseCatalogItem> get _filtered => _all.where((e) {
         final mg = _group == 'All' || e.muscleGroup == _group;
-        final q =
-            _query.isEmpty ||
-            e.name.toLowerCase().contains(_query.toLowerCase());
+        final q = _query.isEmpty || e.name.toLowerCase().contains(_query.toLowerCase());
         return mg && q;
       }).toList();
 
   void _openCreate() {
     showCupertinoModalPopup<void>(
       context: context,
-      builder:
-          (_) => _CreateExerciseSheet(repo: _repo, onCreated: (_) => _load()),
+      builder: (_) => _CreateExerciseSheet(repo: _repo, onCreated: (_) => _load()),
     );
   }
 
@@ -105,10 +83,9 @@ class _ExercisesState extends State<Exercises> {
           child: Icon(CupertinoIcons.add_circled, size: 24, color: c.accent),
         ),
       ],
-      body:
-          _loading
-              ? const SkeletonList()
-              : _error != null
+      body: _loading
+          ? const SkeletonList()
+          : _error != null
               ? _ErrorView(error: _error!, onRetry: _load)
               : _buildList(c),
     );
@@ -125,10 +102,7 @@ class _ExercisesState extends State<Exercises> {
             placeholder: 'Search ${_all.length} exercises',
             backgroundColor: c.card,
             style: TextStyle(color: c.textPrimary, fontFamily: 'Rubik'),
-            placeholderStyle: TextStyle(
-              color: c.textSecondary,
-              fontFamily: 'Rubik',
-            ),
+            placeholderStyle: TextStyle(color: c.textSecondary, fontFamily: 'Rubik'),
             itemColor: c.textSecondary,
             onChanged: (v) => setState(() => _query = v),
           ),
@@ -154,15 +128,13 @@ class _ExercisesState extends State<Exercises> {
                     borderRadius: BorderRadius.circular(12),
                     border: active ? null : Border.all(color: c.border),
                   ),
-                  child: Text(
-                    g,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: active ? c.textOnAccent : c.textSecondary,
-                      fontFamily: 'Rubik',
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  child: Text(g,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: active ? c.textOnAccent : c.textSecondary,
+                        fontFamily: 'Rubik',
+                        fontWeight: FontWeight.w600,
+                      )),
                 ),
               );
             },
@@ -172,21 +144,11 @@ class _ExercisesState extends State<Exercises> {
         Expanded(
           child: CustomScrollView(
             slivers: [
-              CupertinoSliverRefreshControl(
-                onRefresh: () => _load(spinner: false),
-              ),
+              CupertinoSliverRefreshControl(onRefresh: () => _load(spinner: false)),
               if (filtered.isEmpty)
                 SliverFillRemaining(
                   hasScrollBody: false,
-                  child: Center(
-                    child: Text(
-                      'No exercises found',
-                      style: TextStyle(
-                        color: c.textSecondary,
-                        fontFamily: 'Rubik',
-                      ),
-                    ),
-                  ),
+                  child: Center(child: Text('No exercises found', style: TextStyle(color: c.textSecondary, fontFamily: 'Rubik'))),
                 )
               else
                 SliverPadding(
@@ -194,9 +156,7 @@ class _ExercisesState extends State<Exercises> {
                   sliver: SliverList.separated(
                     itemCount: filtered.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder:
-                        (_, i) =>
-                            _ExerciseTile(entry: filtered[i], repo: _repo),
+                    itemBuilder: (_, i) => _ExerciseTile(entry: filtered[i], repo: _repo),
                   ),
                 ),
             ],
@@ -216,12 +176,9 @@ class _ExerciseTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return GestureDetector(
-      onTap:
-          () => Navigator.of(context, rootNavigator: true).push(
-            CupertinoPageRoute(
-              builder: (_) => ExerciseDetailScreen(entry: entry, repo: repo),
-            ),
-          ),
+      onTap: () => Navigator.of(context, rootNavigator: true).push(
+        CupertinoPageRoute(builder: (_) => ExerciseDetailScreen(entry: entry, repo: repo)),
+      ),
       child: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
@@ -250,30 +207,16 @@ class _ExerciseTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    entry.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: c.textPrimary,
-                      fontFamily: 'Rubik',
-                    ),
-                  ),
+                  Text(entry.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: c.textPrimary, fontFamily: 'Rubik')),
                   const SizedBox(height: 3),
                   Text(
-                    [
-                      entry.muscleGroup,
-                      entry.equipment,
-                    ].where((s) => s.isNotEmpty).join(' · '),
+                    [entry.muscleGroup, entry.equipment].where((s) => s.isNotEmpty).join(' · '),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: c.textSecondary,
-                      fontFamily: 'Rubik',
-                    ),
+                    style: TextStyle(fontSize: 12, color: c.textSecondary, fontFamily: 'Rubik'),
                   ),
                 ],
               ),
@@ -301,21 +244,15 @@ class _Thumb extends StatelessWidget {
         width: size,
         height: size,
         color: c.iconBg,
-        child:
-            url.isEmpty
-                ? Icon(CupertinoIcons.photo, color: c.textSecondary, size: 20)
-                : NetImage(
-                  url: url,
-                  fit: BoxFit.cover,
-                  width: size,
-                  height: size,
-                  fallback:
-                      (_) => Icon(
-                        CupertinoIcons.photo,
-                        color: c.textSecondary,
-                        size: 20,
-                      ),
-                ),
+        child: url.isEmpty
+            ? Icon(CupertinoIcons.photo, color: c.textSecondary, size: 20)
+            : NetImage(
+                url: url,
+                fit: BoxFit.cover,
+                width: size,
+                height: size,
+                fallback: (_) => Icon(CupertinoIcons.photo, color: c.textSecondary, size: 20),
+              ),
       ),
     );
   }
@@ -345,11 +282,7 @@ class ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
   Future<void> _loadStats() async {
     try {
       final s = await widget.repo.getStats(widget.entry.id);
-      if (mounted)
-        setState(() {
-          _stats = s;
-          _loadingStats = false;
-        });
+      if (mounted) setState(() { _stats = s; _loadingStats = false; });
     } catch (_) {
       if (mounted) setState(() => _loadingStats = false);
     }
@@ -358,12 +291,11 @@ class ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
   void _logSet() {
     showCupertinoModalPopup<void>(
       context: context,
-      builder:
-          (_) => _LogSetSheet(
-            repo: widget.repo,
-            exerciseId: widget.entry.id,
-            onLogged: _loadStats,
-          ),
+      builder: (_) => _LogSetSheet(
+        repo: widget.repo,
+        exerciseId: widget.entry.id,
+        onLogged: _loadStats,
+      ),
     );
   }
 
@@ -395,23 +327,16 @@ class ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                 ),
                 if (e.imageUrl.contains('everkinetic')) ...[
                   const SizedBox(height: 6),
-                  Text(
-                    'Illustration © Everkinetic · CC BY-SA 3.0',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: c.textSecondary,
-                      fontFamily: 'Rubik',
-                    ),
-                  ),
+                  Text('Illustration © Everkinetic · CC BY-SA 3.0',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 10, color: c.textSecondary, fontFamily: 'Rubik')),
                 ],
                 const SizedBox(height: 14),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    if (e.muscleGroup.isNotEmpty)
-                      _Chip(e.muscleGroup, accent: true),
+                    if (e.muscleGroup.isNotEmpty) _Chip(e.muscleGroup, accent: true),
                     if (e.equipment.isNotEmpty) _Chip(e.equipment),
                     if (e.level.isNotEmpty) _Chip(e.level),
                     if (e.force.isNotEmpty) _Chip(e.force),
@@ -421,26 +346,14 @@ class ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                   const SizedBox(height: 18),
                   _SectionLabel('How to'),
                   const SizedBox(height: 8),
-                  Text(
-                    e.instructions,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: c.textSecondary,
-                      height: 1.5,
-                      fontFamily: 'Rubik',
-                    ),
-                  ),
+                  Text(e.instructions,
+                      style: TextStyle(fontSize: 13, color: c.textSecondary, height: 1.5, fontFamily: 'Rubik')),
                 ],
                 const SizedBox(height: 20),
                 _SectionLabel('Your Stats'),
                 const SizedBox(height: 12),
                 if (_loadingStats)
-                  const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(20),
-                      child: CupertinoActivityIndicator(),
-                    ),
-                  )
+                  const Center(child: Padding(padding: EdgeInsets.all(20), child: CupertinoActivityIndicator()))
                 else
                   _StatsBlock(stats: _stats),
                 const SizedBox(height: 12),
@@ -454,25 +367,17 @@ class ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
               child: Container(
                 height: 54,
                 alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: c.accent,
-                  borderRadius: BorderRadius.circular(14),
-                ),
+                decoration: BoxDecoration(color: c.accent, borderRadius: BorderRadius.circular(14)),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(CupertinoIcons.plus, size: 18, color: c.textOnAccent),
                     const SizedBox(width: 8),
-                    Text(
-                      'LOG A SET',
-                      style: TextStyle(
-                        fontFamily: 'Rubik',
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.5,
-                        color: c.textOnAccent,
-                      ),
-                    ),
+                    Text('LOG A SET',
+                        style: TextStyle(
+                          fontFamily: 'Rubik', fontSize: 15, fontWeight: FontWeight.w800,
+                          letterSpacing: 1.5, color: c.textOnAccent,
+                        )),
                   ],
                 ),
               ),
@@ -497,67 +402,37 @@ class _StatsBlock extends StatelessWidget {
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: c.card,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: c.border),
-        ),
-        child: Column(
-          children: [
-            Icon(CupertinoIcons.chart_bar, size: 28, color: c.textSecondary),
-            const SizedBox(height: 10),
-            Text(
-              'No data yet',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: c.textPrimary,
-                fontFamily: 'Rubik',
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Log a set below to start tracking\ntimes done, volume and progression.',
+        decoration: BoxDecoration(color: c.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: c.border)),
+        child: Column(children: [
+          Icon(CupertinoIcons.chart_bar, size: 28, color: c.textSecondary),
+          const SizedBox(height: 10),
+          Text('No data yet',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: c.textPrimary, fontFamily: 'Rubik')),
+          const SizedBox(height: 4),
+          Text('Log a set below to start tracking\ntimes done, volume and progression.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                color: c.textSecondary,
-                height: 1.5,
-                fontFamily: 'Rubik',
-              ),
-            ),
-          ],
-        ),
+              style: TextStyle(fontSize: 12, color: c.textSecondary, height: 1.5, fontFamily: 'Rubik')),
+        ]),
       );
     }
 
     return Column(
       children: [
-        Row(
-          children: [
-            _StatCard(value: '${s.timesPerformed}', label: 'TIMES DONE'),
-            const SizedBox(width: 10),
-            _StatCard(value: '${s.totalSets}', label: 'TOTAL SETS'),
-            const SizedBox(width: 10),
-            _StatCard(value: '${s.totalReps}', label: 'TOTAL REPS'),
-          ],
-        ),
+        Row(children: [
+          _StatCard(value: '${s.timesPerformed}', label: 'TIMES DONE'),
+          const SizedBox(width: 10),
+          _StatCard(value: '${s.totalSets}', label: 'TOTAL SETS'),
+          const SizedBox(width: 10),
+          _StatCard(value: '${s.totalReps}', label: 'TOTAL REPS'),
+        ]),
         const SizedBox(height: 10),
-        Row(
-          children: [
-            _StatCard(
-              value: '${units.format(s.maxWeightKg)} ${units.label}',
-              label: 'MAX WEIGHT',
-            ),
-            const SizedBox(width: 10),
-            _StatCard(
-              value: units.formatVolume(s.maxVolumeKg),
-              label: 'MAX VOLUME',
-            ),
-            const SizedBox(width: 10),
-            _StatCard(value: s.rank ?? '—', label: 'RANK'),
-          ],
-        ),
+        Row(children: [
+          _StatCard(value: '${units.format(s.maxWeightKg)} ${units.label}', label: 'MAX WEIGHT'),
+          const SizedBox(width: 10),
+          _StatCard(value: units.formatVolume(s.maxVolumeKg), label: 'MAX VOLUME'),
+          const SizedBox(width: 10),
+          _StatCard(value: s.rank ?? '—', label: 'RANK'),
+        ]),
         const SizedBox(height: 12),
         _LoveBar(score: s.loveScore),
         if (s.progression.length >= 2) ...[
@@ -582,33 +457,13 @@ class _StatCard extends StatelessWidget {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
-        decoration: BoxDecoration(
-          color: c.card,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: c.border),
-        ),
+        decoration: BoxDecoration(color: c.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: c.border)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                color: c.textPrimary,
-                fontFamily: 'Rubik',
-              ),
-            ),
+            Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: c.textPrimary, fontFamily: 'Rubik')),
             const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 9,
-                letterSpacing: 0.5,
-                color: c.textSecondary,
-                fontFamily: 'Rubik',
-              ),
-            ),
+            Text(label, style: TextStyle(fontSize: 9, letterSpacing: 0.5, color: c.textSecondary, fontFamily: 'Rubik')),
           ],
         ),
       ),
@@ -625,11 +480,7 @@ class _LoveBar extends StatelessWidget {
     final c = context.colors;
     return Container(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: c.card,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: c.border),
-      ),
+      decoration: BoxDecoration(color: c.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: c.border)),
       child: Row(
         children: [
           Icon(CupertinoIcons.heart_fill, size: 18, color: c.accent),
@@ -638,27 +489,18 @@ class _LoveBar extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Love coefficient  ·  $score/10',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: c.textPrimary,
-                    fontFamily: 'Rubik',
-                  ),
-                ),
+                Text('Love coefficient  ·  $score/10',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: c.textPrimary, fontFamily: 'Rubik')),
                 const SizedBox(height: 6),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(3),
-                  child: Stack(
-                    children: [
-                      Container(height: 6, color: c.iconBg),
-                      FractionallySizedBox(
-                        widthFactor: (score / 10).clamp(0.0, 1.0),
-                        child: Container(height: 6, color: c.accent),
-                      ),
-                    ],
-                  ),
+                  child: Stack(children: [
+                    Container(height: 6, color: c.iconBg),
+                    FractionallySizedBox(
+                      widthFactor: (score / 10).clamp(0.0, 1.0),
+                      child: Container(height: 6, color: c.accent),
+                    ),
+                  ]),
                 ),
               ],
             ),
@@ -676,52 +518,32 @@ class _ProgressionChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final data =
-        points.length > 12 ? points.sublist(points.length - 12) : points;
-    final maxW = data
-        .map((e) => e.topWeightKg)
-        .fold<double>(1, (a, b) => a > b ? a : b);
+    final data = points.length > 12 ? points.sublist(points.length - 12) : points;
+    final maxW = data.map((e) => e.topWeightKg).fold<double>(1, (a, b) => a > b ? a : b);
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-      decoration: BoxDecoration(
-        color: c.card,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: c.border),
-      ),
+      decoration: BoxDecoration(color: c.card, borderRadius: BorderRadius.circular(16), border: Border.all(color: c.border)),
       child: SizedBox(
         height: 90,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.end,
-          children:
-              data.map((p) {
-                final h = (p.topWeightKg / maxW * 70).clamp(4.0, 70.0);
-                return Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 3),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          p.topWeightKg.toStringAsFixed(0),
-                          style: TextStyle(
-                            fontSize: 8,
-                            color: c.textSecondary,
-                            fontFamily: 'Rubik',
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Container(
-                          height: h,
-                          decoration: BoxDecoration(
-                            color: c.accent,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }).toList(),
+          children: data.map((p) {
+            final h = (p.topWeightKg / maxW * 70).clamp(4.0, 70.0);
+            return Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 3),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(p.topWeightKg.toStringAsFixed(0),
+                        style: TextStyle(fontSize: 8, color: c.textSecondary, fontFamily: 'Rubik')),
+                    const SizedBox(height: 3),
+                    Container(height: h, decoration: BoxDecoration(color: c.accent, borderRadius: BorderRadius.circular(4))),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
         ),
       ),
     );
@@ -742,15 +564,11 @@ class _Chip extends StatelessWidget {
         color: accent ? c.accent : c.iconBg,
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: accent ? c.textOnAccent : c.textSecondary,
-          fontFamily: 'Rubik',
-        ),
-      ),
+      child: Text(text,
+          style: TextStyle(
+            fontSize: 11, fontWeight: FontWeight.w600,
+            color: accent ? c.textOnAccent : c.textSecondary, fontFamily: 'Rubik',
+          )),
     );
   }
 }
@@ -759,15 +577,8 @@ class _SectionLabel extends StatelessWidget {
   final String text;
   const _SectionLabel(this.text);
   @override
-  Widget build(BuildContext context) => Text(
-    text,
-    style: TextStyle(
-      fontSize: 16,
-      fontWeight: FontWeight.w700,
-      fontFamily: 'Rubik',
-      color: context.colors.textPrimary,
-    ),
-  );
+  Widget build(BuildContext context) => Text(text,
+      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Rubik', color: context.colors.textPrimary));
 }
 
 class _ErrorView extends StatelessWidget {
@@ -778,19 +589,13 @@ class _ErrorView extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text('⚠️', style: TextStyle(fontSize: 32)),
-          const SizedBox(height: 8),
-          Text(
-            'Could not load exercises',
-            style: TextStyle(color: c.textPrimary, fontFamily: 'Rubik'),
-          ),
-          const SizedBox(height: 16),
-          CupertinoButton(onPressed: onRetry, child: const Text('Retry')),
-        ],
-      ),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        const Text('⚠️', style: TextStyle(fontSize: 32)),
+        const SizedBox(height: 8),
+        Text('Could not load exercises', style: TextStyle(color: c.textPrimary, fontFamily: 'Rubik')),
+        const SizedBox(height: 16),
+        CupertinoButton(onPressed: onRetry, child: const Text('Retry')),
+      ]),
     );
   }
 }
@@ -801,11 +606,7 @@ class _LogSetSheet extends StatefulWidget {
   final ExercisesRepository repo;
   final int exerciseId;
   final VoidCallback onLogged;
-  const _LogSetSheet({
-    required this.repo,
-    required this.exerciseId,
-    required this.onLogged,
-  });
+  const _LogSetSheet({required this.repo, required this.exerciseId, required this.onLogged});
 
   @override
   State<_LogSetSheet> createState() => _LogSetSheetState();
@@ -821,30 +622,13 @@ class _LogSetSheetState extends State<_LogSetSheet> {
     final units = context.unitsController;
     final w = double.tryParse(_weightCtrl.text) ?? 0;
     final r = int.tryParse(_repsCtrl.text) ?? 0;
-    if (r <= 0) {
-      setState(() => _error = 'Enter reps');
-      return;
-    }
-    setState(() {
-      _saving = true;
-      _error = null;
-    });
+    if (r <= 0) { setState(() => _error = 'Enter reps'); return; }
+    setState(() { _saving = true; _error = null; });
     try {
-      await widget.repo.logSet(
-        widget.exerciseId,
-        weightKg: units.toKg(w),
-        reps: r,
-      );
-      if (mounted) {
-        Navigator.pop(context);
-        widget.onLogged();
-      }
+      await widget.repo.logSet(widget.exerciseId, weightKg: units.toKg(w), reps: r);
+      if (mounted) { Navigator.pop(context); widget.onLogged(); }
     } catch (e) {
-      if (mounted)
-        setState(() {
-          _error = e.toString();
-          _saving = false;
-        });
+      if (mounted) setState(() { _error = e.toString(); _saving = false; });
     }
   }
 
@@ -852,71 +636,24 @@ class _LogSetSheetState extends State<_LogSetSheet> {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Container(
-      decoration: BoxDecoration(
-        color: c.card,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 20,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-      ),
+      decoration: BoxDecoration(color: c.card, borderRadius: const BorderRadius.vertical(top: Radius.circular(20))),
+      padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(context).viewInsets.bottom + 24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: c.border,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
+          Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: c.border, borderRadius: BorderRadius.circular(2)))),
           const SizedBox(height: 16),
-          Text(
-            'Log a set',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: c.textPrimary,
-              fontFamily: 'Rubik',
-            ),
-          ),
+          Text('Log a set', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: c.textPrimary, fontFamily: 'Rubik')),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _Field(
-                  controller: _weightCtrl,
-                  label: 'Weight (${context.units.label})',
-                  placeholder: '60',
-                  decimal: true,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _Field(
-                  controller: _repsCtrl,
-                  label: 'Reps',
-                  placeholder: '10',
-                ),
-              ),
-            ],
-          ),
+          Row(children: [
+            Expanded(child: _Field(controller: _weightCtrl, label: 'Weight (${context.units.label})', placeholder: '60', decimal: true)),
+            const SizedBox(width: 12),
+            Expanded(child: _Field(controller: _repsCtrl, label: 'Reps', placeholder: '10')),
+          ]),
           if (_error != null) ...[
             const SizedBox(height: 8),
-            Text(
-              _error!,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFFEF4444),
-                fontFamily: 'Rubik',
-              ),
-            ),
+            Text(_error!, style: const TextStyle(fontSize: 12, color: Color(0xFFEF4444), fontFamily: 'Rubik')),
           ],
           const SizedBox(height: 16),
           SizedBox(
@@ -926,23 +663,11 @@ class _LogSetSheetState extends State<_LogSetSheet> {
               onPressed: _saving ? null : _save,
               child: Container(
                 height: 48,
-                decoration: BoxDecoration(
-                  color: _saving ? c.iconBg : c.accent,
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                decoration: BoxDecoration(color: _saving ? c.iconBg : c.accent, borderRadius: BorderRadius.circular(12)),
                 child: Center(
-                  child:
-                      _saving
-                          ? const CupertinoActivityIndicator()
-                          : Text(
-                            'Save',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: c.textOnAccent,
-                              fontFamily: 'Rubik',
-                            ),
-                          ),
+                  child: _saving
+                      ? const CupertinoActivityIndicator()
+                      : Text('Save', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: c.textOnAccent, fontFamily: 'Rubik')),
                 ),
               ),
             ),
@@ -955,15 +680,7 @@ class _LogSetSheetState extends State<_LogSetSheet> {
 
 // ── Create custom exercise sheet ──────────────────────────────────────────────
 
-const _muscleGroups = [
-  'Chest',
-  'Back',
-  'Legs',
-  'Shoulders',
-  'Arms',
-  'Core',
-  'Other',
-];
+const _muscleGroups = ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Other'];
 
 class _CreateExerciseSheet extends StatefulWidget {
   final ExercisesRepository repo;
@@ -984,14 +701,8 @@ class _CreateExerciseSheetState extends State<_CreateExerciseSheet> {
 
   Future<void> _save() async {
     final name = _nameCtrl.text.trim();
-    if (name.isEmpty) {
-      setState(() => _error = 'Enter a name');
-      return;
-    }
-    setState(() {
-      _saving = true;
-      _error = null;
-    });
+    if (name.isEmpty) { setState(() => _error = 'Enter a name'); return; }
+    setState(() { _saving = true; _error = null; });
     try {
       final item = await widget.repo.createCustom(
         name: name,
@@ -999,16 +710,9 @@ class _CreateExerciseSheetState extends State<_CreateExerciseSheet> {
         imageUrl: _imageCtrl.text.trim(),
         muscleGroup: _group,
       );
-      if (mounted) {
-        Navigator.pop(context);
-        widget.onCreated(item);
-      }
+      if (mounted) { Navigator.pop(context); widget.onCreated(item); }
     } catch (e) {
-      if (mounted)
-        setState(() {
-          _error = e.toString().replaceFirst('Exception: ', '');
-          _saving = false;
-        });
+      if (mounted) setState(() { _error = e.toString().replaceFirst('Exception: ', ''); _saving = false; });
     }
   }
 
@@ -1017,115 +721,48 @@ class _CreateExerciseSheetState extends State<_CreateExerciseSheet> {
     final c = context.colors;
     final img = _imageCtrl.text.trim();
     return Container(
-      decoration: BoxDecoration(
-        color: c.card,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 20,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-      ),
+      decoration: BoxDecoration(color: c.card, borderRadius: const BorderRadius.vertical(top: Radius.circular(20))),
+      padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(context).viewInsets.bottom + 24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: c.border,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
+          Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: c.border, borderRadius: BorderRadius.circular(2)))),
           const SizedBox(height: 16),
-          Text(
-            'New exercise',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: c.textPrimary,
-              fontFamily: 'Rubik',
-            ),
-          ),
+          Text('New exercise', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: c.textPrimary, fontFamily: 'Rubik')),
           const SizedBox(height: 16),
-          _Field(
-            controller: _nameCtrl,
-            label: 'Name',
-            placeholder: 'My Cable Crossover',
-          ),
+          _Field(controller: _nameCtrl, label: 'Name', placeholder: 'My Cable Crossover'),
           const SizedBox(height: 12),
-          Text(
-            'MUSCLE GROUP',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: c.textSecondary,
-              fontFamily: 'Rubik',
-            ),
-          ),
+          Text('MUSCLE GROUP', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: c.textSecondary, fontFamily: 'Rubik')),
           const SizedBox(height: 6),
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children:
-                _muscleGroups.map((g) {
-                  final active = g == _group;
-                  return GestureDetector(
-                    onTap: () => setState(() => _group = g),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 7,
-                      ),
-                      decoration: BoxDecoration(
-                        color: active ? c.accent : c.iconBg,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        g,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: active ? c.textOnAccent : c.textSecondary,
-                          fontFamily: 'Rubik',
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
+            spacing: 8, runSpacing: 8,
+            children: _muscleGroups.map((g) {
+              final active = g == _group;
+              return GestureDetector(
+                onTap: () => setState(() => _group = g),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: active ? c.accent : c.iconBg,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(g, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: active ? c.textOnAccent : c.textSecondary, fontFamily: 'Rubik')),
+                ),
+              );
+            }).toList(),
           ),
           const SizedBox(height: 12),
-          _Field(
-            controller: _imageCtrl,
-            label: 'Image URL',
-            placeholder: 'https://…/photo.jpg',
-            onChanged: (_) => setState(() {}),
-          ),
+          _Field(controller: _imageCtrl, label: 'Image URL', placeholder: 'https://…/photo.jpg', onChanged: (_) => setState(() {})),
           if (img.isNotEmpty) ...[
             const SizedBox(height: 10),
             Center(child: _Thumb(url: img, size: 90)),
           ],
           const SizedBox(height: 12),
-          _Field(
-            controller: _descCtrl,
-            label: 'Description',
-            placeholder: 'How to perform it…',
-            maxLines: 3,
-          ),
+          _Field(controller: _descCtrl, label: 'Description', placeholder: 'How to perform it…', maxLines: 3),
           if (_error != null) ...[
             const SizedBox(height: 8),
-            Text(
-              _error!,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFFEF4444),
-                fontFamily: 'Rubik',
-              ),
-            ),
+            Text(_error!, style: const TextStyle(fontSize: 12, color: Color(0xFFEF4444), fontFamily: 'Rubik')),
           ],
           const SizedBox(height: 16),
           SizedBox(
@@ -1135,23 +772,11 @@ class _CreateExerciseSheetState extends State<_CreateExerciseSheet> {
               onPressed: _saving ? null : _save,
               child: Container(
                 height: 48,
-                decoration: BoxDecoration(
-                  color: _saving ? c.iconBg : c.accent,
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                decoration: BoxDecoration(color: _saving ? c.iconBg : c.accent, borderRadius: BorderRadius.circular(12)),
                 child: Center(
-                  child:
-                      _saving
-                          ? const CupertinoActivityIndicator()
-                          : Text(
-                            'Create',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: c.textOnAccent,
-                              fontFamily: 'Rubik',
-                            ),
-                          ),
+                  child: _saving
+                      ? const CupertinoActivityIndicator()
+                      : Text('Create', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: c.textOnAccent, fontFamily: 'Rubik')),
                 ),
               ),
             ),
@@ -1185,37 +810,18 @@ class _Field extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label.toUpperCase(),
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: c.textSecondary,
-            fontFamily: 'Rubik',
-          ),
-        ),
+        Text(label.toUpperCase(), style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: c.textSecondary, fontFamily: 'Rubik')),
         const SizedBox(height: 6),
         CupertinoTextField(
           controller: controller,
           placeholder: placeholder,
           maxLines: maxLines,
           onChanged: onChanged,
-          keyboardType:
-              numeric
-                  ? TextInputType.numberWithOptions(decimal: decimal)
-                  : TextInputType.text,
-          style: TextStyle(
-            color: c.textPrimary,
-            fontSize: 15,
-            fontFamily: 'Rubik',
-          ),
+          keyboardType: numeric ? TextInputType.numberWithOptions(decimal: decimal) : TextInputType.text,
+          style: TextStyle(color: c.textPrimary, fontSize: 15, fontFamily: 'Rubik'),
           placeholderStyle: TextStyle(color: c.textSecondary, fontSize: 15),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            color: c.iconBg,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: c.border),
-          ),
+          decoration: BoxDecoration(color: c.iconBg, borderRadius: BorderRadius.circular(10), border: Border.all(color: c.border)),
         ),
       ],
     );

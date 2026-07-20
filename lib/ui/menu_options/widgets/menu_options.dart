@@ -57,26 +57,13 @@ class _MenuOptionsState extends State<MenuOptions> {
     try {
       final data = await _sessions.getStreakData();
       if (mounted) {
-        setState(
-          () =>
-              _streak =
-                  data.currentStreakWeeks > 0
-                      ? data
-                      : StreakData(
-                        currentStreakWeeks: 1,
-                        activeWeeks: data.activeWeeks,
-                      ),
-        );
+        setState(() => _streak = data.currentStreakWeeks > 0
+            ? data
+            : StreakData(currentStreakWeeks: 1, activeWeeks: data.activeWeeks));
       }
     } catch (_) {
       if (mounted) {
-        setState(
-          () =>
-              _streak = const StreakData(
-                currentStreakWeeks: 1,
-                activeWeeks: [],
-              ),
-        );
+        setState(() => _streak = const StreakData(currentStreakWeeks: 1, activeWeeks: []));
       }
     }
     _checkWeightPrompt();
@@ -114,18 +101,14 @@ class _MenuOptionsState extends State<MenuOptions> {
   void _showMonthlyWeightPopup(RankProfile profile) {
     showCupertinoDialog<void>(
       context: context,
-      builder:
-          (_) => _MonthlyWeightDialog(
-            ranking: _ranking,
-            profile: profile,
-            onDismiss: () async {
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.setInt(
-                'weight_last_asked',
-                DateTime.now().millisecondsSinceEpoch,
-              );
-            },
-          ),
+      builder: (_) => _MonthlyWeightDialog(
+        ranking: _ranking,
+        profile: profile,
+        onDismiss: () async {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setInt('weight_last_asked', DateTime.now().millisecondsSinceEpoch);
+        },
+      ),
     );
   }
 
@@ -134,9 +117,7 @@ class _MenuOptionsState extends State<MenuOptions> {
   }
 
   Future<void> _pushAndReload(Widget page) async {
-    await Navigator.of(
-      context,
-    ).push(CupertinoPageRoute<void>(builder: (_) => page));
+    await Navigator.of(context).push(CupertinoPageRoute<void>(builder: (_) => page));
     _loadWorkouts();
   }
 
@@ -168,12 +149,8 @@ class _MenuOptionsState extends State<MenuOptions> {
                     ),
                     const Spacer(),
                     Container(
-                      width: 7,
-                      height: 7,
-                      decoration: BoxDecoration(
-                        color: c.accent,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
+                      width: 7, height: 7,
+                      decoration: BoxDecoration(color: c.accent, borderRadius: BorderRadius.circular(4)),
                     ),
                     const SizedBox(width: 6),
                     Text(
@@ -288,13 +265,11 @@ class _StatStrip extends StatelessWidget {
       child: Row(
         children: [
           for (var i = 0; i < segments.length; i++) ...[
-            if (i > 0) Container(width: 1, color: const Color(0x33FFFFFF)),
+            if (i > 0)
+              Container(width: 1, color: const Color(0x33FFFFFF)),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 18,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.start,
@@ -367,17 +342,10 @@ class _MenuRow extends StatelessWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color:
-                        accentTile
-                            ? c.accent.withValues(alpha: 0.12)
-                            : c.iconBg,
+                    color: accentTile ? c.accent.withValues(alpha: 0.12) : c.iconBg,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(
-                    icon,
-                    size: 22,
-                    color: accentTile ? c.accent : c.textSecondary,
-                  ),
+                  child: Icon(icon, size: 22, color: accentTile ? c.accent : c.textSecondary),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -396,20 +364,12 @@ class _MenuRow extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         subtitle,
-                        style: TextStyle(
-                          fontFamily: 'Rubik',
-                          fontSize: 13,
-                          color: c.textSecondary,
-                        ),
+                        style: TextStyle(fontFamily: 'Rubik', fontSize: 13, color: c.textSecondary),
                       ),
                     ],
                   ),
                 ),
-                Icon(
-                  CupertinoIcons.arrow_right,
-                  size: 18,
-                  color: c.textSecondary,
-                ),
+                Icon(CupertinoIcons.arrow_right, size: 18, color: c.textSecondary),
               ],
             ),
           ),
@@ -468,10 +428,7 @@ class _FirstTimeWeightSheetState extends State<_FirstTimeWeightSheet> {
   Future<void> _save() async {
     final w = double.tryParse(_weightCtrl.text);
     final h = double.tryParse(_heightCtrl.text);
-    if (w == null && h == null) {
-      Navigator.pop(context);
-      return;
-    }
+    if (w == null && h == null) { Navigator.pop(context); return; }
     setState(() => _saving = true);
     try {
       await widget.ranking.updateProfile(weightKg: w, heightCm: h);
@@ -488,9 +445,7 @@ class _FirstTimeWeightSheetState extends State<_FirstTimeWeightSheet> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 20,
+        left: 20, right: 20, top: 20,
         bottom: MediaQuery.of(context).viewInsets.bottom + 24,
       ),
       child: Column(
@@ -499,107 +454,52 @@ class _FirstTimeWeightSheetState extends State<_FirstTimeWeightSheet> {
         children: [
           Center(
             child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: c.border,
-                borderRadius: BorderRadius.circular(2),
-              ),
+              width: 40, height: 4,
+              decoration: BoxDecoration(color: c.border, borderRadius: BorderRadius.circular(2)),
             ),
           ),
           const SizedBox(height: 16),
-          Text(
-            'Quick setup 🏋',
-            style: TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w700,
-              color: c.textPrimary,
-              fontFamily: 'Rubik',
-            ),
-          ),
+          Text('Quick setup 🏋',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: c.textPrimary, fontFamily: 'Rubik')),
           const SizedBox(height: 4),
-          Text(
-            'Optional — helps calculate your strength rank',
-            style: TextStyle(
-              fontSize: 12,
-              color: c.textSecondary,
-              fontFamily: 'Rubik',
+          Text('Optional — helps calculate your strength rank',
+              style: TextStyle(fontSize: 12, color: c.textSecondary, fontFamily: 'Rubik')),
+          const SizedBox(height: 16),
+          Row(children: [
+            Expanded(child: _MetricField(controller: _weightCtrl, label: 'Weight (kg)', placeholder: '80')),
+            const SizedBox(width: 12),
+            Expanded(child: _MetricField(controller: _heightCtrl, label: 'Height (cm)', placeholder: '175')),
+          ]),
+          const SizedBox(height: 16),
+          Row(children: [
+            Expanded(
+              child: CupertinoButton(
+                padding: EdgeInsets.zero,
+                onPressed: () => Navigator.pop(context),
+                child: Container(
+                  height: 44,
+                  decoration: BoxDecoration(color: c.iconBg, borderRadius: BorderRadius.circular(12)),
+                  child: Center(child: Text('Skip', style: TextStyle(color: c.textSecondary, fontFamily: 'Rubik'))),
+                ),
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _MetricField(
-                  controller: _weightCtrl,
-                  label: 'Weight (kg)',
-                  placeholder: '80',
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _MetricField(
-                  controller: _heightCtrl,
-                  label: 'Height (cm)',
-                  placeholder: '175',
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  onPressed: () => Navigator.pop(context),
-                  child: Container(
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: c.iconBg,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Center(
-                      child: Text(
-                        'Skip',
-                        style: TextStyle(
-                          color: c.textSecondary,
-                          fontFamily: 'Rubik',
-                        ),
-                      ),
-                    ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: CupertinoButton(
+                padding: EdgeInsets.zero,
+                onPressed: _saving ? null : _save,
+                child: Container(
+                  height: 44,
+                  decoration: BoxDecoration(color: c.accent, borderRadius: BorderRadius.circular(12)),
+                  child: Center(
+                    child: _saving
+                        ? const CupertinoActivityIndicator()
+                        : Text('Save', style: TextStyle(color: c.textOnAccent, fontWeight: FontWeight.w600, fontFamily: 'Rubik')),
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  onPressed: _saving ? null : _save,
-                  child: Container(
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: c.accent,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Center(
-                      child:
-                          _saving
-                              ? const CupertinoActivityIndicator()
-                              : Text(
-                                'Save',
-                                style: TextStyle(
-                                  color: c.textOnAccent,
-                                  fontWeight: FontWeight.w600,
-                                  fontFamily: 'Rubik',
-                                ),
-                              ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ]),
         ],
       ),
     );
@@ -610,11 +510,7 @@ class _MetricField extends StatelessWidget {
   final TextEditingController controller;
   final String label;
   final String placeholder;
-  const _MetricField({
-    required this.controller,
-    required this.label,
-    required this.placeholder,
-  });
+  const _MetricField({required this.controller, required this.label, required this.placeholder});
 
   @override
   Widget build(BuildContext context) {
@@ -622,25 +518,13 @@ class _MetricField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: c.textSecondary,
-            fontFamily: 'Rubik',
-          ),
-        ),
+        Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: c.textSecondary, fontFamily: 'Rubik')),
         const SizedBox(height: 6),
         CupertinoTextField(
           controller: controller,
           placeholder: placeholder,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          style: TextStyle(
-            color: c.textPrimary,
-            fontSize: 15,
-            fontFamily: 'Rubik',
-          ),
+          style: TextStyle(color: c.textPrimary, fontSize: 15, fontFamily: 'Rubik'),
           placeholderStyle: TextStyle(color: c.textSecondary, fontSize: 15),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
@@ -661,11 +545,7 @@ class _MonthlyWeightDialog extends StatefulWidget {
   final RankProfile profile;
   final VoidCallback onDismiss;
 
-  const _MonthlyWeightDialog({
-    required this.ranking,
-    required this.profile,
-    required this.onDismiss,
-  });
+  const _MonthlyWeightDialog({required this.ranking, required this.profile, required this.onDismiss});
 
   @override
   State<_MonthlyWeightDialog> createState() => _MonthlyWeightDialogState();
@@ -685,10 +565,7 @@ class _MonthlyWeightDialogState extends State<_MonthlyWeightDialog> {
 
   Future<void> _save() async {
     final w = double.tryParse(_weightCtrl.text);
-    if (w == null) {
-      _dismiss();
-      return;
-    }
+    if (w == null) { _dismiss(); return; }
     setState(() => _saving = true);
     try {
       await widget.ranking.updateProfile(weightKg: w);
@@ -723,64 +600,28 @@ class _MonthlyWeightDialogState extends State<_MonthlyWeightDialog> {
               color: c.card,
               borderRadius: BorderRadius.circular(22),
               border: Border.all(color: c.border),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0x40000000),
-                  blurRadius: 40,
-                  offset: const Offset(0, 18),
-                ),
-              ],
+              boxShadow: [BoxShadow(color: const Color(0x40000000), blurRadius: 40, offset: const Offset(0, 18))],
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  'Update your weight?',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                    color: c.textPrimary,
-                    fontFamily: 'Rubik',
-                  ),
-                ),
+                Text('Update your weight?',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: c.textPrimary, fontFamily: 'Rubik')),
                 const SizedBox(height: 8),
-                Text(
-                  'Your weight helps keep rankings accurate. Takes 5 seconds.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 13,
-                    height: 1.45,
-                    color: c.textSecondary,
-                    fontFamily: 'Rubik',
-                  ),
-                ),
+                Text('Your weight helps keep rankings accurate. Takes 5 seconds.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 13, height: 1.45, color: c.textSecondary, fontFamily: 'Rubik')),
                 const SizedBox(height: 14),
                 CupertinoTextField(
                   controller: _weightCtrl,
                   placeholder: 'Weight (kg)',
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  style: TextStyle(
-                    color: c.textPrimary,
-                    fontSize: 15,
-                    fontFamily: 'Rubik',
-                  ),
-                  placeholderStyle: TextStyle(
-                    color: c.textSecondary,
-                    fontSize: 15,
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: c.iconBg,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: c.border),
-                  ),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  style: TextStyle(color: c.textPrimary, fontSize: 15, fontFamily: 'Rubik'),
+                  placeholderStyle: TextStyle(color: c.textSecondary, fontSize: 15),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(color: c.iconBg, borderRadius: BorderRadius.circular(10), border: Border.all(color: c.border)),
                 ),
                 const SizedBox(height: 18),
                 Pressable(
@@ -788,22 +629,10 @@ class _MonthlyWeightDialogState extends State<_MonthlyWeightDialog> {
                   child: Container(
                     height: 48,
                     alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: c.accent,
-                      borderRadius: BorderRadius.circular(13),
-                    ),
-                    child:
-                        _saving
-                            ? const CupertinoActivityIndicator()
-                            : Text(
-                              'Update',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                color: c.textOnAccent,
-                                fontFamily: 'Rubik',
-                              ),
-                            ),
+                    decoration: BoxDecoration(color: c.accent, borderRadius: BorderRadius.circular(13)),
+                    child: _saving
+                        ? const CupertinoActivityIndicator()
+                        : Text('Update', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: c.textOnAccent, fontFamily: 'Rubik')),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -812,19 +641,8 @@ class _MonthlyWeightDialogState extends State<_MonthlyWeightDialog> {
                   child: Container(
                     height: 48,
                     alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: c.iconBg,
-                      borderRadius: BorderRadius.circular(13),
-                    ),
-                    child: Text(
-                      'Not now',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: c.textPrimary,
-                        fontFamily: 'Rubik',
-                      ),
-                    ),
+                    decoration: BoxDecoration(color: c.iconBg, borderRadius: BorderRadius.circular(13)),
+                    child: Text('Not now', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: c.textPrimary, fontFamily: 'Rubik')),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -833,14 +651,7 @@ class _MonthlyWeightDialogState extends State<_MonthlyWeightDialog> {
                   child: Container(
                     height: 44,
                     alignment: Alignment.center,
-                    child: Text(
-                      "Don't ask again",
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: c.textSecondary,
-                        fontFamily: 'Rubik',
-                      ),
-                    ),
+                    child: Text("Don't ask again", style: TextStyle(fontSize: 13, color: c.textSecondary, fontFamily: 'Rubik')),
                   ),
                 ),
               ],
@@ -873,31 +684,18 @@ class _YearCalendarSheet extends StatelessWidget {
         children: [
           const SizedBox(height: 8),
           Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: c.border,
-              borderRadius: BorderRadius.circular(2),
-            ),
+            width: 40, height: 4,
+            decoration: BoxDecoration(color: c.border, borderRadius: BorderRadius.circular(2)),
           ),
           const SizedBox(height: 16),
           Text(
             '$year  •  ${streak.currentStreakWeeks} week${streak.currentStreakWeeks == 1 ? '' : 's'} streak',
-            style: TextStyle(
-              color: c.textPrimary,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              fontFamily: 'Rubik',
-            ),
+            style: TextStyle(color: c.textPrimary, fontSize: 16, fontWeight: FontWeight.w600, fontFamily: 'Rubik'),
           ),
           const SizedBox(height: 4),
           Text(
             '${streak.activeWeeks.length} week${streak.activeWeeks.length == 1 ? '' : 's'} active this year',
-            style: TextStyle(
-              color: c.textSecondary,
-              fontSize: 12,
-              fontFamily: 'Rubik',
-            ),
+            style: TextStyle(color: c.textSecondary, fontSize: 12, fontFamily: 'Rubik'),
           ),
           const SizedBox(height: 20),
           Expanded(
@@ -931,11 +729,7 @@ class _WeekGrid extends StatelessWidget {
   final Set<int> activeWeeks;
   final int currentWeek;
 
-  const _WeekGrid({
-    required this.totalWeeks,
-    required this.activeWeeks,
-    required this.currentWeek,
-  });
+  const _WeekGrid({required this.totalWeeks, required this.activeWeeks, required this.currentWeek});
 
   @override
   Widget build(BuildContext context) {

@@ -8,19 +8,12 @@ import 'package:gymboss/ui/menu_options_list/workouts/session/workout_session_co
 class WorkoutResumeBar extends StatelessWidget {
   final WorkoutSessionController session;
   final VoidCallback onTap;
-  const WorkoutResumeBar({
-    super.key,
-    required this.session,
-    required this.onTap,
-  });
+  const WorkoutResumeBar({super.key, required this.session, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final progress =
-        session.totalSets == 0
-            ? 0.0
-            : (session.doneSets / session.totalSets).clamp(0.0, 1.0);
+    final progress = session.totalSets == 0 ? 0.0 : (session.doneSets / session.totalSets).clamp(0.0, 1.0);
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
       child: Pressable(
@@ -29,13 +22,7 @@ class WorkoutResumeBar extends StatelessWidget {
           decoration: BoxDecoration(
             color: c.invBg,
             borderRadius: BorderRadius.circular(18),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0x40000000),
-                blurRadius: 24,
-                offset: const Offset(0, 8),
-              ),
-            ],
+            boxShadow: [BoxShadow(color: const Color(0x40000000), blurRadius: 24, offset: const Offset(0, 8))],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -48,67 +35,36 @@ class WorkoutResumeBar extends StatelessWidget {
                       width: 38,
                       height: 38,
                       alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: c.accent,
-                        borderRadius: BorderRadius.circular(11),
-                      ),
-                      child: Icon(
-                        CupertinoIcons.play_arrow_solid,
-                        size: 18,
-                        color: c.textOnAccent,
-                      ),
+                      decoration: BoxDecoration(color: c.accent, borderRadius: BorderRadius.circular(11)),
+                      child: Icon(CupertinoIcons.play_arrow_solid, size: 18, color: c.textOnAccent),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            session.workout?.name ?? 'Workout',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
-                              color: c.invText,
-                              fontFamily: 'Rubik',
-                            ),
-                          ),
+                          Text(session.workout?.name ?? 'Workout',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: c.invText, fontFamily: 'Rubik')),
                           const SizedBox(height: 2),
-                          Text(
-                            '${session.elapsed}  ·  ${session.doneSets}/${session.totalSets} sets  ·  tap to resume',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: c.invText.withValues(alpha: 0.7),
-                              fontFamily: 'Rubik',
-                            ),
-                          ),
+                          Text('${session.elapsed}  ·  ${session.doneSets}/${session.totalSets} sets  ·  tap to resume',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: 11, color: c.invText.withValues(alpha: 0.7), fontFamily: 'Rubik')),
                         ],
                       ),
                     ),
-                    Icon(
-                      CupertinoIcons.chevron_up,
-                      size: 18,
-                      color: c.invText.withValues(alpha: 0.7),
-                    ),
+                    Icon(CupertinoIcons.chevron_up, size: 18, color: c.invText.withValues(alpha: 0.7)),
                   ],
                 ),
               ),
               ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  bottom: Radius.circular(18),
-                ),
-                child: Stack(
-                  children: [
-                    Container(height: 4, color: const Color(0x22FFFFFF)),
-                    FractionallySizedBox(
-                      widthFactor: progress,
-                      child: Container(height: 4, color: c.accent),
-                    ),
-                  ],
-                ),
+                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(18)),
+                child: Stack(children: [
+                  Container(height: 4, color: const Color(0x22FFFFFF)),
+                  FractionallySizedBox(widthFactor: progress, child: Container(height: 4, color: c.accent)),
+                ]),
               ),
             ],
           ),

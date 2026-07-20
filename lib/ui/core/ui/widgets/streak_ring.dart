@@ -74,11 +74,7 @@ class _RingPainter extends CustomPainter {
   final Color track;
   final Color accent;
 
-  _RingPainter({
-    required this.progress,
-    required this.track,
-    required this.accent,
-  });
+  _RingPainter({required this.progress, required this.track, required this.accent});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -86,20 +82,18 @@ class _RingPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = (size.shortestSide - stroke) / 2;
 
-    final trackPaint =
-        Paint()
-          ..color = track
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = stroke;
+    final trackPaint = Paint()
+      ..color = track
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke;
     canvas.drawCircle(center, radius, trackPaint);
 
     if (progress > 0) {
-      final arcPaint =
-          Paint()
-            ..color = accent
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = stroke
-            ..strokeCap = StrokeCap.round;
+      final arcPaint = Paint()
+        ..color = accent
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = stroke
+        ..strokeCap = StrokeCap.round;
       canvas.drawArc(
         Rect.fromCircle(center: center, radius: radius),
         -math.pi / 2,
