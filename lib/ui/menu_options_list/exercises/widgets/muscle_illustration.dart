@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
+import 'package:gymboss/ui/core/ui/widgets/net_image.dart';
 import 'package:gymboss/ui/menu_options_list/exercises/widgets/exercise_mannequin.dart';
 
 /// Which body region an exercise works. Used to highlight our own drawn figure
@@ -62,14 +63,13 @@ class ExerciseVisual extends StatelessWidget {
     Widget child;
     if (_custom && imageUrl.isNotEmpty) {
       // user-uploaded custom image
-      child = Image.network(
-        imageUrl,
+      child = NetImage(
+        url: imageUrl,
         fit: BoxFit.cover,
         width: double.infinity,
         height: double.infinity,
         cacheWidth: 640,
-        errorBuilder: (_, __, ___) => mannequin,
-        loadingBuilder: (ctx, w, prog) => prog == null ? w : const Center(child: CupertinoActivityIndicator(radius: 8)),
+        fallback: (_) => mannequin,
       );
     } else if (!_custom && imageUrl.isNotEmpty) {
       // Everkinetic 2-frame muscle-highlight illustration
@@ -130,13 +130,12 @@ class _TwoFrameState extends State<_TwoFrame> {
     final url = (_second && widget.url2.isNotEmpty) ? widget.url2 : widget.url1;
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 220),
-      child: Image.network(
-        url,
+      child: NetImage(
         key: ValueKey(url),
+        url: url,
         fit: BoxFit.contain,
         cacheWidth: 500,
-        errorBuilder: (_, __, ___) => widget.fallback,
-        loadingBuilder: (ctx, w, prog) => prog == null ? w : const Center(child: CupertinoActivityIndicator(radius: 8)),
+        fallback: (_) => widget.fallback,
       ),
     );
   }
