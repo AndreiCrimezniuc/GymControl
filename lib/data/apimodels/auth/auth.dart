@@ -4,7 +4,10 @@ class TokenResponseModel {
   final String accessToken;
   final String refreshToken;
 
-  const TokenResponseModel({required this.accessToken, required this.refreshToken});
+  const TokenResponseModel({
+    required this.accessToken,
+    required this.refreshToken,
+  });
 
   factory TokenResponseModel.fromJson(Map<String, dynamic> json) {
     return TokenResponseModel(
@@ -13,8 +16,6 @@ class TokenResponseModel {
     );
   }
 
-  AuthTokens toDomain() => AuthTokens(
-    accessToken: accessToken,
-    refreshToken: refreshToken,
-  );
+  AuthTokens toDomain() =>
+      AuthTokens(accessToken: accessToken, refreshToken: refreshToken);
 }

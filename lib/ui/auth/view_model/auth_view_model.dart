@@ -14,6 +14,7 @@ class AuthViewModel extends ChangeNotifier {
   AuthViewModel(this._repo);
 
   AuthStatus get status => _status;
+
   /// Only the error code is exposed — never the raw message.
   String? get errorCode => _errorCode;
   bool get loading => _loading;

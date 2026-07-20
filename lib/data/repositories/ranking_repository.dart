@@ -9,16 +9,18 @@ class RankingRepository {
   final String _base;
 
   RankingRepository({required AuthenticatedClient client})
-      : _client = client,
-        _base = '${ApiConfig.apiBaseUrl}/api/v1/rankings';
+    : _client = client,
+      _base = '${ApiConfig.apiBaseUrl}/api/v1/rankings';
 
   Future<RankProfile> getProfile() async {
     final resp = await _client
         .get(Uri.parse('$_base/profile'))
         .timeout(const Duration(seconds: 10));
     if (resp.statusCode != 200) {
-      throw AppError(AppErrorCode.dataLoadFailed,
-          message: 'GET /rankings/profile HTTP ${resp.statusCode}');
+      throw AppError(
+        AppErrorCode.dataLoadFailed,
+        message: 'GET /rankings/profile HTTP ${resp.statusCode}',
+      );
     }
     return RankProfile.fromJson(jsonDecode(resp.body) as Map<String, dynamic>);
   }
@@ -37,8 +39,10 @@ class RankingRepository {
         .put(Uri.parse('$_base/profile'), body: jsonEncode(body))
         .timeout(const Duration(seconds: 10));
     if (resp.statusCode != 200) {
-      throw AppError(AppErrorCode.dataSaveFailed,
-          message: 'PUT /rankings/profile HTTP ${resp.statusCode}');
+      throw AppError(
+        AppErrorCode.dataSaveFailed,
+        message: 'PUT /rankings/profile HTTP ${resp.statusCode}',
+      );
     }
     return RankProfile.fromJson(jsonDecode(resp.body) as Map<String, dynamic>);
   }
@@ -51,12 +55,18 @@ class RankingRepository {
     final resp = await _client
         .post(
           Uri.parse('$_base/lifts'),
-          body: jsonEncode({'exercise_id': exerciseId, 'weight_kg': weightKg, 'reps': reps}),
+          body: jsonEncode({
+            'exercise_id': exerciseId,
+            'weight_kg': weightKg,
+            'reps': reps,
+          }),
         )
         .timeout(const Duration(seconds: 10));
     if (resp.statusCode != 204) {
-      throw AppError(AppErrorCode.dataSaveFailed,
-          message: 'POST /rankings/lifts HTTP ${resp.statusCode}');
+      throw AppError(
+        AppErrorCode.dataSaveFailed,
+        message: 'POST /rankings/lifts HTTP ${resp.statusCode}',
+      );
     }
   }
 
@@ -65,8 +75,10 @@ class RankingRepository {
         .get(Uri.parse('$_base/me'))
         .timeout(const Duration(seconds: 10));
     if (resp.statusCode != 200) {
-      throw AppError(AppErrorCode.dataLoadFailed,
-          message: 'GET /rankings/me HTTP ${resp.statusCode}');
+      throw AppError(
+        AppErrorCode.dataLoadFailed,
+        message: 'GET /rankings/me HTTP ${resp.statusCode}',
+      );
     }
     return UserRanks.fromJson(jsonDecode(resp.body) as Map<String, dynamic>);
   }

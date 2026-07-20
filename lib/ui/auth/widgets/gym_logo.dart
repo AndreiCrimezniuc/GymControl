@@ -78,14 +78,16 @@ class _GymBossLogoPainter extends CustomPainter {
     final s = size.width;
     final center = Offset(s / 2, s / 2);
 
-    final strokePaint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = s * 0.055;
+    final strokePaint =
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = s * 0.055;
 
-    final fillPaint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
+    final fillPaint =
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.fill;
 
     canvas.drawCircle(center, s * 0.43, strokePaint);
     canvas.drawRRect(

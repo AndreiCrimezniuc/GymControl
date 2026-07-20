@@ -61,57 +61,61 @@ class _StatisticsState extends State<Statistics> {
     final ranks = _ranks.exerciseRanks;
     return AppPage(
       title: 'Statistics',
-      body: _loading
-          ? const SkeletonList()
-          : CustomScrollView(
-              slivers: [
-                CupertinoSliverRefreshControl(onRefresh: _load),
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                  sliver: SliverList(
-                    delegate: SliverChildListDelegate([
-                Row(
-                  children: [
-                    _StatTile(
-                      value: '${_streak.currentStreakWeeks}',
-                      unit: _streak.currentStreakWeeks == 1 ? 'week' : 'weeks',
-                      title: 'Streak',
-                      icon: CupertinoIcons.flame_fill,
+      body:
+          _loading
+              ? const SkeletonList()
+              : CustomScrollView(
+                slivers: [
+                  CupertinoSliverRefreshControl(onRefresh: _load),
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate([
+                        Row(
+                          children: [
+                            _StatTile(
+                              value: '${_streak.currentStreakWeeks}',
+                              unit:
+                                  _streak.currentStreakWeeks == 1
+                                      ? 'week'
+                                      : 'weeks',
+                              title: 'Streak',
+                              icon: CupertinoIcons.flame_fill,
+                            ),
+                            const SizedBox(width: 10),
+                            _StatTile(
+                              value: '$_workouts',
+                              unit: 'routines',
+                              title: 'Workouts',
+                              icon: CupertinoIcons.calendar,
+                            ),
+                            const SizedBox(width: 10),
+                            _StatTile(
+                              value: '${ranks.length}',
+                              unit: 'lifts',
+                              title: 'Ranked',
+                              icon: CupertinoIcons.chart_bar_fill,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        if (ranks.isEmpty)
+                          const _EmptyState()
+                        else ...[
+                          const _SectionLabel('Estimated 1RM'),
+                          const SizedBox(height: 12),
+                          _OneRmChart(ranks: ranks),
+                          const SizedBox(height: 24),
+                          const _SectionLabel('Personal Records'),
+                          const SizedBox(height: 12),
+                          _RecordsList(ranks: ranks),
+                        ],
+                        const SizedBox(height: 16),
+                      ]),
                     ),
-                    const SizedBox(width: 10),
-                    _StatTile(
-                      value: '$_workouts',
-                      unit: 'routines',
-                      title: 'Workouts',
-                      icon: CupertinoIcons.calendar,
-                    ),
-                    const SizedBox(width: 10),
-                    _StatTile(
-                      value: '${ranks.length}',
-                      unit: 'lifts',
-                      title: 'Ranked',
-                      icon: CupertinoIcons.chart_bar_fill,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                if (ranks.isEmpty)
-                  const _EmptyState()
-                else ...[
-                  const _SectionLabel('Estimated 1RM'),
-                  const SizedBox(height: 12),
-                  _OneRmChart(ranks: ranks),
-                  const SizedBox(height: 24),
-                  const _SectionLabel('Personal Records'),
-                  const SizedBox(height: 12),
-                  _RecordsList(ranks: ranks),
-                ],
-                const SizedBox(height: 16),
-                    ]),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
     );
   }
 }
@@ -129,18 +133,32 @@ class _EmptyState extends StatelessWidget {
         border: Border.all(color: c.border),
       ),
       padding: const EdgeInsets.all(24),
-      child: Column(children: [
-        const Text('📊', style: TextStyle(fontSize: 36)),
-        const SizedBox(height: 12),
-        Text('No stats yet',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: c.textPrimary, fontFamily: 'Rubik')),
-        const SizedBox(height: 6),
-        Text(
-          'Record a lift in the Rank screen to start\ntracking your strength progress.',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 12, color: c.textSecondary, fontFamily: 'Rubik', height: 1.5),
-        ),
-      ]),
+      child: Column(
+        children: [
+          const Text('📊', style: TextStyle(fontSize: 36)),
+          const SizedBox(height: 12),
+          Text(
+            'No stats yet',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: c.textPrimary,
+              fontFamily: 'Rubik',
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Record a lift in the Rank screen to start\ntracking your strength progress.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              color: c.textSecondary,
+              fontFamily: 'Rubik',
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -192,11 +210,32 @@ class _StatTile extends StatelessWidget {
           children: [
             Icon(icon, color: c.accent, size: 20),
             const SizedBox(height: 8),
-            Text(value,
-                style: TextStyle(fontSize: 26, fontWeight: FontWeight.w700, color: c.textPrimary, fontFamily: 'Rubik')),
-            Text(unit, style: TextStyle(fontSize: 10, color: c.textSecondary, fontFamily: 'Rubik')),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.w700,
+                color: c.textPrimary,
+                fontFamily: 'Rubik',
+              ),
+            ),
+            Text(
+              unit,
+              style: TextStyle(
+                fontSize: 10,
+                color: c.textSecondary,
+                fontFamily: 'Rubik',
+              ),
+            ),
             const SizedBox(height: 4),
-            Text(title, style: TextStyle(fontSize: 11, color: c.textSecondary, fontFamily: 'Rubik')),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 11,
+                color: c.textSecondary,
+                fontFamily: 'Rubik',
+              ),
+            ),
           ],
         ),
       ),
@@ -211,7 +250,9 @@ class _OneRmChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final maxOrm = ranks.map((e) => e.oneRmKg).fold<double>(1, (a, b) => a > b ? a : b);
+    final maxOrm = ranks
+        .map((e) => e.oneRmKg)
+        .fold<double>(1, (a, b) => a > b ? a : b);
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
@@ -226,43 +267,59 @@ class _OneRmChart extends StatelessWidget {
             height: 110,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
-              children: ranks.map((r) {
-                final barH = (r.oneRmKg / maxOrm * 80).clamp(6.0, 80.0);
-                return Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(r.oneRmKg.toStringAsFixed(0),
-                            style: TextStyle(fontSize: 9, color: c.textSecondary, fontFamily: 'Rubik')),
-                        const SizedBox(height: 3),
-                        Container(
-                          height: barH,
-                          decoration: BoxDecoration(
-                            color: c.accent,
-                            borderRadius: BorderRadius.circular(5),
-                          ),
+              children:
+                  ranks.map((r) {
+                    final barH = (r.oneRmKg / maxOrm * 80).clamp(6.0, 80.0);
+                    return Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              r.oneRmKg.toStringAsFixed(0),
+                              style: TextStyle(
+                                fontSize: 9,
+                                color: c.textSecondary,
+                                fontFamily: 'Rubik',
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Container(
+                              height: barH,
+                              decoration: BoxDecoration(
+                                color: c.accent,
+                                borderRadius: BorderRadius.circular(5),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ),
-                );
-              }).toList(),
+                      ),
+                    );
+                  }).toList(),
             ),
           ),
           const SizedBox(height: 8),
           Row(
-            children: ranks.map((r) => Expanded(
-              child: Center(
-                child: Text(
-                  _short(r.exerciseName),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 9, color: c.textSecondary, fontFamily: 'Rubik'),
-                ),
-              ),
-            )).toList(),
+            children:
+                ranks
+                    .map(
+                      (r) => Expanded(
+                        child: Center(
+                          child: Text(
+                            _short(r.exerciseName),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 9,
+                              color: c.textSecondary,
+                              fontFamily: 'Rubik',
+                            ),
+                          ),
+                        ),
+                      ),
+                    )
+                    .toList(),
           ),
         ],
       ),
@@ -293,11 +350,12 @@ class _RecordsList extends StatelessWidget {
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: ranks.length,
-        separatorBuilder: (_, __) => Container(
-          height: 1,
-          margin: const EdgeInsets.symmetric(horizontal: 16),
-          color: c.border,
-        ),
+        separatorBuilder:
+            (_, __) => Container(
+              height: 1,
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              color: c.border,
+            ),
         itemBuilder: (_, i) {
           final r = ranks[i];
           return Padding(
@@ -307,16 +365,36 @@ class _RecordsList extends StatelessWidget {
                 Icon(CupertinoIcons.star_fill, size: 16, color: c.accent),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(r.exerciseName,
-                      style: TextStyle(fontSize: 14, color: c.textPrimary, fontFamily: 'Rubik', fontWeight: FontWeight.w600)),
+                  child: Text(
+                    r.exerciseName,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: c.textPrimary,
+                      fontFamily: 'Rubik',
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text('${r.weightKg.toStringAsFixed(0)} kg × ${r.reps}',
-                        style: TextStyle(fontSize: 14, color: c.textPrimary, fontFamily: 'Rubik', fontWeight: FontWeight.w700)),
-                    Text('Rank ${r.rank}',
-                        style: TextStyle(fontSize: 11, color: c.textSecondary, fontFamily: 'Rubik')),
+                    Text(
+                      '${r.weightKg.toStringAsFixed(0)} kg × ${r.reps}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: c.textPrimary,
+                        fontFamily: 'Rubik',
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      'Rank ${r.rank}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: c.textSecondary,
+                        fontFamily: 'Rubik',
+                      ),
+                    ),
                   ],
                 ),
               ],
