@@ -116,11 +116,12 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
       }
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _error = e.toString().replaceFirst('Exception: ', '');
           _saving = false;
         });
+      }
     }
   }
 
@@ -611,11 +612,12 @@ class _ExercisePickerState extends State<_ExercisePicker> {
   Future<void> _load() async {
     try {
       final items = await widget.repo.getCatalog();
-      if (mounted)
+      if (mounted) {
         setState(() {
           _all = items;
           _loading = false;
         });
+      }
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }

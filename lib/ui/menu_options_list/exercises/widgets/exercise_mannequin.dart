@@ -38,8 +38,9 @@ MovePattern patternFor({
     'swing',
     'hyperextension',
     'rdl',
-  ]))
+  ])) {
     return MovePattern.hinge;
+  }
   if (inName([
     'squat',
     'lunge',
@@ -47,8 +48,9 @@ MovePattern patternFor({
     'split squat',
     'step up',
     'pistol',
-  ]))
+  ])) {
     return MovePattern.squat;
+  }
   if (inName([
     'bench press',
     'push-up',
@@ -59,8 +61,9 @@ MovePattern patternFor({
     'dip',
     'fly',
     'flye',
-  ]))
+  ])) {
     return MovePattern.horizontalPress;
+  }
   if (inName([
     'overhead press',
     'shoulder press',
@@ -68,16 +71,18 @@ MovePattern patternFor({
     'ohp',
     'push press',
     'arnold',
-  ]))
+  ])) {
     return MovePattern.overheadPress;
+  }
   if (inName([
     'lateral raise',
     'front raise',
     'side raise',
     'reverse fly',
     'lateral',
-  ]))
+  ])) {
     return MovePattern.lateralRaise;
+  }
   if (inName(['curl'])) return MovePattern.curl;
   if (inName([
     'pushdown',
@@ -86,8 +91,9 @@ MovePattern patternFor({
     'kickback',
     'overhead extension',
     'triceps',
-  ]))
+  ])) {
     return MovePattern.tricepsExtension;
+  }
   if (inName([
     'pulldown',
     'pull-up',
@@ -95,23 +101,28 @@ MovePattern patternFor({
     'pull up',
     'chin-up',
     'chin up',
-  ]))
+  ])) {
     return MovePattern.pulldown;
+  }
   if (inName(['row'])) return MovePattern.row;
   if (inName(['calf', 'calve'])) return MovePattern.calfRaise;
-  if (inName(['crunch', 'sit-up', 'situp', 'leg raise', 'plank', 'ab ']))
+  if (inName(['crunch', 'sit-up', 'situp', 'leg raise', 'plank', 'ab '])) {
     return MovePattern.crunch;
+  }
 
   // fall back on the muscle group
   if (m.contains('quad') ||
       m.contains('glute') ||
       m.contains('hamstring') ||
-      m.contains('leg'))
+      m.contains('leg')) {
     return MovePattern.squat;
-  if (m.contains('chest') || m.contains('pec'))
+  }
+  if (m.contains('chest') || m.contains('pec')) {
     return MovePattern.horizontalPress;
-  if (m.contains('shoulder') || m.contains('delt'))
+  }
+  if (m.contains('shoulder') || m.contains('delt')) {
     return MovePattern.overheadPress;
+  }
   if (m.contains('bicep')) return MovePattern.curl;
   if (m.contains('tricep')) return MovePattern.tricepsExtension;
   if (m.contains('lat') || m.contains('back')) return MovePattern.row;

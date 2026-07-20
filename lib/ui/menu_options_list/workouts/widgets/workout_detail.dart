@@ -55,18 +55,20 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
     try {
       final w = await widget.repo.get(widget.id);
       final s = await widget.repo.stats(widget.id);
-      if (mounted)
+      if (mounted) {
         setState(() {
           _w = w;
           _stats = s;
           _loading = false;
         });
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _error = e.toString();
           _loading = false;
         });
+      }
     }
   }
 
@@ -90,7 +92,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
           ),
         ],
       );
-      if (replace != true) return;
+      if (!mounted || replace != true) return;
     }
     session.start(
       workout: _w!,
@@ -755,11 +757,12 @@ class _RunDetailScreenState extends State<_RunDetailScreen> {
   Future<void> _load() async {
     try {
       final items = await widget.repo.runDetail(widget.workoutId, widget.date);
-      if (mounted)
+      if (mounted) {
         setState(() {
           _items = items;
           _loading = false;
         });
+      }
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }

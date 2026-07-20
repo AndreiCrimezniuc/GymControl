@@ -38,11 +38,12 @@ class _WorkoutsState extends State<Workouts> {
   }
 
   Future<void> _load({bool spinner = true}) async {
-    if (spinner)
+    if (spinner) {
       setState(() {
         _loading = true;
         _error = null;
       });
+    }
     try {
       final results = await Future.wait([
         _repo.listOwned(),
@@ -56,11 +57,12 @@ class _WorkoutsState extends State<Workouts> {
         });
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           if (spinner) _error = e.toString();
           _loading = false;
         });
+      }
     }
   }
 

@@ -23,7 +23,7 @@ class MainGradient {
   );
 
   static final BoxShadow blueShadow = BoxShadow(
-    color: const Color(0xFF3B82F6).withOpacity(0.4),
+    color: const Color(0xFF3B82F6).withValues(alpha: 0.4),
     blurRadius: 10,
     offset: const Offset(0, 4),
   );

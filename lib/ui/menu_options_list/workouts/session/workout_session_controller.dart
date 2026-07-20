@@ -213,8 +213,9 @@ class WorkoutSessionController extends ChangeNotifier {
     HapticFeedback.mediumImpact();
     s.done = true;
     _loggedSets++;
-    if (s.type != 'warmup')
+    if (s.type != 'warmup') {
       _loggedVolumeKg += w * r; // warmup excluded from working volume
+    }
     notifyListeners();
     _exercises
         .logSet(s.exerciseId, weightKg: w, reps: r, setType: s.type)

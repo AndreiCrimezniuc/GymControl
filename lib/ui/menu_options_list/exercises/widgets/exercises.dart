@@ -44,24 +44,27 @@ class _ExercisesState extends State<Exercises> {
   }
 
   Future<void> _load({bool spinner = true}) async {
-    if (spinner)
+    if (spinner) {
       setState(() {
         _loading = true;
         _error = null;
       });
+    }
     try {
       final items = await _repo.getCatalog();
-      if (mounted)
+      if (mounted) {
         setState(() {
           _all = items;
           _loading = false;
         });
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           if (spinner) _error = e.toString();
           _loading = false;
         });
+      }
     }
   }
 
@@ -326,7 +329,11 @@ class _Thumb extends StatelessWidget {
 class ExerciseDetailScreen extends StatefulWidget {
   final ExerciseCatalogItem entry;
   final ExercisesRepository repo;
-  const ExerciseDetailScreen({required this.entry, required this.repo});
+  const ExerciseDetailScreen({
+    super.key,
+    required this.entry,
+    required this.repo,
+  });
 
   @override
   State<ExerciseDetailScreen> createState() => ExerciseDetailScreenState();
@@ -345,11 +352,12 @@ class ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
   Future<void> _loadStats() async {
     try {
       final s = await widget.repo.getStats(widget.entry.id);
-      if (mounted)
+      if (mounted) {
         setState(() {
           _stats = s;
           _loadingStats = false;
         });
+      }
     } catch (_) {
       if (mounted) setState(() => _loadingStats = false);
     }
@@ -840,11 +848,12 @@ class _LogSetSheetState extends State<_LogSetSheet> {
         widget.onLogged();
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _error = e.toString();
           _saving = false;
         });
+      }
     }
   }
 
@@ -1004,11 +1013,12 @@ class _CreateExerciseSheetState extends State<_CreateExerciseSheet> {
         widget.onCreated(item);
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _error = e.toString().replaceFirst('Exception: ', '');
           _saving = false;
         });
+      }
     }
   }
 

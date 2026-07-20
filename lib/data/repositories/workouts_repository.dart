@@ -45,8 +45,9 @@ class WorkoutsRepository {
       final resp = await _client
           .get(Uri.parse(url))
           .timeout(const Duration(seconds: 20));
-      if (resp.statusCode != 200)
+      if (resp.statusCode != 200) {
         throw Exception('GET $url HTTP ${resp.statusCode}');
+      }
       final raw = (jsonDecode(resp.body) as List).cast<Map<String, dynamic>>();
       for (final doc in raw) {
         final id = doc['id'] as String?;
@@ -70,8 +71,9 @@ class WorkoutsRepository {
       final resp = await _client
           .get(Uri.parse('$_base/$id'))
           .timeout(const Duration(seconds: 15));
-      if (resp.statusCode != 200)
+      if (resp.statusCode != 200) {
         throw Exception('GET workout HTTP ${resp.statusCode}');
+      }
       final doc = jsonDecode(resp.body) as Map<String, dynamic>;
       await _store.putDoc(_collection, id, doc);
       return Workout.fromJson(doc);
@@ -87,8 +89,9 @@ class WorkoutsRepository {
       final resp = await _client
           .get(Uri.parse('$_base/$id/stats'))
           .timeout(const Duration(seconds: 15));
-      if (resp.statusCode != 200)
+      if (resp.statusCode != 200) {
         throw Exception('GET stats HTTP ${resp.statusCode}');
+      }
       final doc = jsonDecode(resp.body) as Map<String, dynamic>;
       await _store.putDoc('workout_stats', id, doc);
       return WorkoutStats.fromJson(doc);
@@ -103,8 +106,9 @@ class WorkoutsRepository {
     final resp = await _client
         .get(Uri.parse('$_base/$id/history/$date'))
         .timeout(const Duration(seconds: 15));
-    if (resp.statusCode != 200)
+    if (resp.statusCode != 200) {
       throw Exception('GET run detail HTTP ${resp.statusCode}');
+    }
     final list = jsonDecode(resp.body) as List<dynamic>;
     return list
         .map((e) => PerformedExerciseLog.fromJson(e as Map<String, dynamic>))
@@ -181,8 +185,9 @@ class WorkoutsRepository {
               body: _encode(name, comment, serverExercises),
             )
             .timeout(const Duration(seconds: 20));
-        if (resp.statusCode != 200)
+        if (resp.statusCode != 200) {
           throw Exception(_err(resp.body, resp.statusCode));
+        }
         final fresh = jsonDecode(resp.body) as Map<String, dynamic>;
         await _store.putDoc(_collection, id, fresh);
         return Workout.fromJson(fresh);
@@ -212,8 +217,9 @@ class WorkoutsRepository {
         final resp = await _client
             .delete(Uri.parse('$_base/$id'))
             .timeout(const Duration(seconds: 15));
-        if (resp.statusCode != 204)
+        if (resp.statusCode != 204) {
           throw Exception('DELETE HTTP ${resp.statusCode}');
+        }
         return;
       } on Object catch (e) {
         if (!_isOffline(e)) rethrow;
@@ -232,8 +238,9 @@ class WorkoutsRepository {
               body: jsonEncode({'difficulty': difficulty}),
             )
             .timeout(const Duration(seconds: 15));
-        if (resp.statusCode != 204)
+        if (resp.statusCode != 204) {
           throw Exception('RUN HTTP ${resp.statusCode}');
+        }
         return;
       } on Object catch (e) {
         if (!_isOffline(e)) rethrow;
@@ -257,8 +264,9 @@ class WorkoutsRepository {
               body: jsonEncode({'visibility': visibility}),
             )
             .timeout(const Duration(seconds: 15));
-        if (resp.statusCode != 204)
+        if (resp.statusCode != 204) {
           throw Exception('VISIBILITY HTTP ${resp.statusCode}');
+        }
         return;
       } on Object catch (e) {
         if (!_isOffline(e)) rethrow;
@@ -273,8 +281,9 @@ class WorkoutsRepository {
     final resp = await _client
         .post(Uri.parse('$_base/$id/copy'))
         .timeout(const Duration(seconds: 15));
-    if (resp.statusCode != 201)
+    if (resp.statusCode != 201) {
       throw Exception(_err(resp.body, resp.statusCode));
+    }
     return Workout.fromJson(jsonDecode(resp.body) as Map<String, dynamic>);
   }
 
@@ -282,8 +291,9 @@ class WorkoutsRepository {
     final resp = await _client
         .post(Uri.parse('$_base/$id/share'))
         .timeout(const Duration(seconds: 15));
-    if (resp.statusCode != 200)
+    if (resp.statusCode != 200) {
       throw Exception('SHARE HTTP ${resp.statusCode}');
+    }
     return (jsonDecode(resp.body) as Map<String, dynamic>)['code'] as String? ??
         '';
   }
@@ -292,8 +302,9 @@ class WorkoutsRepository {
     final resp = await _client
         .post(Uri.parse('$_base/import'), body: jsonEncode({'code': code}))
         .timeout(const Duration(seconds: 15));
-    if (resp.statusCode != 201)
+    if (resp.statusCode != 201) {
       throw Exception(_err(resp.body, resp.statusCode));
+    }
     return Workout.fromJson(jsonDecode(resp.body) as Map<String, dynamic>);
   }
 
@@ -308,8 +319,9 @@ class WorkoutsRepository {
     final resp = await _client
         .post(Uri.parse(_base), body: _encode(name, comment, exercises))
         .timeout(const Duration(seconds: 20));
-    if (resp.statusCode != 201)
+    if (resp.statusCode != 201) {
       throw Exception(_err(resp.body, resp.statusCode));
+    }
     final fresh = jsonDecode(resp.body) as Map<String, dynamic>;
     await _store.remapId(
       _collection,
@@ -359,8 +371,9 @@ class WorkoutsRepository {
 
     s.registerHandler('workout.update', (client, m) async {
       final id = m.args['id'] as String;
-      if (id.startsWith('local:'))
+      if (id.startsWith('local:')) {
         return const SyncOutcome.retry(); // create hasn't synced yet
+      }
       return _replay(
         () => client
             .put(Uri.parse('$base/$id'), body: _encodeArgs(m.args))

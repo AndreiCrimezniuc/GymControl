@@ -30,8 +30,9 @@ MuscleZone zoneForMuscle(String raw) {
   if (has(['lat', 'back'])) return MuscleZone.back;
   if (has(['glute', 'hip'])) return MuscleZone.glutes;
   if (has(['calf', 'calve'])) return MuscleZone.calves;
-  if (has(['quad', 'hamstring', 'leg', 'adductor', 'abductor', 'thigh']))
+  if (has(['quad', 'hamstring', 'leg', 'adductor', 'abductor', 'thigh'])) {
     return MuscleZone.legs;
+  }
   return MuscleZone.fullBody;
 }
 
@@ -276,12 +277,15 @@ class _MusclePainter extends CustomPainter {
   });
 
   bool _isActive(MuscleZone part) {
-    if (zone == MuscleZone.fullBody)
+    if (zone == MuscleZone.fullBody) {
       return part != MuscleZone.arms && part != MuscleZone.calves;
-    if (zone == MuscleZone.glutes)
+    }
+    if (zone == MuscleZone.glutes) {
       return part == MuscleZone.legs; // approximate on a front figure
-    if (zone == MuscleZone.back)
+    }
+    if (zone == MuscleZone.back) {
       return part == MuscleZone.chest || part == MuscleZone.shoulders;
+    }
     return part == zone;
   }
 

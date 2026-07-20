@@ -141,8 +141,9 @@ class Workout {
     final seen = <String>{};
     final out = <String>[];
     for (final e in exercises) {
-      if (e.muscleGroup.isNotEmpty && seen.add(e.muscleGroup))
+      if (e.muscleGroup.isNotEmpty && seen.add(e.muscleGroup)) {
         out.add(e.muscleGroup);
+      }
     }
     return out;
   }

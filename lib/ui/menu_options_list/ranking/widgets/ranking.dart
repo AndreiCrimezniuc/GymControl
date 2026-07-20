@@ -100,17 +100,19 @@ class _RankingState extends State<Ranking> {
     });
     try {
       final ranks = await _repo.getUserRanks();
-      if (mounted)
+      if (mounted) {
         setState(() {
           _ranks = ranks;
           _loading = false;
         });
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _error = e.toString();
           _loading = false;
         });
+      }
     }
   }
 
@@ -790,11 +792,12 @@ class _RecordLiftSheetState extends State<_RecordLiftSheet> {
         widget.onDone();
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _error = e.toString();
           _saving = false;
         });
+      }
     }
   }
 
