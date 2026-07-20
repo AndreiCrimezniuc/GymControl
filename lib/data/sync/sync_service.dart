@@ -51,24 +51,38 @@ typedef MutationHandler =
 /// Drains the outbox against the backend whenever the app is online. Handlers
 /// are registered per mutation kind by the offline-first repositories.
 class SyncService {
-  SyncService._();
-  static final SyncService instance = SyncService._();
+  SyncService({
+    LocalStore? store,
+    Future<bool> Function()? isOnline,
+    Stream<bool>? onlineChanges,
+  }) : _store = store ?? LocalStore.instance,
+       _isOnline = isOnline ?? ConnectivityService.instance.isOnline,
+       _onlineChanges =
+           onlineChanges ?? ConnectivityService.instance.onlineChanges;
 
-  final LocalStore _store = LocalStore.instance;
+  static final SyncService instance = SyncService();
+
+  final LocalStore _store;
+  final Future<bool> Function() _isOnline;
+  final Stream<bool> _onlineChanges;
   final _handlers = <String, MutationHandler>{};
 
   AuthenticatedClient? _client;
   StreamSubscription<bool>? _sub;
   bool _flushing = false;
 
-  void registerHandler(String kind, MutationHandler handler) =>
-      _handlers[kind] = handler;
+  void registerHandler(String kind, MutationHandler handler) {
+    _handlers[kind] = handler;
+    // bind() can run before repositories are constructed. A pending queue must
+    // stay intact until its handler exists, then it can be retried safely.
+    flushSoon();
+  }
 
   /// Wire up the authenticated client and start reacting to connectivity.
   /// Safe to call once the client exists (e.g. from the app's initState).
   void bind(AuthenticatedClient client) {
     _client = client;
-    _sub ??= ConnectivityService.instance.onlineChanges.listen((online) {
+    _sub ??= _onlineChanges.listen((online) {
       if (online) flush();
     });
     flush();
@@ -82,16 +96,24 @@ class SyncService {
   Future<void> flush() async {
     final client = _client;
     if (client == null || _flushing || !_store.isReady) return;
-    if (!await ConnectivityService.instance.isOnline()) return;
+    if (!await _isOnline()) return;
     _flushing = true;
     try {
       for (final m in _store.pending()) {
         final handler = _handlers[m.kind];
         if (handler == null) {
-          await _store.removeMutation(m.id); // unknown kind — can't replay
-          continue;
+          // Repositories register handlers lazily. Never discard durable user
+          // work merely because app startup has not constructed one yet.
+          break;
         }
-        final out = await handler(client, m);
+        SyncOutcome out;
+        try {
+          out = await handler(client, m);
+        } on Object {
+          // A buggy handler or an unexpected parsing error must not destroy the
+          // outbox. Preserve ordering and retry after the next trigger.
+          out = const SyncOutcome.retry();
+        }
         if (out.success) {
           if (out.remapFromId != null &&
               out.remapToId != null &&
@@ -105,7 +127,12 @@ class SyncService {
           }
           await _store.removeMutation(m.id);
         } else if (out.permanent) {
-          await _store.removeMutation(m.id);
+          // Keep rejected mutations as a durable dead-letter instead of
+          // silently losing the user's offline change. A future UI can expose
+          // and resolve it; later mutations must not overtake it.
+          m.retries += 1;
+          await _store.updateMutation(m);
+          break;
         } else {
           m.retries += 1;
           await _store.updateMutation(m);

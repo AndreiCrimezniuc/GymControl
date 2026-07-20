@@ -1,37 +1,78 @@
 import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+import 'package:uuid/uuid.dart';
+
 import 'package:gymboss/config/api_config.dart';
+import 'package:gymboss/data/local/local_store.dart';
+import 'package:gymboss/data/local/mutation.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
+import 'package:gymboss/data/sync/connectivity_service.dart';
+import 'package:gymboss/data/sync/network_failure.dart';
+import 'package:gymboss/data/sync/sync_service.dart';
 import 'package:gymboss/domain/models/exercises/exercise_catalog.dart';
 
 class ExercisesRepository {
+  static const _catalogCollection = 'exercise';
+  static const _catalogKey = 'exercises:catalog';
+  static const _uuid = Uuid();
+  static bool _handlersRegistered = false;
+
   final AuthenticatedClient _client;
+  final LocalStore _store = LocalStore.instance;
   final String _base = '${ApiConfig.apiBaseUrl}/api/v1/exercises';
 
-  ExercisesRepository({required AuthenticatedClient client}) : _client = client;
+  ExercisesRepository({required AuthenticatedClient client})
+    : _client = client {
+    _registerHandlers();
+  }
 
   Future<List<ExerciseCatalogItem>> getCatalog() async {
-    final resp = await _client
-        .get(Uri.parse(_base))
-        .timeout(const Duration(seconds: 20));
-    if (resp.statusCode != 200) {
-      throw Exception('GET /exercises HTTP ${resp.statusCode}');
+    try {
+      final resp = await _client
+          .get(Uri.parse(_base))
+          .timeout(const Duration(seconds: 20));
+      if (resp.statusCode != 200) {
+        throw Exception('GET /exercises HTTP ${resp.statusCode}');
+      }
+      final raw = (jsonDecode(resp.body) as List).cast<Map<String, dynamic>>();
+      for (final doc in raw) {
+        await _store.putDoc(_catalogCollection, '${doc['id']}', doc);
+      }
+      await _store.putListIds(
+        _catalogKey,
+        raw.map((doc) => '${doc['id']}').toList(),
+      );
+      return raw.map(ExerciseCatalogItem.fromJson).toList();
+    } on Object catch (error) {
+      if (isTransientNetworkFailure(error) && _store.hasList(_catalogKey)) {
+        return _store
+            .getListDocs(_catalogCollection, _catalogKey)
+            .map(ExerciseCatalogItem.fromJson)
+            .toList();
+      }
+      rethrow;
     }
-    final list = jsonDecode(resp.body) as List<dynamic>;
-    return list
-        .map((e) => ExerciseCatalogItem.fromJson(e as Map<String, dynamic>))
-        .toList();
   }
 
   Future<ExerciseStats> getStats(int id) async {
-    final resp = await _client
-        .get(Uri.parse('$_base/$id/stats'))
-        .timeout(const Duration(seconds: 15));
-    if (resp.statusCode != 200) {
-      throw Exception('GET /exercises/$id/stats HTTP ${resp.statusCode}');
+    try {
+      final resp = await _client
+          .get(Uri.parse('$_base/$id/stats'))
+          .timeout(const Duration(seconds: 15));
+      if (resp.statusCode != 200) {
+        throw Exception('GET /exercises/$id/stats HTTP ${resp.statusCode}');
+      }
+      final doc = jsonDecode(resp.body) as Map<String, dynamic>;
+      await _store.putDoc('exercise_stats', '$id', doc);
+      return ExerciseStats.fromJson(doc);
+    } on Object catch (error) {
+      final cached = _store.getDoc('exercise_stats', '$id');
+      if (isTransientNetworkFailure(error) && cached != null) {
+        return ExerciseStats.fromJson(cached);
+      }
+      rethrow;
     }
-    return ExerciseStats.fromJson(
-      jsonDecode(resp.body) as Map<String, dynamic>,
-    );
   }
 
   Future<void> logSet(
@@ -40,21 +81,38 @@ class ExercisesRepository {
     required int reps,
     String setType = 'working',
   }) async {
-    final resp = await _client
-        .post(
-          Uri.parse('$_base/$id/log'),
-          body: jsonEncode({
-            'weight_kg': weightKg,
-            'reps': reps,
-            'set_type': setType,
-          }),
-        )
-        .timeout(const Duration(seconds: 15));
-    if (resp.statusCode != 204 && resp.statusCode != 200) {
-      throw Exception(
-        'POST /exercises/$id/log HTTP ${resp.statusCode}: ${resp.body}',
-      );
+    final operationId = _uuid.v4();
+    final args = {
+      'exerciseId': id,
+      'weight_kg': weightKg,
+      'reps': reps,
+      'set_type': setType,
+      'operation_id': operationId,
+    };
+    if (await ConnectivityService.instance.isOnline()) {
+      try {
+        final resp = await _postLog(_client, args);
+        if (resp.statusCode == 204 || resp.statusCode == 200) {
+          return;
+        }
+        throw Exception(
+          'POST /exercises/$id/log HTTP ${resp.statusCode}: ${resp.body}',
+        );
+      } on Object catch (error) {
+        if (!isTransientNetworkFailure(error)) {
+          rethrow;
+        }
+      }
     }
+    await _store.enqueue(
+      Mutation(
+        id: _uuid.v4(),
+        seq: _store.nextSeq(),
+        kind: 'exercise.logSet',
+        args: args,
+      ),
+    );
+    SyncService.instance.flushSoon();
   }
 
   Future<ExerciseCatalogItem> createCustom({
@@ -88,4 +146,46 @@ class ExercisesRepository {
       jsonDecode(resp.body) as Map<String, dynamic>,
     );
   }
+
+  void _registerHandlers() {
+    if (_handlersRegistered) {
+      return;
+    }
+    _handlersRegistered = true;
+    SyncService.instance.registerHandler('exercise.logSet', (
+      client,
+      mutation,
+    ) async {
+      try {
+        final resp = await _postLog(client, mutation.args);
+        if (resp.statusCode == 204 || resp.statusCode == 200) {
+          return const SyncOutcome.done();
+        }
+        return resp.statusCode >= 400 && resp.statusCode < 500
+            ? const SyncOutcome.drop()
+            : const SyncOutcome.retry();
+      } on Object catch (error) {
+        return isTransientNetworkFailure(error)
+            ? const SyncOutcome.retry()
+            : const SyncOutcome.drop();
+      }
+    });
+  }
+
+  static Future<http.Response> _postLog(
+    AuthenticatedClient client,
+    Map<String, dynamic> args,
+  ) => client
+      .post(
+        Uri.parse(
+          '${ApiConfig.apiBaseUrl}/api/v1/exercises/${args['exerciseId']}/log',
+        ),
+        body: jsonEncode({
+          'weight_kg': args['weight_kg'],
+          'reps': args['reps'],
+          'set_type': args['set_type'],
+          'operation_id': args['operation_id'],
+        }),
+      )
+      .timeout(const Duration(seconds: 15));
 }

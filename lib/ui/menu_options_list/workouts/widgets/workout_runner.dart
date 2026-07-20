@@ -95,64 +95,63 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
 
     return AppScaffold(
       child: SafeArea(
-        child:
-            session.isFinished
-                ? _DoneView(
-                  workoutName: session.workout?.name ?? '',
-                  difficulty: session.difficulty,
-                  sets: session.loggedSets,
-                  volumeKg: session.loggedVolumeKg,
-                  onClose: () {
-                    session.clear();
-                    Navigator.of(context).pop();
-                  },
-                )
-                : Stack(
-                  children: [
-                    Column(
-                      children: [
-                        _header(c, session),
-                        Expanded(child: _body(c, session, units)),
-                        _finishBar(c, session),
-                      ],
-                    ),
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 92,
-                      child: IgnorePointer(
-                        ignoring: !session.resting,
-                        child: AnimatedSlide(
-                          offset:
-                              session.resting
-                                  ? Offset.zero
-                                  : const Offset(0, 0.4),
-                          duration: const Duration(milliseconds: 220),
-                          curve: const Cubic(0.23, 1, 0.32, 1),
-                          child: AnimatedOpacity(
-                            opacity: session.resting ? 1 : 0,
-                            duration: const Duration(milliseconds: 200),
-                            child: Center(
-                              child: _RestPill(
-                                secondsLeft: session.restLeft,
-                                onSkip: session.skipRest,
-                                onAdd: () => session.adjustRest(15),
-                                onSub: () => session.adjustRest(-15),
-                              ),
+        child: session.isFinished
+            ? _DoneView(
+                workoutName: session.workout?.name ?? '',
+                difficulty: session.difficulty,
+                sets: session.loggedSets,
+                volumeKg: session.loggedVolumeKg,
+                onClose: () {
+                  session.clear();
+                  Navigator.of(context).pop();
+                },
+              )
+            : Stack(
+                children: [
+                  Column(
+                    children: [
+                      _header(c, session),
+                      Expanded(child: _body(c, session, units)),
+                      _finishBar(c, session),
+                    ],
+                  ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 92,
+                    child: IgnorePointer(
+                      ignoring: !session.resting,
+                      child: AnimatedSlide(
+                        offset: session.resting
+                            ? Offset.zero
+                            : const Offset(0, 0.4),
+                        duration: const Duration(milliseconds: 220),
+                        curve: const Cubic(0.23, 1, 0.32, 1),
+                        child: AnimatedOpacity(
+                          opacity: session.resting ? 1 : 0,
+                          duration: const Duration(milliseconds: 200),
+                          child: Center(
+                            child: _RestPill(
+                              secondsLeft: session.restLeft,
+                              onSkip: session.skipRest,
+                              onAdd: () => session.adjustRest(15),
+                              onSub: () => session.adjustRest(-15),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
+              ),
       ),
     );
   }
 
   Widget _header(AppColors c, WorkoutSessionController s) {
-    final progress =
-        s.totalSets == 0 ? 0.0 : (s.doneSets / s.totalSets).clamp(0.0, 1.0);
+    final progress = s.totalSets == 0
+        ? 0.0
+        : (s.doneSets / s.totalSets).clamp(0.0, 1.0);
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
       child: Column(
@@ -323,8 +322,9 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
   ) {
     final doneInEx = g.sets.where((s) => s.done).length;
     final allDone = doneInEx == g.sets.length;
-    final pr =
-        g.sets.isNotEmpty ? session.prFor(g.sets.first.exerciseId) : null;
+    final pr = g.sets.isNotEmpty
+        ? session.prFor(g.sets.first.exerciseId)
+        : null;
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(

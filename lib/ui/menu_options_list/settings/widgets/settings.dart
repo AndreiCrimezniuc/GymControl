@@ -38,12 +38,11 @@ class _SettingsState extends State<Settings> {
   void _openBodyMetrics() {
     showCupertinoModalPopup<void>(
       context: context,
-      builder:
-          (_) => _BodyMetricsSheet(
-            ranking: _ranking,
-            profile: _profile,
-            onSaved: (p) => setState(() => _profile = p),
-          ),
+      builder: (_) => _BodyMetricsSheet(
+        ranking: _ranking,
+        profile: _profile,
+        onSaved: (p) => setState(() => _profile = p),
+      ),
     );
   }
 
@@ -81,19 +80,17 @@ class _SettingsState extends State<Settings> {
               _ValueTile(
                 icon: CupertinoIcons.chart_bar_circle_fill,
                 label: 'Weight',
-                value:
-                    weight != null
-                        ? '${weight.toStringAsFixed(1)} kg'
-                        : 'Not set',
+                value: weight != null
+                    ? '${weight.toStringAsFixed(1)} kg'
+                    : 'Not set',
                 onTap: _openBodyMetrics,
               ),
               _ValueTile(
                 icon: CupertinoIcons.person_fill,
                 label: 'Height',
-                value:
-                    height != null
-                        ? '${height.toStringAsFixed(0)} cm'
-                        : 'Not set',
+                value: height != null
+                    ? '${height.toStringAsFixed(0)} cm'
+                    : 'Not set',
                 onTap: _openBodyMetrics,
               ),
               if (dontAsk)
@@ -109,10 +106,9 @@ class _SettingsState extends State<Settings> {
             title: 'Appearance',
             children: [
               _SwitchTile(
-                icon:
-                    theme.isDark
-                        ? CupertinoIcons.moon_fill
-                        : CupertinoIcons.sun_max_fill,
+                icon: theme.isDark
+                    ? CupertinoIcons.moon_fill
+                    : CupertinoIcons.sun_max_fill,
                 label: 'Dark Mode',
                 value: theme.isDark,
                 onChanged: (_) => theme.toggle(),
@@ -186,12 +182,11 @@ class _Section extends StatelessWidget {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: children.length,
-            separatorBuilder:
-                (_, __) => Container(
-                  height: 1,
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  color: c.border,
-                ),
+            separatorBuilder: (_, __) => Container(
+              height: 1,
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              color: c.border,
+            ),
             itemBuilder: (_, i) => children[i],
           ),
         ),
@@ -510,18 +505,17 @@ class _BodyMetricsSheetState extends State<_BodyMetricsSheet> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
-                  child:
-                      _saving
-                          ? const CupertinoActivityIndicator()
-                          : Text(
-                            'Save',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: c.textOnAccent,
-                              fontFamily: 'Rubik',
-                            ),
+                  child: _saving
+                      ? const CupertinoActivityIndicator()
+                      : Text(
+                          'Save',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: c.textOnAccent,
+                            fontFamily: 'Rubik',
                           ),
+                        ),
                 ),
               ),
             ),

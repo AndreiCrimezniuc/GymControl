@@ -27,21 +27,18 @@ class GradientButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
         ),
         child: Center(
-          child:
-              loading
-                  ? const CupertinoActivityIndicator(
-                    color: CupertinoColors.white,
-                  )
-                  : Text(
-                    label,
-                    style: TextStyle(
-                      color: c.textOnAccent,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      fontFamily: 'Rubik',
-                      letterSpacing: 0.5,
-                    ),
+          child: loading
+              ? const CupertinoActivityIndicator(color: CupertinoColors.white)
+              : Text(
+                  label,
+                  style: TextStyle(
+                    color: c.textOnAccent,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    fontFamily: 'Rubik',
+                    letterSpacing: 0.5,
                   ),
+                ),
         ),
       ),
     );

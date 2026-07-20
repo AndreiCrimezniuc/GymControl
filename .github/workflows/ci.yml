@@ -15,18 +15,17 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          channel: stable
+          flutter-version: 3.41.9
           cache: true
 
       - name: Install dependencies
         run: flutter pub get
 
-      # NOTE: the `dart format --set-exit-if-changed` gate was removed — the
-      # codebase predates Dart 3.7's "tall style" formatter, so it flagged the
-      # whole repo. Re-introduce it after a dedicated repo-wide `dart format`.
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed lib test
 
       - name: Analyze
-        run: flutter analyze --no-fatal-infos
+        run: flutter analyze
 
       - name: Test
         run: flutter test
@@ -36,3 +35,21 @@ jobs:
 
       - name: Build APK (debug)
         run: flutter build apk --debug
+
+  ios:
+    name: Build iOS (no codesign)
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.41.9
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build iOS
+        run: flutter build ios --release --no-codesign

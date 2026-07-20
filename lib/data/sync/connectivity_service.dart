@@ -14,8 +14,16 @@ class ConnectivityService {
   static bool _online(List<ConnectivityResult> r) =>
       r.any((c) => c != ConnectivityResult.none);
 
-  Future<bool> isOnline() async =>
-      _online(await _connectivity.checkConnectivity());
+  Future<bool> isOnline() async {
+    try {
+      return _online(await _connectivity.checkConnectivity());
+    } on Object {
+      // Connectivity is only a retry hint, never a source of truth. If the
+      // platform plugin is unavailable, attempt the request and let the HTTP
+      // layer classify reachability.
+      return true;
+    }
+  }
 
   /// Emits whenever the online/offline state changes.
   Stream<bool> get onlineChanges =>

@@ -9,6 +9,7 @@ import 'package:gymboss/data/local/local_store.dart';
 import 'package:gymboss/data/local/mutation.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/data/sync/connectivity_service.dart';
+import 'package:gymboss/data/sync/network_failure.dart';
 import 'package:gymboss/data/sync/sync_service.dart';
 import 'package:gymboss/domain/models/workouts/workout.dart';
 
@@ -56,7 +57,7 @@ class WorkoutsRepository {
       await _store.putListIds(key, raw.map((d) => d['id'] as String).toList());
       return raw.map(Workout.fromJson).toList();
     } on Object catch (e) {
-      if (_isOffline(e) && _store.hasList(key)) {
+      if (isTransientNetworkFailure(e) && _store.hasList(key)) {
         return _store
             .getListDocs(_collection, key)
             .map(Workout.fromJson)
@@ -79,7 +80,9 @@ class WorkoutsRepository {
       return Workout.fromJson(doc);
     } on Object catch (e) {
       final cached = _store.getDoc(_collection, id);
-      if (_isOffline(e) && cached != null) return Workout.fromJson(cached);
+      if (isTransientNetworkFailure(e) && cached != null) {
+        return Workout.fromJson(cached);
+      }
       rethrow;
     }
   }
@@ -97,7 +100,9 @@ class WorkoutsRepository {
       return WorkoutStats.fromJson(doc);
     } on Object catch (e) {
       final cached = _store.getDoc('workout_stats', id);
-      if (_isOffline(e) && cached != null) return WorkoutStats.fromJson(cached);
+      if (isTransientNetworkFailure(e) && cached != null) {
+        return WorkoutStats.fromJson(cached);
+      }
       rethrow;
     }
   }
@@ -123,6 +128,7 @@ class WorkoutsRepository {
     required List<WorkoutExercise> exercises,
   }) async {
     final serverExercises = exercises.map((e) => e.toJson()).toList();
+    final clientRequestId = _uuid.v4();
     // Optimistic local doc with a temp id and full display fields.
     final tempId = 'local:${_uuid.v4()}';
     final doc = _localWorkoutDoc(
@@ -140,10 +146,11 @@ class WorkoutsRepository {
           name,
           comment,
           serverExercises,
+          clientRequestId: clientRequestId,
           replaceTempId: tempId,
         );
       } on Object catch (e) {
-        if (!_isOffline(e)) {
+        if (!isTransientNetworkFailure(e)) {
           // Real rejection (e.g. validation) — roll back the optimistic doc.
           await _store.deleteDoc(_collection, tempId);
           await _store.removeFromList(_ownedKey, tempId);
@@ -153,6 +160,7 @@ class WorkoutsRepository {
     }
     await _enqueue('workout.create', {
       'tempId': tempId,
+      'client_request_id': clientRequestId,
       'name': name,
       'comment': comment,
       'exercises': serverExercises,
@@ -192,7 +200,9 @@ class WorkoutsRepository {
         await _store.putDoc(_collection, id, fresh);
         return Workout.fromJson(fresh);
       } on Object catch (e) {
-        if (!_isOffline(e)) rethrow;
+        if (!isTransientNetworkFailure(e)) {
+          rethrow;
+        }
       }
     }
     await _enqueue('workout.update', {
@@ -222,20 +232,26 @@ class WorkoutsRepository {
         }
         return;
       } on Object catch (e) {
-        if (!_isOffline(e)) rethrow;
+        if (!isTransientNetworkFailure(e)) {
+          rethrow;
+        }
       }
     }
     await _enqueue('workout.delete', {'id': id});
   }
 
   Future<void> logRun(String id, String difficulty) async {
+    final operationId = _uuid.v4();
     if (!id.startsWith('local:') &&
         await ConnectivityService.instance.isOnline()) {
       try {
         final resp = await _client
             .post(
               Uri.parse('$_base/$id/run'),
-              body: jsonEncode({'difficulty': difficulty}),
+              body: jsonEncode({
+                'difficulty': difficulty,
+                'operation_id': operationId,
+              }),
             )
             .timeout(const Duration(seconds: 15));
         if (resp.statusCode != 204) {
@@ -243,10 +259,16 @@ class WorkoutsRepository {
         }
         return;
       } on Object catch (e) {
-        if (!_isOffline(e)) rethrow;
+        if (!isTransientNetworkFailure(e)) {
+          rethrow;
+        }
       }
     }
-    await _enqueue('workout.run', {'id': id, 'difficulty': difficulty});
+    await _enqueue('workout.run', {
+      'id': id,
+      'difficulty': difficulty,
+      'operation_id': operationId,
+    });
   }
 
   Future<void> setVisibility(String id, String visibility) async {
@@ -269,7 +291,9 @@ class WorkoutsRepository {
         }
         return;
       } on Object catch (e) {
-        if (!_isOffline(e)) rethrow;
+        if (!isTransientNetworkFailure(e)) {
+          rethrow;
+        }
       }
     }
     await _enqueue('workout.visibility', {'id': id, 'visibility': visibility});
@@ -314,10 +338,19 @@ class WorkoutsRepository {
     String name,
     String comment,
     List<Map<String, dynamic>> exercises, {
+    required String clientRequestId,
     required String replaceTempId,
   }) async {
     final resp = await _client
-        .post(Uri.parse(_base), body: _encode(name, comment, exercises))
+        .post(
+          Uri.parse(_base),
+          body: _encode(
+            name,
+            comment,
+            exercises,
+            clientRequestId: clientRequestId,
+          ),
+        )
         .timeout(const Duration(seconds: 20));
     if (resp.statusCode != 201) {
       throw Exception(_err(resp.body, resp.statusCode));
@@ -363,7 +396,7 @@ class WorkoutsRepository {
             ? const SyncOutcome.drop()
             : const SyncOutcome.retry();
       } on Object catch (e) {
-        return _isOffline(e)
+        return isTransientNetworkFailure(e)
             ? const SyncOutcome.retry()
             : const SyncOutcome.drop();
       }
@@ -399,7 +432,10 @@ class WorkoutsRepository {
         () => client
             .post(
               Uri.parse('$base/$id/run'),
-              body: jsonEncode({'difficulty': m.args['difficulty']}),
+              body: jsonEncode({
+                'difficulty': m.args['difficulty'],
+                'operation_id': m.args['operation_id'],
+              }),
             )
             .timeout(const Duration(seconds: 15)),
         ok: 204,
@@ -432,7 +468,7 @@ class WorkoutsRepository {
           ? const SyncOutcome.drop()
           : const SyncOutcome.retry();
     } on Object catch (e) {
-      return _isOffline(e)
+      return isTransientNetworkFailure(e)
           ? const SyncOutcome.retry()
           : const SyncOutcome.drop();
     }
@@ -456,42 +492,45 @@ class WorkoutsRepository {
     'exercise_count': exercises.length,
     'times_performed': base?['times_performed'] ?? 0,
     'love_coefficient': base?['love_coefficient'] ?? 0,
-    'exercises':
-        exercises
-            .map(
-              (e) => {
-                'exercise_id': e.exerciseId,
-                'name': e.name,
-                'image_url': e.imageUrl,
-                'image_url2': e.imageUrl2,
-                'muscle_group': e.muscleGroup,
-                'rest_seconds': e.restSeconds,
-                'comment': e.comment,
-                'sets': e.sets.map((s) => s.toJson()).toList(),
-              },
-            )
-            .toList(),
+    'exercises': exercises
+        .map(
+          (e) => {
+            'exercise_id': e.exerciseId,
+            'name': e.name,
+            'image_url': e.imageUrl,
+            'image_url2': e.imageUrl2,
+            'muscle_group': e.muscleGroup,
+            'rest_seconds': e.restSeconds,
+            'comment': e.comment,
+            'sets': e.sets.map((s) => s.toJson()).toList(),
+          },
+        )
+        .toList(),
   };
 
   static String _encode(
     String name,
     String comment,
-    List<Map<String, dynamic>> exercises,
-  ) => jsonEncode({'name': name, 'comment': comment, 'exercises': exercises});
+    List<Map<String, dynamic>> exercises, {
+    String? clientRequestId,
+  }) => jsonEncode({
+    'name': name,
+    'comment': comment,
+    'exercises': exercises,
+    if (clientRequestId != null) 'client_request_id': clientRequestId,
+  });
 
   static String _encodeArgs(Map<String, dynamic> args) => jsonEncode({
     'name': args['name'],
     'comment': args['comment'],
     'exercises': args['exercises'],
+    'client_request_id': args['client_request_id'],
   });
 
   static bool _isClientError(int code) => code >= 400 && code < 500;
 
   /// A failure caused by the network being unavailable (as opposed to an HTTP
   /// status error the server actually returned). Kept dart:io-free for web.
-  static bool _isOffline(Object e) =>
-      e is TimeoutException || e is http.ClientException;
-
   static String _err(String body, int code) {
     try {
       return (jsonDecode(body) as Map<String, dynamic>)['error'] as String? ??

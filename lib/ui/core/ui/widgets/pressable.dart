@@ -35,13 +35,12 @@ class _PressableState extends State<Pressable> {
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap:
-          widget.onTap == null
-              ? null
-              : () {
-                if (widget.haptic) HapticFeedback.selectionClick();
-                widget.onTap!();
-              },
+      onTap: widget.onTap == null
+          ? null
+          : () {
+              if (widget.haptic) HapticFeedback.selectionClick();
+              widget.onTap!();
+            },
       onTapDown: (_) => _set(true),
       onTapUp: (_) => _set(false),
       onTapCancel: () => _set(false),

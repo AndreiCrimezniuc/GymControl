@@ -102,4 +102,22 @@ void main() {
 
     expect(store.pending().map((m) => m.id), ['k1']);
   });
+
+  test('cache and outbox are isolated between authenticated users', () async {
+    await store.setScope('user-a', migrateLegacy: false);
+    await store.clear();
+    await store.putDoc('workout', 'w1', {'id': 'w1', 'name': 'Private A'});
+    await store.enqueue(
+      Mutation(id: 'a1', seq: 1, kind: 'workout.update', args: {'id': 'w1'}),
+    );
+
+    await store.setScope('user-b', migrateLegacy: false);
+    await store.clear();
+    expect(store.getDoc('workout', 'w1'), isNull);
+    expect(store.pending(), isEmpty);
+
+    await store.setScope('user-a', migrateLegacy: false);
+    expect(store.getDoc('workout', 'w1')?['name'], 'Private A');
+    expect(store.pending().single.id, 'a1');
+  });
 }

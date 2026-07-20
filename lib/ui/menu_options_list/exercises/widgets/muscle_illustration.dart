@@ -298,10 +298,9 @@ class _MusclePainter extends CustomPainter {
     final body = colors.navInactive;
     final accent = colors.accent;
 
-    Paint fill(bool active) =>
-        Paint()
-          ..style = PaintingStyle.fill
-          ..color = active ? accent.withValues(alpha: pulse) : body;
+    Paint fill(bool active) => Paint()
+      ..style = PaintingStyle.fill
+      ..color = active ? accent.withValues(alpha: pulse) : body;
 
     RRect rr(double l, double t, double r, double b, double radius) =>
         RRect.fromLTRBR(l, t, r, b, Radius.circular(radius));
