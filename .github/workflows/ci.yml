@@ -21,9 +21,8 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # NOTE: the `dart format --set-exit-if-changed` gate was removed — the
-      # codebase predates Dart 3.7's "tall style" formatter, so it flagged the
-      # whole repo. Re-introduce it after a dedicated repo-wide `dart format`.
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed lib test
 
       - name: Analyze
         run: flutter analyze
