@@ -23,7 +23,12 @@ class WorkoutDetailScreen extends StatefulWidget {
   final String id;
   final WorkoutsRepository repo;
   final ExercisesRepository exercises;
-  const WorkoutDetailScreen({super.key, required this.id, required this.repo, required this.exercises});
+  const WorkoutDetailScreen({
+    super.key,
+    required this.id,
+    required this.repo,
+    required this.exercises,
+  });
 
   @override
   State<WorkoutDetailScreen> createState() => _WorkoutDetailScreenState();
@@ -43,13 +48,25 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   }
 
   Future<void> _load() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       final w = await widget.repo.get(widget.id);
       final s = await widget.repo.stats(widget.id);
-      if (mounted) setState(() { _w = w; _stats = s; _loading = false; });
+      if (mounted)
+        setState(() {
+          _w = w;
+          _stats = s;
+          _loading = false;
+        });
     } catch (e) {
-      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+      if (mounted)
+        setState(() {
+          _error = e.toString();
+          _loading = false;
+        });
     }
   }
 
@@ -59,10 +76,18 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
       final replace = await showAppDialog<bool>(
         context,
         title: 'Start a new workout?',
-        message: 'You have an active session in progress. Starting this one will discard it.',
+        message:
+            'You have an active session in progress. Starting this one will discard it.',
         actions: [
-          AppDialogAction('Keep active', onPressed: () => Navigator.pop(context, false)),
-          AppDialogAction('Start new', isDestructive: true, onPressed: () => Navigator.pop(context, true)),
+          AppDialogAction(
+            'Keep active',
+            onPressed: () => Navigator.pop(context, false),
+          ),
+          AppDialogAction(
+            'Start new',
+            isDestructive: true,
+            onPressed: () => Navigator.pop(context, true),
+          ),
         ],
       );
       if (replace != true) return;
@@ -74,9 +99,10 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
       workouts: widget.repo,
       units: context.read<UnitsController>(),
     );
-    await Navigator.of(context, rootNavigator: true).push(
-      CupertinoPageRoute(builder: (_) => const WorkoutRunnerScreen()),
-    );
+    await Navigator.of(
+      context,
+      rootNavigator: true,
+    ).push(CupertinoPageRoute(builder: (_) => const WorkoutRunnerScreen()));
     if (mounted) _load();
   }
 
@@ -87,8 +113,15 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
       await showAppDialog<void>(
         context,
         title: 'Saved',
-        message: 'A private copy was added to your workouts. Open “Mine” to launch or edit it.',
-        actions: [AppDialogAction('OK', isDefault: true, onPressed: () => Navigator.pop(context))],
+        message:
+            'A private copy was added to your workouts. Open “Mine” to launch or edit it.',
+        actions: [
+          AppDialogAction(
+            'OK',
+            isDefault: true,
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
       );
       if (mounted) Navigator.of(context).pop();
     } catch (_) {
@@ -98,7 +131,14 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
 
   Future<void> _edit() async {
     final saved = await Navigator.of(context, rootNavigator: true).push<bool>(
-      CupertinoPageRoute(builder: (_) => WorkoutEditorScreen(repo: widget.repo, exercises: widget.exercises, existing: _w)),
+      CupertinoPageRoute(
+        builder:
+            (_) => WorkoutEditorScreen(
+              repo: widget.repo,
+              exercises: widget.exercises,
+              existing: _w,
+            ),
+      ),
     );
     if (saved == true) _load();
   }
@@ -106,12 +146,13 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   void _openRunDetail(String date, String difficulty) {
     Navigator.of(context, rootNavigator: true).push(
       CupertinoPageRoute(
-        builder: (_) => _RunDetailScreen(
-          workoutId: _w!.id,
-          date: date,
-          difficulty: difficulty,
-          repo: widget.repo,
-        ),
+        builder:
+            (_) => _RunDetailScreen(
+              workoutId: _w!.id,
+              date: date,
+              difficulty: difficulty,
+              repo: widget.repo,
+            ),
       ),
     );
   }
@@ -119,21 +160,22 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   void _openExerciseStats(WorkoutExercise ex) {
     Navigator.of(context, rootNavigator: true).push(
       CupertinoPageRoute(
-        builder: (_) => ExerciseDetailScreen(
-          entry: ExerciseCatalogItem(
-            id: ex.exerciseId,
-            name: ex.name,
-            muscleGroup: ex.muscleGroup,
-            equipment: '',
-            category: '',
-            level: '',
-            force: '',
-            imageUrl: ex.imageUrl,
-            imageUrl2: '',
-            instructions: '',
-          ),
-          repo: widget.exercises,
-        ),
+        builder:
+            (_) => ExerciseDetailScreen(
+              entry: ExerciseCatalogItem(
+                id: ex.exerciseId,
+                name: ex.name,
+                muscleGroup: ex.muscleGroup,
+                equipment: '',
+                category: '',
+                level: '',
+                force: '',
+                imageUrl: ex.imageUrl,
+                imageUrl2: '',
+                instructions: '',
+              ),
+              repo: widget.exercises,
+            ),
       ),
     );
   }
@@ -154,8 +196,15 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
       title: 'Delete workout?',
       message: '“${_w!.name}” will be permanently removed.',
       actions: [
-        AppDialogAction('Cancel', onPressed: () => Navigator.pop(context, false)),
-        AppDialogAction('Delete', isDestructive: true, onPressed: () => Navigator.pop(context, true)),
+        AppDialogAction(
+          'Cancel',
+          onPressed: () => Navigator.pop(context, false),
+        ),
+        AppDialogAction(
+          'Delete',
+          isDestructive: true,
+          onPressed: () => Navigator.pop(context, true),
+        ),
       ],
     );
     if (ok != true) return;
@@ -172,10 +221,28 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
     showAppActionSheet(
       context,
       actions: [
-        AppSheetAction('Edit', onPressed: () { Navigator.pop(context); _edit(); }),
-        AppSheetAction(w.isPublic ? 'Make private' : 'Publish to library',
-            onPressed: () { Navigator.pop(context); _togglePublic(); }),
-        AppSheetAction('Delete', isDestructive: true, onPressed: () { Navigator.pop(context); _delete(); }),
+        AppSheetAction(
+          'Edit',
+          onPressed: () {
+            Navigator.pop(context);
+            _edit();
+          },
+        ),
+        AppSheetAction(
+          w.isPublic ? 'Make private' : 'Publish to library',
+          onPressed: () {
+            Navigator.pop(context);
+            _togglePublic();
+          },
+        ),
+        AppSheetAction(
+          'Delete',
+          isDestructive: true,
+          onPressed: () {
+            Navigator.pop(context);
+            _delete();
+          },
+        ),
       ],
     );
   }
@@ -184,7 +251,13 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
     showAppDialog<void>(
       context,
       title: msg,
-      actions: [AppDialogAction('OK', isDefault: true, onPressed: () => Navigator.pop(context))],
+      actions: [
+        AppDialogAction(
+          'OK',
+          isDefault: true,
+          onPressed: () => Navigator.pop(context),
+        ),
+      ],
     );
   }
 
@@ -199,13 +272,23 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: _menu,
-            child: Icon(CupertinoIcons.ellipsis, size: 22, color: c.textPrimary),
+            child: Icon(
+              CupertinoIcons.ellipsis,
+              size: 22,
+              color: c.textPrimary,
+            ),
           ),
       ],
-      body: _loading
-          ? const Center(child: CupertinoActivityIndicator())
-          : _error != null || w == null
-              ? Center(child: Text('Could not load', style: TextStyle(color: c.textSecondary, fontFamily: 'Rubik')))
+      body:
+          _loading
+              ? const Center(child: CupertinoActivityIndicator())
+              : _error != null || w == null
+              ? Center(
+                child: Text(
+                  'Could not load',
+                  style: TextStyle(color: c.textSecondary, fontFamily: 'Rubik'),
+                ),
+              )
               : _buildBody(c, w),
     );
   }
@@ -220,7 +303,15 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
               if (w.comment.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12),
-                  child: Text(w.comment, style: TextStyle(fontSize: 13, color: c.textSecondary, height: 1.5, fontFamily: 'Rubik')),
+                  child: Text(
+                    w.comment,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: c.textSecondary,
+                      height: 1.5,
+                      fontFamily: 'Rubik',
+                    ),
+                  ),
                 ),
               _statsRow(c, w),
               const SizedBox(height: 16),
@@ -228,34 +319,71 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
               const SizedBox(height: 8),
               _potentialVolumeLine(c),
               const SizedBox(height: 16),
-              ...w.exercises.asMap().entries.map((e) => _ExerciseBlock(
-                    index: e.key + 1,
-                    exercise: e.value,
-                    difficulty: _difficulty,
-                    onTap: () => _openExerciseStats(e.value),
-                  )),
+              ...w.exercises.asMap().entries.map(
+                (e) => _ExerciseBlock(
+                  index: e.key + 1,
+                  exercise: e.value,
+                  difficulty: _difficulty,
+                  onTap: () => _openExerciseStats(e.value),
+                ),
+              ),
               if (_stats != null && _stats!.history.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 _SectionLabel('History'),
                 const SizedBox(height: 8),
-                ..._stats!.history.take(12).map((h) => Pressable(
-                      onTap: () => _openRunDetail(h.date, h.difficulty),
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(vertical: 3),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-                        decoration: BoxDecoration(color: c.card, borderRadius: BorderRadius.circular(12), border: Border.all(color: c.border)),
-                        child: Row(children: [
-                          Icon(CupertinoIcons.calendar, size: 14, color: c.textSecondary),
-                          const SizedBox(width: 8),
-                          Text(h.date, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: c.textPrimary, fontFamily: 'Rubik')),
-                          const SizedBox(width: 8),
-                          Text(_diffLabels[h.difficulty] ?? h.difficulty,
-                              style: TextStyle(fontSize: 12, color: c.textSecondary, fontFamily: 'Rubik')),
-                          const Spacer(),
-                          Icon(CupertinoIcons.chevron_right, size: 14, color: c.textSecondary),
-                        ]),
+                ..._stats!.history
+                    .take(12)
+                    .map(
+                      (h) => Pressable(
+                        onTap: () => _openRunDetail(h.date, h.difficulty),
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 11,
+                          ),
+                          decoration: BoxDecoration(
+                            color: c.card,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: c.border),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                CupertinoIcons.calendar,
+                                size: 14,
+                                color: c.textSecondary,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                h.date,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: c.textPrimary,
+                                  fontFamily: 'Rubik',
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                _diffLabels[h.difficulty] ?? h.difficulty,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: c.textSecondary,
+                                  fontFamily: 'Rubik',
+                                ),
+                              ),
+                              const Spacer(),
+                              Icon(
+                                CupertinoIcons.chevron_right,
+                                size: 14,
+                                color: c.textSecondary,
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                    )),
+                    ),
               ],
             ],
           ),
@@ -268,15 +396,30 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
     );
   }
 
-  Widget _statsRow(AppColors c, Workout w) => Row(children: [
-        _StatChip(icon: CupertinoIcons.heart_fill, label: 'Love', value: '${_stats?.loveScore ?? w.loveScore}/10'),
-        const SizedBox(width: 10),
-        _StatChip(icon: CupertinoIcons.flame, label: 'Done', value: '${_stats?.timesPerformed ?? w.timesPerformed}x'),
-        const SizedBox(width: 10),
-        _StatChip(icon: CupertinoIcons.square_stack_3d_up, label: 'Exercises', value: '${w.exerciseCount}'),
-      ]);
+  Widget _statsRow(AppColors c, Workout w) => Row(
+    children: [
+      _StatChip(
+        icon: CupertinoIcons.heart_fill,
+        label: 'Love',
+        value: '${_stats?.loveScore ?? w.loveScore}/10',
+      ),
+      const SizedBox(width: 10),
+      _StatChip(
+        icon: CupertinoIcons.flame,
+        label: 'Done',
+        value: '${_stats?.timesPerformed ?? w.timesPerformed}x',
+      ),
+      const SizedBox(width: 10),
+      _StatChip(
+        icon: CupertinoIcons.square_stack_3d_up,
+        label: 'Exercises',
+        value: '${w.exerciseCount}',
+      ),
+    ],
+  );
 
-  Widget _difficultyPicker(AppColors c) => CupertinoSlidingSegmentedControl<String>(
+  Widget _difficultyPicker(AppColors c) =>
+      CupertinoSlidingSegmentedControl<String>(
         groupValue: _difficulty,
         backgroundColor: c.iconBg,
         thumbColor: c.accent,
@@ -285,13 +428,15 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
           for (final d in workoutDifficulties)
             d: Padding(
               padding: const EdgeInsets.symmetric(vertical: 7),
-              child: Text(_diffLabels[d]!,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: _difficulty == d ? c.textOnAccent : c.textSecondary,
-                    fontFamily: 'Rubik',
-                  )),
+              child: Text(
+                _diffLabels[d]!,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: _difficulty == d ? c.textOnAccent : c.textSecondary,
+                  fontFamily: 'Rubik',
+                ),
+              ),
             ),
         },
       );
@@ -301,43 +446,89 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(CupertinoIcons.chart_bar_alt_fill, size: 14, color: c.textSecondary),
+        Icon(
+          CupertinoIcons.chart_bar_alt_fill,
+          size: 14,
+          color: c.textSecondary,
+        ),
         const SizedBox(width: 6),
-        Text('Potential volume: ${context.units.formatVolume(vol)}',
-            style: TextStyle(fontSize: 12, color: c.textSecondary, fontFamily: 'Rubik')),
+        Text(
+          'Potential volume: ${context.units.formatVolume(vol)}',
+          style: TextStyle(
+            fontSize: 12,
+            color: c.textSecondary,
+            fontFamily: 'Rubik',
+          ),
+        ),
       ],
     );
   }
 
   Widget _launchButton(AppColors c) => Pressable(
-        onTap: _launch,
-        child: Container(
-          height: 54,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(color: c.accent, borderRadius: BorderRadius.circular(14)),
-          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(CupertinoIcons.play_arrow_solid, size: 18, color: c.textOnAccent),
-            const SizedBox(width: 8),
-            Text('LAUNCH · ${_diffLabels[_difficulty]!.toUpperCase()}',
-                style: TextStyle(fontFamily: 'Rubik', fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 1.2, color: c.textOnAccent)),
-          ]),
-        ),
-      );
+    onTap: _launch,
+    child: Container(
+      height: 54,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: c.accent,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            CupertinoIcons.play_arrow_solid,
+            size: 18,
+            color: c.textOnAccent,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            'LAUNCH · ${_diffLabels[_difficulty]!.toUpperCase()}',
+            style: TextStyle(
+              fontFamily: 'Rubik',
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.2,
+              color: c.textOnAccent,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 
   Widget _saveCopyButton(AppColors c) => Pressable(
-        onTap: _saveCopy,
-        child: Container(
-          height: 54,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(color: c.accent, borderRadius: BorderRadius.circular(14)),
-          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(CupertinoIcons.plus_square_on_square, size: 18, color: c.textOnAccent),
-            const SizedBox(width: 8),
-            Text('SAVE A COPY',
-                style: TextStyle(fontFamily: 'Rubik', fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 1.5, color: c.textOnAccent)),
-          ]),
-        ),
-      );
+    onTap: _saveCopy,
+    child: Container(
+      height: 54,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: c.accent,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            CupertinoIcons.plus_square_on_square,
+            size: 18,
+            color: c.textOnAccent,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            'SAVE A COPY',
+            style: TextStyle(
+              fontFamily: 'Rubik',
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.5,
+              color: c.textOnAccent,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _ExerciseBlock extends StatelessWidget {
@@ -345,7 +536,12 @@ class _ExerciseBlock extends StatelessWidget {
   final WorkoutExercise exercise;
   final String difficulty;
   final VoidCallback onTap;
-  const _ExerciseBlock({required this.index, required this.exercise, required this.difficulty, required this.onTap});
+  const _ExerciseBlock({
+    required this.index,
+    required this.exercise,
+    required this.difficulty,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -356,65 +552,105 @@ class _ExerciseBlock extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: c.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: c.border)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [
-            SizedBox(
-              width: 44,
-              height: 44,
-              child: ExerciseVisual(
-                name: exercise.name,
-                muscleGroup: exercise.muscleGroup,
-                category: '',
-                imageUrl: exercise.imageUrl,
-                imageUrl2: exercise.imageUrl2,
-                radius: 10,
-                figurePadding: 4,
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: c.card,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: c.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: ExerciseVisual(
+                    name: exercise.name,
+                    muscleGroup: exercise.muscleGroup,
+                    category: '',
+                    imageUrl: exercise.imageUrl,
+                    imageUrl2: exercise.imageUrl2,
+                    radius: 10,
+                    figurePadding: 4,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '$index. ${exercise.name}',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: c.textPrimary,
+                          fontFamily: 'Rubik',
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Rest ${exercise.restSeconds}s',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: c.textSecondary,
+                          fontFamily: 'Rubik',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (sets.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children:
+                    sets.asMap().entries.map((e) {
+                      final s = e.value;
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: c.iconBg,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '${units.format(s.weightKg)}${units.label} × ${s.reps}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: c.textPrimary,
+                            fontFamily: 'Rubik',
+                          ),
+                        ),
+                      );
+                    }).toList(),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('$index. ${exercise.name}',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: c.textPrimary, fontFamily: 'Rubik')),
-                  const SizedBox(height: 2),
-                  Text('Rest ${exercise.restSeconds}s',
-                      style: TextStyle(fontSize: 11, color: c.textSecondary, fontFamily: 'Rubik')),
-                ],
+            ],
+            if (exercise.comment.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                exercise.comment,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: c.textSecondary,
+                  fontStyle: FontStyle.italic,
+                  fontFamily: 'Rubik',
+                ),
               ),
-            ),
-          ]),
-          if (sets.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: sets.asMap().entries.map((e) {
-                final s = e.value;
-                return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(color: c.iconBg, borderRadius: BorderRadius.circular(8)),
-                  child: Text('${units.format(s.weightKg)}${units.label} × ${s.reps}',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: c.textPrimary, fontFamily: 'Rubik')),
-                );
-              }).toList(),
-            ),
+            ],
           ],
-          if (exercise.comment.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text(exercise.comment,
-                style: TextStyle(fontSize: 12, color: c.textSecondary, fontStyle: FontStyle.italic, fontFamily: 'Rubik')),
-          ],
-        ],
-      ),
+        ),
       ),
     );
   }
@@ -424,7 +660,11 @@ class _StatChip extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
-  const _StatChip({required this.icon, required this.label, required this.value});
+  const _StatChip({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -432,14 +672,36 @@ class _StatChip extends StatelessWidget {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-        decoration: BoxDecoration(color: c.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: c.border)),
-        child: Column(children: [
-          Icon(icon, size: 16, color: c.accent),
-          const SizedBox(height: 6),
-          Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: c.textPrimary, fontFamily: 'Rubik')),
-          const SizedBox(height: 2),
-          Text(label, style: TextStyle(fontSize: 9, letterSpacing: 0.5, color: c.textSecondary, fontFamily: 'Rubik')),
-        ]),
+        decoration: BoxDecoration(
+          color: c.card,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: c.border),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, size: 16, color: c.accent),
+            const SizedBox(height: 6),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: c.textPrimary,
+                fontFamily: 'Rubik',
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 9,
+                letterSpacing: 0.5,
+                color: c.textSecondary,
+                fontFamily: 'Rubik',
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -449,8 +711,15 @@ class _SectionLabel extends StatelessWidget {
   final String text;
   const _SectionLabel(this.text);
   @override
-  Widget build(BuildContext context) => Text(text,
-      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Rubik', color: context.colors.textPrimary));
+  Widget build(BuildContext context) => Text(
+    text,
+    style: TextStyle(
+      fontSize: 16,
+      fontWeight: FontWeight.w700,
+      fontFamily: 'Rubik',
+      color: context.colors.textPrimary,
+    ),
+  );
 }
 
 const _runDiffLabels = {'easy': 'Easy', 'medium': 'Medium', 'hard': 'Hard'};
@@ -462,7 +731,12 @@ class _RunDetailScreen extends StatefulWidget {
   final String date;
   final String difficulty;
   final WorkoutsRepository repo;
-  const _RunDetailScreen({required this.workoutId, required this.date, required this.difficulty, required this.repo});
+  const _RunDetailScreen({
+    required this.workoutId,
+    required this.date,
+    required this.difficulty,
+    required this.repo,
+  });
 
   @override
   State<_RunDetailScreen> createState() => _RunDetailScreenState();
@@ -481,7 +755,11 @@ class _RunDetailScreenState extends State<_RunDetailScreen> {
   Future<void> _load() async {
     try {
       final items = await widget.repo.runDetail(widget.workoutId, widget.date);
-      if (mounted) setState(() { _items = items; _loading = false; });
+      if (mounted)
+        setState(() {
+          _items = items;
+          _loading = false;
+        });
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
@@ -495,78 +773,149 @@ class _RunDetailScreenState extends State<_RunDetailScreen> {
     final totalVol = items.fold<double>(0, (a, e) => a + e.volumeKg);
     return AppPage(
       title: widget.date,
-      body: _loading
-          ? const Center(child: CupertinoActivityIndicator())
-          : items.isEmpty
-              ? Center(child: Text('No logged sets for this session', style: TextStyle(color: c.textSecondary, fontFamily: 'Rubik')))
+      body:
+          _loading
+              ? const Center(child: CupertinoActivityIndicator())
+              : items.isEmpty
+              ? Center(
+                child: Text(
+                  'No logged sets for this session',
+                  style: TextStyle(color: c.textSecondary, fontFamily: 'Rubik'),
+                ),
+              )
               : ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                  children: [
-                    Row(children: [
-                      _summaryTile(c, _runDiffLabels[widget.difficulty] ?? widget.difficulty, 'DIFFICULTY'),
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                children: [
+                  Row(
+                    children: [
+                      _summaryTile(
+                        c,
+                        _runDiffLabels[widget.difficulty] ?? widget.difficulty,
+                        'DIFFICULTY',
+                      ),
                       const SizedBox(width: 10),
                       _summaryTile(c, units.formatVolume(totalVol), 'VOLUME'),
-                    ]),
-                    const SizedBox(height: 16),
-                    ...items.map((e) => _exerciseTile(c, units, e)),
-                  ],
-                ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  ...items.map((e) => _exerciseTile(c, units, e)),
+                ],
+              ),
     );
   }
 
   Widget _summaryTile(AppColors c, String value, String label) => Expanded(
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-          decoration: BoxDecoration(color: c.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: c.border)),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: c.textPrimary, fontFamily: 'Rubik')),
-            const SizedBox(height: 3),
-            Text(label, style: TextStyle(fontSize: 10, color: c.textSecondary, fontFamily: 'Rubik')),
-          ]),
-        ),
-      );
+    child: Container(
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+      decoration: BoxDecoration(
+        color: c.card,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: c.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: c.textPrimary,
+              fontFamily: 'Rubik',
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              color: c.textSecondary,
+              fontFamily: 'Rubik',
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 
   Widget _exerciseTile(AppColors c, dynamic units, PerformedExerciseLog e) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: c.card, borderRadius: BorderRadius.circular(14), border: Border.all(color: c.border)),
+      decoration: BoxDecoration(
+        color: c.card,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: c.border),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            SizedBox(width: 40, height: 40, child: ExerciseMannequin(pattern: patternFor(name: e.name, muscle: e.muscleGroup, equipment: ''))),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(e.name,
+          Row(
+            children: [
+              SizedBox(
+                width: 40,
+                height: 40,
+                child: ExerciseMannequin(
+                  pattern: patternFor(
+                    name: e.name,
+                    muscle: e.muscleGroup,
+                    equipment: '',
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  e.name,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: c.textPrimary, fontFamily: 'Rubik')),
-            ),
-          ]),
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: c.textPrimary,
+                    fontFamily: 'Rubik',
+                  ),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 10),
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: e.sets.map<Widget>((s) {
-              final warm = s.setType == 'warmup';
-              final fail = s.setType == 'failure';
-              final prefix = warm ? 'W ' : (fail ? 'F ' : '');
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: warm ? c.iconBg : (fail ? c.accent.withValues(alpha: 0.12) : c.iconBg),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text('$prefix${units.format(s.weightKg)}${units.label} × ${s.reps}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: warm ? c.textSecondary : (fail ? c.accent : c.textPrimary),
-                      fontFamily: 'Rubik',
-                    )),
-              );
-            }).toList(),
+            children:
+                e.sets.map<Widget>((s) {
+                  final warm = s.setType == 'warmup';
+                  final fail = s.setType == 'failure';
+                  final prefix = warm ? 'W ' : (fail ? 'F ' : '');
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color:
+                          warm
+                              ? c.iconBg
+                              : (fail
+                                  ? c.accent.withValues(alpha: 0.12)
+                                  : c.iconBg),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '$prefix${units.format(s.weightKg)}${units.label} × ${s.reps}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color:
+                            warm
+                                ? c.textSecondary
+                                : (fail ? c.accent : c.textPrimary),
+                        fontFamily: 'Rubik',
+                      ),
+                    ),
+                  );
+                }).toList(),
           ),
         ],
       ),

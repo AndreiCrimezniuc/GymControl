@@ -13,7 +13,11 @@ class AppBottomNav extends StatelessWidget {
   final List<BottomNavItem> items;
   final int activeIndex;
 
-  const AppBottomNav({super.key, required this.items, required this.activeIndex});
+  const AppBottomNav({
+    super.key,
+    required this.items,
+    required this.activeIndex,
+  });
 
   @override
   Widget build(BuildContext context) {

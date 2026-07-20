@@ -2,7 +2,8 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 class GoogleSignInService {
   final GoogleSignIn _client = GoogleSignIn(
-    clientId: '756576765751-h5uipv1aos427pmee1hf85t2kms90n04.apps.googleusercontent.com',
+    clientId:
+        '756576765751-h5uipv1aos427pmee1hf85t2kms90n04.apps.googleusercontent.com',
     scopes: ['email'],
   );
 

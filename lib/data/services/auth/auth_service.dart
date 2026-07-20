@@ -11,16 +11,18 @@ class AuthService {
   final String _base = ApiConfig.authBaseUrl;
 
   Future<AuthTokens> login(String email, String password) async {
-    final resp = await _post('/auth/login', {'email': email, 'password': password});
+    final resp = await _post('/auth/login', {
+      'email': email,
+      'password': password,
+    });
     return TokenResponseModel.fromJson(jsonDecode(resp.body)).toDomain();
   }
 
   Future<AuthTokens> register(String email, String password) async {
-    final resp = await _post(
-      '/auth/register',
-      {'email': email, 'password': password},
-      expectedStatus: 201,
-    );
+    final resp = await _post('/auth/register', {
+      'email': email,
+      'password': password,
+    }, expectedStatus: 201);
     return TokenResponseModel.fromJson(jsonDecode(resp.body)).toDomain();
   }
 
@@ -53,11 +55,17 @@ class AuthService {
     } on AppError {
       rethrow;
     } on SocketException catch (e, s) {
-      throw AppError(AppErrorCode.networkUnavailable, message: '$path: $e', cause: e)
-        ..log(s);
+      throw AppError(
+        AppErrorCode.networkUnavailable,
+        message: '$path: $e',
+        cause: e,
+      )..log(s);
     } on TimeoutException catch (e, s) {
-      throw AppError(AppErrorCode.networkTimeout, message: '$path: $e', cause: e)
-        ..log(s);
+      throw AppError(
+        AppErrorCode.networkTimeout,
+        message: '$path: $e',
+        cause: e,
+      )..log(s);
     } catch (e, s) {
       throw wrapUnknown(e, s);
     }
@@ -79,7 +87,9 @@ class AuthService {
 
   String _bodyError(http.Response resp) {
     try {
-      return (jsonDecode(resp.body) as Map<String, dynamic>)['error']?.toString() ?? resp.body;
+      return (jsonDecode(resp.body) as Map<String, dynamic>)['error']
+              ?.toString() ??
+          resp.body;
     } catch (_) {
       return resp.body;
     }
