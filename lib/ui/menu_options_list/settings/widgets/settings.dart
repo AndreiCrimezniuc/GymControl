@@ -120,10 +120,7 @@ class _SettingsState extends State<Settings> {
             ],
           ),
           const SizedBox(height: 20),
-          _Section(
-            title: l.sectionLanguage,
-            children: [const _LanguageTile()],
-          ),
+          _Section(title: l.sectionLanguage, children: [const _LanguageTile()]),
           const SizedBox(height: 20),
           _Section(
             title: l.sectionAccount,
