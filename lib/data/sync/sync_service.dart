@@ -121,10 +121,12 @@ class SyncService {
       notifyChanged();
       if (online) flush();
     });
-    unawaited(_isOnline().then((v) {
-      _online = v;
-      notifyChanged();
-    }));
+    unawaited(
+      _isOnline().then((v) {
+        _online = v;
+        notifyChanged();
+      }),
+    );
     flush();
   }
 
