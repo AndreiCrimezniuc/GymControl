@@ -1,0 +1,20 @@
+{
+  "@@locale": "ru",
+  "settingsTitle": "Настройки",
+  "sectionBodyMetrics": "Параметры тела",
+  "sectionAppearance": "Внешний вид",
+  "sectionAccount": "Аккаунт",
+  "sectionApp": "Приложение",
+  "sectionLanguage": "Язык",
+  "labelWeight": "Вес",
+  "labelHeight": "Рост",
+  "labelDarkMode": "Тёмная тема",
+  "labelNotifications": "Уведомления",
+  "labelAbout": "О приложении",
+  "labelReenableWeightReminders": "Снова напоминать о весе",
+  "labelLanguage": "Язык",
+  "languageSystem": "Как в системе",
+  "languageEnglish": "Английский",
+  "languageRussian": "Русский",
+  "logOut": "Выйти"
+}

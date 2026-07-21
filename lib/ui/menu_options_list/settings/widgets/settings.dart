@@ -4,7 +4,9 @@ import 'package:gymboss/core/errors/app_error.dart';
 import 'package:gymboss/data/repositories/ranking_repository.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/domain/models/ranking/rank_data.dart';
+import 'package:gymboss/l10n/app_localizations.dart';
 import 'package:gymboss/ui/auth/view_model/auth_view_model.dart';
+import 'package:gymboss/ui/core/locale/locale_controller.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/units/units_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_dialog.dart';
@@ -64,22 +66,23 @@ class _SettingsState extends State<Settings> {
   @override
   Widget build(BuildContext context) {
     final theme = context.watch<ThemeController>();
+    final l = AppLocalizations.of(context);
     final weight = _profile?.weightKg;
     final height = _profile?.heightCm;
     final dontAsk = _profile?.dontAskWeight ?? false;
 
     return AppPage(
-      title: 'Settings',
+      title: l.settingsTitle,
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
         children: [
           const SizedBox(height: 4),
           _Section(
-            title: 'Body Metrics',
+            title: l.sectionBodyMetrics,
             children: [
               _ValueTile(
                 icon: CupertinoIcons.chart_bar_circle_fill,
-                label: 'Weight',
+                label: l.labelWeight,
                 value: weight != null
                     ? '${weight.toStringAsFixed(1)} kg'
                     : 'Not set',
@@ -87,7 +90,7 @@ class _SettingsState extends State<Settings> {
               ),
               _ValueTile(
                 icon: CupertinoIcons.person_fill,
-                label: 'Height',
+                label: l.labelHeight,
                 value: height != null
                     ? '${height.toStringAsFixed(0)} cm'
                     : 'Not set',
@@ -96,20 +99,20 @@ class _SettingsState extends State<Settings> {
               if (dontAsk)
                 _SettingsTile(
                   icon: CupertinoIcons.bell_slash_fill,
-                  label: 'Re-enable weight reminders',
+                  label: l.labelReenableWeightReminders,
                   onTap: _resetWeightPrompt,
                 ),
             ],
           ),
           const SizedBox(height: 20),
           _Section(
-            title: 'Appearance',
+            title: l.sectionAppearance,
             children: [
               _SwitchTile(
                 icon: theme.isDark
                     ? CupertinoIcons.moon_fill
                     : CupertinoIcons.sun_max_fill,
-                label: 'Dark Mode',
+                label: l.labelDarkMode,
                 value: theme.isDark,
                 onChanged: (_) => theme.toggle(),
               ),
@@ -118,22 +121,27 @@ class _SettingsState extends State<Settings> {
           ),
           const SizedBox(height: 20),
           _Section(
-            title: 'Account',
+            title: l.sectionLanguage,
+            children: [const _LanguageTile()],
+          ),
+          const SizedBox(height: 20),
+          _Section(
+            title: l.sectionAccount,
             children: [
               _SettingsTile(
                 icon: CupertinoIcons.bell_fill,
-                label: 'Notifications',
+                label: l.labelNotifications,
                 onTap: () {},
               ),
             ],
           ),
           const SizedBox(height: 20),
           _Section(
-            title: 'App',
+            title: l.sectionApp,
             children: [
               _SettingsTile(
                 icon: CupertinoIcons.info_circle_fill,
-                label: 'About',
+                label: l.labelAbout,
                 onTap: _openAbout,
               ),
             ],
@@ -331,6 +339,100 @@ class _SwitchTile extends StatelessWidget {
             onChanged: onChanged,
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Language picker: System / English / Russian. Writes through LocaleController,
+/// which persists the choice and re-localizes the whole app immediately.
+class _LanguageTile extends StatelessWidget {
+  const _LanguageTile();
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final l = AppLocalizations.of(context);
+    final ctrl = context.watch<LocaleController>();
+    final code = ctrl.locale?.languageCode; // null → system
+
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      onPressed: () => _pick(context, ctrl, l),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Icon(CupertinoIcons.globe, size: 18, color: c.accent),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                l.labelLanguage,
+                style: TextStyle(
+                  fontSize: 15,
+                  color: c.textPrimary,
+                  fontFamily: 'Rubik',
+                ),
+              ),
+            ),
+            Text(
+              _name(l, code),
+              style: TextStyle(
+                fontSize: 14,
+                color: c.textSecondary,
+                fontFamily: 'Rubik',
+              ),
+            ),
+            const SizedBox(width: 6),
+            Icon(
+              CupertinoIcons.chevron_forward,
+              size: 14,
+              color: c.textSecondary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _name(AppLocalizations l, String? code) => switch (code) {
+    'en' => l.languageEnglish,
+    'ru' => l.languageRussian,
+    _ => l.languageSystem,
+  };
+
+  void _pick(BuildContext context, LocaleController ctrl, AppLocalizations l) {
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (_) => CupertinoActionSheet(
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () {
+              ctrl.setLocale(null);
+              Navigator.pop(context);
+            },
+            child: Text(l.languageSystem),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              ctrl.setLocale(const Locale('en'));
+              Navigator.pop(context);
+            },
+            child: Text(l.languageEnglish),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              ctrl.setLocale(const Locale('ru'));
+              Navigator.pop(context);
+            },
+            child: Text(l.languageRussian),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          isDefaultAction: true,
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
       ),
     );
   }
@@ -694,14 +796,14 @@ class _LogoutButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: const Color(0x33EF4444), width: 1),
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(CupertinoIcons.square_arrow_left, color: red, size: 18),
-            SizedBox(width: 8),
+            const Icon(CupertinoIcons.square_arrow_left, color: red, size: 18),
+            const SizedBox(width: 8),
             Text(
-              'Log Out',
-              style: TextStyle(
+              AppLocalizations.of(context).logOut,
+              style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
                 color: red,

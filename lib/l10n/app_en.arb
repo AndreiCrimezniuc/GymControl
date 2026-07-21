@@ -1,0 +1,20 @@
+{
+  "@@locale": "en",
+  "settingsTitle": "Settings",
+  "sectionBodyMetrics": "Body Metrics",
+  "sectionAppearance": "Appearance",
+  "sectionAccount": "Account",
+  "sectionApp": "App",
+  "sectionLanguage": "Language",
+  "labelWeight": "Weight",
+  "labelHeight": "Height",
+  "labelDarkMode": "Dark Mode",
+  "labelNotifications": "Notifications",
+  "labelAbout": "About",
+  "labelReenableWeightReminders": "Re-enable weight reminders",
+  "labelLanguage": "Language",
+  "languageSystem": "System default",
+  "languageEnglish": "English",
+  "languageRussian": "Russian",
+  "logOut": "Log Out"
+}

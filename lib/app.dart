@@ -9,6 +9,8 @@ import 'package:gymboss/data/sync/sync_service.dart';
 import 'package:gymboss/ui/auth/login_screen.dart';
 import 'package:gymboss/ui/auth/register_screen.dart';
 import 'package:gymboss/ui/auth/view_model/auth_view_model.dart';
+import 'package:gymboss/l10n/app_localizations.dart';
+import 'package:gymboss/ui/core/locale/locale_controller.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/units/units_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_scaffold.dart';
@@ -62,11 +64,14 @@ class _GymBossAppState extends State<GymBossApp> {
         ChangeNotifierProvider<WorkoutSessionController>(
           create: (_) => WorkoutSessionController(),
         ),
+        ChangeNotifierProvider<LocaleController>(
+          create: (_) => LocaleController(),
+        ),
         ChangeNotifierProvider<AuthViewModel>.value(value: _authVm),
         Provider<AuthenticatedClient>.value(value: _client),
       ],
-      child: Consumer<ThemeController>(
-        builder: (context, theme, _) {
+      child: Consumer2<ThemeController, LocaleController>(
+        builder: (context, theme, localeCtrl, _) {
           return CupertinoApp(
             navigatorKey: _navKey,
             theme: CupertinoThemeData(
@@ -77,6 +82,9 @@ class _GymBossAppState extends State<GymBossApp> {
               ),
             ),
             debugShowCheckedModeBanner: false,
+            locale: localeCtrl.locale,
+            supportedLocales: LocaleController.supported,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
             home: const _AuthGate(),
             builder: (context, child) => Stack(
               children: [
