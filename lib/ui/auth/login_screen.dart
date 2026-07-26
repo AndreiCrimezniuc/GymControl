@@ -21,11 +21,13 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
+  final _passFocus = FocusNode();
 
   @override
   void dispose() {
     _emailCtrl.dispose();
     _passCtrl.dispose();
+    _passFocus.dispose();
     super.dispose();
   }
 
@@ -72,18 +74,31 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       const SizedBox(height: 28),
-                      AuthField(
-                        controller: _emailCtrl,
-                        placeholder: 'Email',
-                        icon: CupertinoIcons.envelope_fill,
-                        keyboardType: TextInputType.emailAddress,
-                      ),
-                      const SizedBox(height: 14),
-                      AuthField(
-                        controller: _passCtrl,
-                        placeholder: 'Password',
-                        icon: CupertinoIcons.lock_fill,
-                        obscureText: true,
+                      AutofillGroup(
+                        child: Column(
+                          children: [
+                            AuthField(
+                              controller: _emailCtrl,
+                              placeholder: 'Email',
+                              icon: CupertinoIcons.envelope_fill,
+                              keyboardType: TextInputType.emailAddress,
+                              textInputAction: TextInputAction.next,
+                              autofillHints: const [AutofillHints.username],
+                              onSubmitted: (_) => _passFocus.requestFocus(),
+                            ),
+                            const SizedBox(height: 14),
+                            AuthField(
+                              controller: _passCtrl,
+                              focusNode: _passFocus,
+                              placeholder: 'Password',
+                              icon: CupertinoIcons.lock_fill,
+                              obscureText: true,
+                              textInputAction: TextInputAction.done,
+                              autofillHints: const [AutofillHints.password],
+                              onSubmitted: (_) => _submit(vm),
+                            ),
+                          ],
+                        ),
                       ),
                       if (vm.errorCode != null) ...[
                         const SizedBox(height: 12),

@@ -7,6 +7,10 @@ class AuthField extends StatelessWidget {
   final IconData icon;
   final bool obscureText;
   final TextInputType keyboardType;
+  final FocusNode? focusNode;
+  final TextInputAction? textInputAction;
+  final ValueChanged<String>? onSubmitted;
+  final List<String>? autofillHints;
 
   const AuthField({
     super.key,
@@ -15,6 +19,10 @@ class AuthField extends StatelessWidget {
     required this.icon,
     this.obscureText = false,
     this.keyboardType = TextInputType.text,
+    this.focusNode,
+    this.textInputAction,
+    this.onSubmitted,
+    this.autofillHints,
   });
 
   @override
@@ -28,10 +36,15 @@ class AuthField extends StatelessWidget {
       ),
       child: CupertinoTextField(
         controller: controller,
+        focusNode: focusNode,
         placeholder: placeholder,
         obscureText: obscureText,
         keyboardType: keyboardType,
+        textInputAction: textInputAction,
+        onSubmitted: onSubmitted,
+        autofillHints: autofillHints,
         autocorrect: false,
+        enableSuggestions: !obscureText,
         style: TextStyle(
           color: c.textPrimary,
           fontFamily: 'Rubik',

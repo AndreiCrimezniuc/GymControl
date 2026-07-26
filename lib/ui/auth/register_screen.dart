@@ -22,6 +22,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _confirmCtrl = TextEditingController();
+  final _passFocus = FocusNode();
+  final _confirmFocus = FocusNode();
   String? _localError;
 
   @override
@@ -29,6 +31,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _emailCtrl.dispose();
     _passCtrl.dispose();
     _confirmCtrl.dispose();
+    _passFocus.dispose();
+    _confirmFocus.dispose();
     super.dispose();
   }
 
@@ -84,25 +88,42 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ),
                     const SizedBox(height: 28),
-                    AuthField(
-                      controller: _emailCtrl,
-                      placeholder: 'Email',
-                      icon: CupertinoIcons.envelope_fill,
-                      keyboardType: TextInputType.emailAddress,
-                    ),
-                    const SizedBox(height: 14),
-                    AuthField(
-                      controller: _passCtrl,
-                      placeholder: 'Password (min 8 chars)',
-                      icon: CupertinoIcons.lock_fill,
-                      obscureText: true,
-                    ),
-                    const SizedBox(height: 14),
-                    AuthField(
-                      controller: _confirmCtrl,
-                      placeholder: 'Confirm Password',
-                      icon: CupertinoIcons.lock_shield_fill,
-                      obscureText: true,
+                    AutofillGroup(
+                      child: Column(
+                        children: [
+                          AuthField(
+                            controller: _emailCtrl,
+                            placeholder: 'Email',
+                            icon: CupertinoIcons.envelope_fill,
+                            keyboardType: TextInputType.emailAddress,
+                            textInputAction: TextInputAction.next,
+                            autofillHints: const [AutofillHints.username],
+                            onSubmitted: (_) => _passFocus.requestFocus(),
+                          ),
+                          const SizedBox(height: 14),
+                          AuthField(
+                            controller: _passCtrl,
+                            focusNode: _passFocus,
+                            placeholder: 'Password (min 8 chars)',
+                            icon: CupertinoIcons.lock_fill,
+                            obscureText: true,
+                            textInputAction: TextInputAction.next,
+                            autofillHints: const [AutofillHints.newPassword],
+                            onSubmitted: (_) => _confirmFocus.requestFocus(),
+                          ),
+                          const SizedBox(height: 14),
+                          AuthField(
+                            controller: _confirmCtrl,
+                            focusNode: _confirmFocus,
+                            placeholder: 'Confirm Password',
+                            icon: CupertinoIcons.lock_shield_fill,
+                            obscureText: true,
+                            textInputAction: TextInputAction.done,
+                            autofillHints: const [AutofillHints.newPassword],
+                            onSubmitted: (_) => _submit(vm),
+                          ),
+                        ],
+                      ),
                     ),
                     if (errorMsg != null) ...[
                       const SizedBox(height: 12),
