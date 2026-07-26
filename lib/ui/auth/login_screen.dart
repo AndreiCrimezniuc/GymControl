@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:gymboss/config/api_config.dart';
 import 'package:gymboss/ui/auth/view_model/auth_view_model.dart';
+import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_scaffold.dart';
 import 'package:gymboss/ui/auth/widgets/auth_card.dart';
 import 'package:gymboss/ui/auth/widgets/auth_field.dart';
@@ -64,13 +65,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 48),
                   AuthCard(
                     children: [
-                      const Text(
+                      Text(
                         'Sign In',
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w700,
-                          color: CupertinoColors.white,
+                          color: ctx.colors.textPrimary,
                           fontFamily: 'Rubik',
+                          letterSpacing: -0.2,
                         ),
                       ),
                       const SizedBox(height: 28),
@@ -124,19 +126,19 @@ class _LoginScreenState extends State<LoginScreen> {
                         padding: EdgeInsets.zero,
                         onPressed: widget.onGoToRegister,
                         child: RichText(
-                          text: const TextSpan(
+                          text: TextSpan(
                             style: TextStyle(
                               fontSize: 14,
                               fontFamily: 'Rubik',
-                              color: Color(0xFF8B9EAE),
+                              color: ctx.colors.textSecondary,
                             ),
                             children: [
-                              TextSpan(text: "Don't have an account? "),
+                              const TextSpan(text: "Don't have an account? "),
                               TextSpan(
                                 text: 'Register',
                                 style: TextStyle(
-                                  color: Color(0xFF06B6D4),
-                                  fontWeight: FontWeight.w600,
+                                  color: ctx.colors.accent,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                             ],
@@ -157,21 +159,22 @@ class _LoginScreenState extends State<LoginScreen> {
 class _Divider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final c = context.colors;
     return Row(
       children: [
-        Expanded(child: Container(height: 1, color: const Color(0xFF1E3A50))),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12),
+        Expanded(child: Container(height: 1, color: c.border)),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Text(
             'or',
             style: TextStyle(
-              color: Color(0xFF546A7B),
+              color: c.textSecondary,
               fontFamily: 'Rubik',
               fontSize: 13,
             ),
           ),
         ),
-        Expanded(child: Container(height: 1, color: const Color(0xFF1E3A50))),
+        Expanded(child: Container(height: 1, color: c.border)),
       ],
     );
   }
