@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
@@ -95,63 +96,64 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
 
     return AppScaffold(
       child: SafeArea(
-        child: session.isFinished
-            ? _DoneView(
-                workoutName: session.workout?.name ?? '',
-                difficulty: session.difficulty,
-                sets: session.loggedSets,
-                volumeKg: session.loggedVolumeKg,
-                onClose: () {
-                  session.clear();
-                  Navigator.of(context).pop();
-                },
-              )
-            : Stack(
-                children: [
-                  Column(
-                    children: [
-                      _header(c, session),
-                      Expanded(child: _body(c, session, units)),
-                      _finishBar(c, session),
-                    ],
-                  ),
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 92,
-                    child: IgnorePointer(
-                      ignoring: !session.resting,
-                      child: AnimatedSlide(
-                        offset: session.resting
-                            ? Offset.zero
-                            : const Offset(0, 0.4),
-                        duration: const Duration(milliseconds: 220),
-                        curve: const Cubic(0.23, 1, 0.32, 1),
-                        child: AnimatedOpacity(
-                          opacity: session.resting ? 1 : 0,
-                          duration: const Duration(milliseconds: 200),
-                          child: Center(
-                            child: _RestPill(
-                              secondsLeft: session.restLeft,
-                              onSkip: session.skipRest,
-                              onAdd: () => session.adjustRest(15),
-                              onSub: () => session.adjustRest(-15),
+        child:
+            session.isFinished
+                ? _DoneView(
+                  workoutName: session.workout?.name ?? '',
+                  difficulty: session.difficulty,
+                  sets: session.loggedSets,
+                  volumeKg: session.loggedVolumeKg,
+                  onClose: () {
+                    session.clear();
+                    Navigator.of(context).pop();
+                  },
+                )
+                : Stack(
+                  children: [
+                    Column(
+                      children: [
+                        _header(c, session),
+                        Expanded(child: _body(c, session, units)),
+                        _finishBar(c, session),
+                      ],
+                    ),
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 92,
+                      child: IgnorePointer(
+                        ignoring: !session.resting,
+                        child: AnimatedSlide(
+                          offset:
+                              session.resting
+                                  ? Offset.zero
+                                  : const Offset(0, 0.4),
+                          duration: const Duration(milliseconds: 220),
+                          curve: const Cubic(0.23, 1, 0.32, 1),
+                          child: AnimatedOpacity(
+                            opacity: session.resting ? 1 : 0,
+                            duration: const Duration(milliseconds: 200),
+                            child: Center(
+                              child: _RestPill(
+                                secondsLeft: session.restLeft,
+                                onSkip: session.skipRest,
+                                onAdd: () => session.adjustRest(15),
+                                onSub: () => session.adjustRest(-15),
+                              ),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
       ),
     );
   }
 
   Widget _header(AppColors c, WorkoutSessionController s) {
-    final progress = s.totalSets == 0
-        ? 0.0
-        : (s.doneSets / s.totalSets).clamp(0.0, 1.0);
+    final progress =
+        s.totalSets == 0 ? 0.0 : (s.doneSets / s.totalSets).clamp(0.0, 1.0);
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
       child: Column(
@@ -322,9 +324,8 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
   ) {
     final doneInEx = g.sets.where((s) => s.done).length;
     final allDone = doneInEx == g.sets.length;
-    final pr = g.sets.isNotEmpty
-        ? session.prFor(g.sets.first.exerciseId)
-        : null;
+    final pr =
+        g.sets.isNotEmpty ? session.prFor(g.sets.first.exerciseId) : null;
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
@@ -485,53 +486,126 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     );
   }
 
+  // Presentation for each set type: a short badge letter plus the explicit name
+  // and description shown in the picker so the choice is never cryptic.
+  ({Color bg, Color fg, String badge}) _typeVisual(AppColors c, String type) {
+    switch (type) {
+      case 'warmup':
+        return (
+          bg: const Color(0x33F59E0B),
+          fg: const Color(0xFFB45309),
+          badge: 'W',
+        );
+      case 'failure':
+        return (bg: c.accent.withValues(alpha: 0.16), fg: c.accent, badge: 'F');
+      default:
+        return (bg: c.card, fg: c.textSecondary, badge: '•');
+    }
+  }
+
   Widget _typeChip(
     AppColors c,
     WorkoutSessionController session,
     SessionSet s,
   ) {
-    late final Color bg;
-    late final Color fg;
-    late final String label;
-    switch (s.type) {
-      case 'warmup':
-        bg = const Color(0x33F59E0B);
-        fg = const Color(0xFFB45309);
-        label = 'W';
-        break;
-      case 'failure':
-        bg = c.accent.withValues(alpha: 0.16);
-        fg = c.accent;
-        label = 'F';
-        break;
-      default:
-        bg = c.card;
-        fg = c.textSecondary;
-        label = '•';
-    }
+    final v = _typeVisual(c, s.type);
     return Pressable(
-      onTap: () => session.cycleSetType(s),
+      onTap: s.done ? null : () => _pickSetType(session, s),
       child: Container(
-        width: 28,
+        width: 40,
         height: 30,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: bg,
+          color: v.bg,
           borderRadius: BorderRadius.circular(9),
           border: Border.all(
             color: s.type == 'working' ? c.border : const Color(0x00000000),
           ),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w800,
-            color: fg,
-            fontFamily: 'Rubik',
-          ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              v.badge,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: v.fg,
+                fontFamily: 'Rubik',
+              ),
+            ),
+            if (!s.done)
+              Icon(CupertinoIcons.chevron_down, size: 11, color: v.fg),
+          ],
         ),
       ),
+    );
+  }
+
+  // Explicit set-type selector so the type (warm-up / working / failure) is
+  // chosen from named options instead of a blind tap-to-cycle.
+  static const _typeNames = {
+    'warmup': 'Warm-up',
+    'working': 'Working',
+    'failure': 'Failure',
+  };
+  static const _typeDescriptions = {
+    'warmup': 'Excluded from working volume',
+    'working': 'Counts toward volume & PRs',
+    'failure': 'Taken to muscular failure',
+  };
+
+  void _pickSetType(WorkoutSessionController session, SessionSet s) {
+    HapticFeedback.selectionClick();
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder:
+          (ctx) => CupertinoActionSheet(
+            title: const Text('Set type'),
+            actions: [
+              for (final t in setTypes)
+                CupertinoActionSheetAction(
+                  onPressed: () {
+                    session.setSetType(s, t);
+                    Navigator.of(ctx).pop();
+                  },
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (s.type == t) ...[
+                        const Icon(CupertinoIcons.check_mark, size: 18),
+                        const SizedBox(width: 6),
+                      ],
+                      Column(
+                        children: [
+                          Text(
+                            _typeNames[t]!,
+                            style: TextStyle(
+                              fontWeight:
+                                  s.type == t
+                                      ? FontWeight.w700
+                                      : FontWeight.w500,
+                            ),
+                          ),
+                          Text(
+                            _typeDescriptions[t]!,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF8E8E93),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+            cancelButton: CupertinoActionSheetAction(
+              isDefaultAction: true,
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancel'),
+            ),
+          ),
     );
   }
 

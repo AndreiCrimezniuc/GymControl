@@ -231,6 +231,14 @@ class WorkoutSessionController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Explicitly set a set's type from the selector. Ignores unknown values and
+  /// no-ops once the set has been logged.
+  void setSetType(SessionSet s, String type) {
+    if (s.done || !setTypes.contains(type) || s.type == type) return;
+    s.type = type;
+    notifyListeners();
+  }
+
   void _startRest(int seconds) {
     _restTimer?.cancel();
     if (seconds <= 0) return;
