@@ -565,11 +565,12 @@ class _MannequinPainter extends CustomPainter {
 
     void seg(String key, Offset p1, Offset p2) {
       final on = move.highlight.contains(key);
-      final paint = Paint()
-        ..color = on ? accent : limb
-        ..strokeWidth = on ? thick * 1.15 : thick
-        ..strokeCap = StrokeCap.round
-        ..style = PaintingStyle.stroke;
+      final paint =
+          Paint()
+            ..color = on ? accent : limb
+            ..strokeWidth = on ? thick * 1.15 : thick
+            ..strokeCap = StrokeCap.round
+            ..style = PaintingStyle.stroke;
       canvas.drawLine(tf(p1), tf(p2), paint);
     }
 

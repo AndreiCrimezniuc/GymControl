@@ -765,6 +765,10 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                 ),
               ),
             ),
+            if (s.progression.isNotEmpty) ...[
+              const SizedBox(width: 6),
+              _progressionBadge(c, s.progression),
+            ],
             const SizedBox(width: 8),
             Expanded(child: _numField(c, _wc(s), s.done, units.label)),
             const SizedBox(width: 8),
@@ -789,6 +793,26 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  // Compact tag on a set row indicating a non-weight progression.
+  Widget _progressionBadge(AppColors c, String progression) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      decoration: BoxDecoration(
+        color: c.accent.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(7),
+      ),
+      child: Text(
+        _progressionBadges[progression] ?? '',
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          color: c.accent,
+          fontFamily: 'Rubik',
         ),
       ),
     );
@@ -862,6 +886,21 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     'working': 'Counts toward volume & PRs',
     'failure': 'Taken to muscular failure',
   };
+  static const _progressionNames = {
+    'weight': 'Heavier weight',
+    'amplitude': 'Greater amplitude',
+    'efficiency': 'Better efficiency',
+    'meo': 'MEO / myo-rep set',
+    'dropset': 'Drop set',
+  };
+  // Short badge shown on a set row once progress has been tagged.
+  static const _progressionBadges = {
+    'weight': 'WT',
+    'amplitude': 'AMP',
+    'efficiency': 'EFF',
+    'meo': 'MEO',
+    'dropset': 'DROP',
+  };
 
   void _pickSetType(WorkoutSessionController session, SessionSet s) {
     HapticFeedback.selectionClick();
@@ -907,6 +946,62 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                     ],
                   ),
                 ),
+              CupertinoActionSheetAction(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  _pickProgression(session, s);
+                },
+                child: Text(
+                  s.progression.isEmpty
+                      ? 'Progression tag…'
+                      : 'Progression: ${_progressionNames[s.progression]}',
+                ),
+              ),
+            ],
+            cancelButton: CupertinoActionSheetAction(
+              isDefaultAction: true,
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancel'),
+            ),
+          ),
+    );
+  }
+
+  // Tag how the set progressed (amplitude, efficiency, MEO/drop-set, …) beyond
+  // just adding load — issue #4.
+  void _pickProgression(WorkoutSessionController session, SessionSet s) {
+    HapticFeedback.selectionClick();
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder:
+          (ctx) => CupertinoActionSheet(
+            title: const Text('How did this set progress?'),
+            actions: [
+              for (final p in progressionTypes)
+                CupertinoActionSheetAction(
+                  onPressed: () {
+                    session.setProgression(s, p);
+                    Navigator.of(ctx).pop();
+                  },
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (s.progression == p) ...[
+                        const Icon(CupertinoIcons.check_mark, size: 18),
+                        const SizedBox(width: 6),
+                      ],
+                      Text(_progressionNames[p]!),
+                    ],
+                  ),
+                ),
+              CupertinoActionSheetAction(
+                isDestructiveAction: true,
+                onPressed: () {
+                  session.setProgression(s, '');
+                  Navigator.of(ctx).pop();
+                },
+                child: const Text('No progression tag'),
+              ),
             ],
             cancelButton: CupertinoActionSheetAction(
               isDefaultAction: true,

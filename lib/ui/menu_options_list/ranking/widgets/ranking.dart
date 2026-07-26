@@ -120,11 +120,12 @@ class _RankingState extends State<Ranking> {
   Widget build(BuildContext context) {
     return AppPage(
       title: 'Rank',
-      body: _loading
-          ? const Center(child: CupertinoActivityIndicator())
-          : _error != null
-          ? _ErrorView(error: _error!, onRetry: _load)
-          : _RankContent(ranks: _ranks!, repo: _repo, onRefresh: _load),
+      body:
+          _loading
+              ? const Center(child: CupertinoActivityIndicator())
+              : _error != null
+              ? _ErrorView(error: _error!, onRetry: _load)
+              : _RankContent(ranks: _ranks!, repo: _repo, onRefresh: _load),
     );
   }
 }
@@ -296,30 +297,32 @@ class _BigRankBadge extends StatelessWidget {
         ],
       ),
       child: Center(
-        child: isSS
-            ? ShaderMask(
-                shaderCallback: (bounds) => const LinearGradient(
-                  colors: [Color(0xFF7C3AED), Color(0xFF3B82F6)],
-                ).createShader(bounds),
-                child: Text(
+        child:
+            isSS
+                ? ShaderMask(
+                  shaderCallback:
+                      (bounds) => const LinearGradient(
+                        colors: [Color(0xFF7C3AED), Color(0xFF3B82F6)],
+                      ).createShader(bounds),
+                  child: Text(
+                    rank,
+                    style: const TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w900,
+                      color: CupertinoColors.white,
+                      fontFamily: 'Rubik',
+                    ),
+                  ),
+                )
+                : Text(
                   rank,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.w900,
-                    color: CupertinoColors.white,
+                    color: color,
                     fontFamily: 'Rubik',
                   ),
                 ),
-              )
-            : Text(
-                rank,
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w900,
-                  color: color,
-                  fontFamily: 'Rubik',
-                ),
-              ),
       ),
     );
   }
@@ -375,19 +378,20 @@ class _OverallProgressBar extends StatelessWidget {
         const SizedBox(height: 6),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: _order
-              .map(
-                (r) => Text(
-                  r,
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontFamily: 'Rubik',
-                    fontWeight: FontWeight.w600,
-                    color: r == rank ? _rankColor(r) : c.textSecondary,
-                  ),
-                ),
-              )
-              .toList(),
+          children:
+              _order
+                  .map(
+                    (r) => Text(
+                      r,
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontFamily: 'Rubik',
+                        fontWeight: FontWeight.w600,
+                        color: r == rank ? _rankColor(r) : c.textSecondary,
+                      ),
+                    ),
+                  )
+                  .toList(),
         ),
         const SizedBox(height: 4),
         if (rank != 'SS')
@@ -415,9 +419,10 @@ class _ExerciseCard extends StatelessWidget {
     final c = context.colors;
     final color = _rankColor(er.rank);
     final fill = (er.percentile / 100).clamp(0.0, 1.0);
-    final toNext = er.rank != 'SS'
-        ? '${(_nextThreshold(er.rank) - er.percentile).toStringAsFixed(1)}% to ${_nextRank(er.rank)}'
-        : '🏆 Max rank!';
+    final toNext =
+        er.rank != 'SS'
+            ? '${(_nextThreshold(er.rank) - er.percentile).toStringAsFixed(1)}% to ${_nextRank(er.rank)}'
+            : '🏆 Max rank!';
 
     return Container(
       decoration: BoxDecoration(
@@ -685,8 +690,8 @@ class _RecordLiftButton extends StatelessWidget {
     final c = context.colors;
     return CupertinoButton(
       padding: EdgeInsets.zero,
-      onPressed: () =>
-          _showRecordLiftSheet(context, repo: repo, onDone: onDone),
+      onPressed:
+          () => _showRecordLiftSheet(context, repo: repo, onDone: onDone),
       child: Container(
         height: 52,
         decoration: BoxDecoration(
@@ -849,20 +854,21 @@ class _RecordLiftSheetState extends State<_RecordLiftSheet> {
                 initialItem: _exIdx,
               ),
               onSelectedItemChanged: (i) => setState(() => _exIdx = i),
-              children: _kExercises
-                  .map(
-                    (e) => Center(
-                      child: Text(
-                        e.$2,
-                        style: TextStyle(
-                          color: c.textPrimary,
-                          fontSize: 14,
-                          fontFamily: 'Rubik',
+              children:
+                  _kExercises
+                      .map(
+                        (e) => Center(
+                          child: Text(
+                            e.$2,
+                            style: TextStyle(
+                              color: c.textPrimary,
+                              fontSize: 14,
+                              fontFamily: 'Rubik',
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                  )
-                  .toList(),
+                      )
+                      .toList(),
             ).frame(height: 120),
           ),
           const SizedBox(height: 14),
@@ -930,17 +936,18 @@ class _RecordLiftSheetState extends State<_RecordLiftSheet> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
-                  child: _saving
-                      ? const CupertinoActivityIndicator()
-                      : Text(
-                          'Save PR',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: c.textOnAccent,
-                            fontFamily: 'Rubik',
+                  child:
+                      _saving
+                          ? const CupertinoActivityIndicator()
+                          : Text(
+                            'Save PR',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: c.textOnAccent,
+                              fontFamily: 'Rubik',
+                            ),
                           ),
-                        ),
                 ),
               ),
             ),
@@ -989,9 +996,10 @@ class _SheetFieldState extends State<_SheetField> {
     return CupertinoTextField(
       controller: widget.controller,
       placeholder: widget.placeholder,
-      keyboardType: widget.isDecimal
-          ? const TextInputType.numberWithOptions(decimal: true)
-          : TextInputType.number,
+      keyboardType:
+          widget.isDecimal
+              ? const TextInputType.numberWithOptions(decimal: true)
+              : TextInputType.number,
       style: TextStyle(color: c.textPrimary, fontSize: 15, fontFamily: 'Rubik'),
       placeholderStyle: TextStyle(color: c.textSecondary, fontSize: 15),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -1016,12 +1024,13 @@ void _showWeightSheet(
 }) {
   showCupertinoModalPopup<void>(
     context: context,
-    builder: (_) => _WeightSheet(
-      repo: repo,
-      onDone: onDone,
-      initialWeight: initialWeight,
-      initialHeight: initialHeight,
-    ),
+    builder:
+        (_) => _WeightSheet(
+          repo: repo,
+          onDone: onDone,
+          initialWeight: initialWeight,
+          initialHeight: initialHeight,
+        ),
   );
 }
 
@@ -1050,14 +1059,16 @@ class _WeightSheetState extends State<_WeightSheet> {
   void initState() {
     super.initState();
     _weightCtrl = TextEditingController(
-      text: widget.initialWeight != null
-          ? widget.initialWeight!.toStringAsFixed(1)
-          : '',
+      text:
+          widget.initialWeight != null
+              ? widget.initialWeight!.toStringAsFixed(1)
+              : '',
     );
     _heightCtrl = TextEditingController(
-      text: widget.initialHeight != null
-          ? widget.initialHeight!.toStringAsFixed(0)
-          : '',
+      text:
+          widget.initialHeight != null
+              ? widget.initialHeight!.toStringAsFixed(0)
+              : '',
     );
   }
 
@@ -1170,17 +1181,18 @@ class _WeightSheetState extends State<_WeightSheet> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
-                  child: _saving
-                      ? const CupertinoActivityIndicator()
-                      : Text(
-                          'Save',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: c.textOnAccent,
-                            fontFamily: 'Rubik',
+                  child:
+                      _saving
+                          ? const CupertinoActivityIndicator()
+                          : Text(
+                            'Save',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: c.textOnAccent,
+                              fontFamily: 'Rubik',
+                            ),
                           ),
-                        ),
                 ),
               ),
             ),

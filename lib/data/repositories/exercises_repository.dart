@@ -80,6 +80,7 @@ class ExercisesRepository {
     required double weightKg,
     required int reps,
     String setType = 'working',
+    String progression = '',
   }) async {
     final operationId = _uuid.v4();
     final args = {
@@ -87,6 +88,7 @@ class ExercisesRepository {
       'weight_kg': weightKg,
       'reps': reps,
       'set_type': setType,
+      'progression': progression,
       'operation_id': operationId,
     };
     if (await ConnectivityService.instance.isOnline()) {
@@ -184,6 +186,7 @@ class ExercisesRepository {
           'weight_kg': args['weight_kg'],
           'reps': args['reps'],
           'set_type': args['set_type'],
+          'progression': args['progression'] ?? '',
           'operation_id': args['operation_id'],
         }),
       )

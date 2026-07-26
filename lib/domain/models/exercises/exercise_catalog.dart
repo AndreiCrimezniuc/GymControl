@@ -88,11 +88,13 @@ class ExerciseStats {
     maxVolumeKg: (j['max_volume_kg'] as num?)?.toDouble() ?? 0,
     loveCoefficient: (j['love_coefficient'] as num?)?.toDouble() ?? 0,
     rank: j['rank'] as String?,
-    progression: ((j['progression'] as List?) ?? [])
-        .map(
-          (e) => ExerciseProgressionPoint.fromJson(e as Map<String, dynamic>),
-        )
-        .toList(),
+    progression:
+        ((j['progression'] as List?) ?? [])
+            .map(
+              (e) =>
+                  ExerciseProgressionPoint.fromJson(e as Map<String, dynamic>),
+            )
+            .toList(),
   );
 
   bool get hasData => totalSets > 0;

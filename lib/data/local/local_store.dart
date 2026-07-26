@@ -44,9 +44,10 @@ class LocalStore {
 
   Future<void> setScope(String userID, {bool migrateLegacy = true}) async {
     final normalized = userID.trim();
-    final next = normalized.isEmpty || normalized == 'anonymous'
-        ? 'anonymous'
-        : 'user:$normalized';
+    final next =
+        normalized.isEmpty || normalized == 'anonymous'
+            ? 'anonymous'
+            : 'user:$normalized';
     if (_scope == next) return;
     _scope = next;
     if (!migrateLegacy) return;
@@ -56,10 +57,8 @@ class LocalStore {
   }
 
   Future<void> _migrateLegacyBox(Box<String> box) async {
-    final keys = box.keys
-        .cast<String>()
-        .where((key) => !key.contains('|'))
-        .toList();
+    final keys =
+        box.keys.cast<String>().where((key) => !key.contains('|')).toList();
     for (final key in keys) {
       if (!box.containsKey(_scoped(key))) {
         await box.put(_scoped(key), box.get(key)!);
@@ -125,12 +124,15 @@ class LocalStore {
 
   /// Pending mutations in application (seq) order.
   List<Mutation> pending() {
-    final list = _outbox.keys
-        .cast<String>()
-        .where((key) => key.startsWith(_prefix))
-        .map((key) => _outbox.get(key)!)
-        .map((s) => Mutation.fromJson(jsonDecode(s) as Map<String, dynamic>))
-        .toList();
+    final list =
+        _outbox.keys
+            .cast<String>()
+            .where((key) => key.startsWith(_prefix))
+            .map((key) => _outbox.get(key)!)
+            .map(
+              (s) => Mutation.fromJson(jsonDecode(s) as Map<String, dynamic>),
+            )
+            .toList();
     list.sort((a, b) => a.seq.compareTo(b.seq));
     return list;
   }

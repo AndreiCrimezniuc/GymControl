@@ -70,4 +70,39 @@ void main() {
       expect(s.type, 'working');
     });
   });
+
+  group('set progression tag', () {
+    test('progressionTypes lists the supported annotations', () {
+      expect(progressionTypes, [
+        'weight',
+        'amplitude',
+        'efficiency',
+        'meo',
+        'dropset',
+      ]);
+    });
+
+    test('setProgression applies a valid tag and can clear it', () {
+      final c = WorkoutSessionController();
+      final s = _set();
+      c.setProgression(s, 'amplitude');
+      expect(s.progression, 'amplitude');
+      c.setProgression(s, ''); // clear
+      expect(s.progression, '');
+    });
+
+    test('setProgression ignores unknown values', () {
+      final c = WorkoutSessionController();
+      final s = _set();
+      c.setProgression(s, 'telekinesis');
+      expect(s.progression, '');
+    });
+
+    test('setProgression is a no-op once the set is logged', () {
+      final c = WorkoutSessionController();
+      final s = _set(done: true);
+      c.setProgression(s, 'meo');
+      expect(s.progression, '');
+    });
+  });
 }

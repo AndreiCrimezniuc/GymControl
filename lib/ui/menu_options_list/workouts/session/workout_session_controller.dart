@@ -16,6 +16,7 @@ class SessionSet {
   String weight; // in the display unit
   String reps;
   String type; // warmup | working | failure
+  String progression; // '' | weight | amplitude | efficiency | meo | dropset
   bool done;
 
   SessionSet({
@@ -26,11 +27,21 @@ class SessionSet {
     required this.weight,
     required this.reps,
     this.type = 'working',
+    this.progression = '',
     this.done = false,
   });
 }
 
 const setTypes = ['warmup', 'working', 'failure'];
+
+/// Ways a set can progress beyond simply adding load. Empty = none.
+const progressionTypes = [
+  'weight',
+  'amplitude',
+  'efficiency',
+  'meo',
+  'dropset',
+];
 
 class SessionExercise {
   final int exerciseId;
@@ -225,7 +236,13 @@ class WorkoutSessionController extends ChangeNotifier {
     }
     notifyListeners();
     _exercises
-        .logSet(s.exerciseId, weightKg: w, reps: r, setType: s.type)
+        .logSet(
+          s.exerciseId,
+          weightKg: w,
+          reps: r,
+          setType: s.type,
+          progression: s.progression,
+        )
         .catchError((_) {});
     _startRest(s.restSeconds);
   }
@@ -243,6 +260,17 @@ class WorkoutSessionController extends ChangeNotifier {
   void setSetType(SessionSet s, String type) {
     if (s.done || !setTypes.contains(type) || s.type == type) return;
     s.type = type;
+    notifyListeners();
+  }
+
+  /// Tag (or clear, with '') how a set progressed. No-op once logged.
+  void setProgression(SessionSet s, String progression) {
+    if (s.done) return;
+    if (progression.isNotEmpty && !progressionTypes.contains(progression)) {
+      return;
+    }
+    if (s.progression == progression) return;
+    s.progression = progression;
     notifyListeners();
   }
 

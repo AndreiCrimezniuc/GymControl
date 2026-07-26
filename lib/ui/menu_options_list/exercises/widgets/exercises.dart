@@ -79,18 +79,20 @@ class _ExercisesState extends State<Exercises> {
     return ['All', ...s];
   }
 
-  List<ExerciseCatalogItem> get _filtered => _all.where((e) {
-    final mg = _group == 'All' || e.muscleGroup == _group;
-    final q =
-        _query.isEmpty || e.name.toLowerCase().contains(_query.toLowerCase());
-    return mg && q;
-  }).toList();
+  List<ExerciseCatalogItem> get _filtered =>
+      _all.where((e) {
+        final mg = _group == 'All' || e.muscleGroup == _group;
+        final q =
+            _query.isEmpty ||
+            e.name.toLowerCase().contains(_query.toLowerCase());
+        return mg && q;
+      }).toList();
 
   void _openCreate() {
     showCupertinoModalPopup<void>(
       context: context,
-      builder: (_) =>
-          _CreateExerciseSheet(repo: _repo, onCreated: (_) => _load()),
+      builder:
+          (_) => _CreateExerciseSheet(repo: _repo, onCreated: (_) => _load()),
     );
   }
 
@@ -106,11 +108,12 @@ class _ExercisesState extends State<Exercises> {
           child: Icon(CupertinoIcons.add_circled, size: 24, color: c.accent),
         ),
       ],
-      body: _loading
-          ? const SkeletonList()
-          : _error != null
-          ? _ErrorView(error: _error!, onRetry: _load)
-          : _buildList(c),
+      body:
+          _loading
+              ? const SkeletonList()
+              : _error != null
+              ? _ErrorView(error: _error!, onRetry: _load)
+              : _buildList(c),
     );
   }
 
@@ -194,8 +197,9 @@ class _ExercisesState extends State<Exercises> {
                   sliver: SliverList.separated(
                     itemCount: filtered.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder: (_, i) =>
-                        _ExerciseTile(entry: filtered[i], repo: _repo),
+                    itemBuilder:
+                        (_, i) =>
+                            _ExerciseTile(entry: filtered[i], repo: _repo),
                   ),
                 ),
             ],
@@ -215,11 +219,12 @@ class _ExerciseTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return GestureDetector(
-      onTap: () => Navigator.of(context, rootNavigator: true).push(
-        CupertinoPageRoute(
-          builder: (_) => ExerciseDetailScreen(entry: entry, repo: repo),
-        ),
-      ),
+      onTap:
+          () => Navigator.of(context, rootNavigator: true).push(
+            CupertinoPageRoute(
+              builder: (_) => ExerciseDetailScreen(entry: entry, repo: repo),
+            ),
+          ),
       child: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
@@ -299,19 +304,21 @@ class _Thumb extends StatelessWidget {
         width: size,
         height: size,
         color: c.iconBg,
-        child: url.isEmpty
-            ? Icon(CupertinoIcons.photo, color: c.textSecondary, size: 20)
-            : NetImage(
-                url: url,
-                fit: BoxFit.cover,
-                width: size,
-                height: size,
-                fallback: (_) => Icon(
-                  CupertinoIcons.photo,
-                  color: c.textSecondary,
-                  size: 20,
+        child:
+            url.isEmpty
+                ? Icon(CupertinoIcons.photo, color: c.textSecondary, size: 20)
+                : NetImage(
+                  url: url,
+                  fit: BoxFit.cover,
+                  width: size,
+                  height: size,
+                  fallback:
+                      (_) => Icon(
+                        CupertinoIcons.photo,
+                        color: c.textSecondary,
+                        size: 20,
+                      ),
                 ),
-              ),
       ),
     );
   }
@@ -359,11 +366,12 @@ class ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
   void _logSet() {
     showCupertinoModalPopup<void>(
       context: context,
-      builder: (_) => _LogSetSheet(
-        repo: widget.repo,
-        exerciseId: widget.entry.id,
-        onLogged: _loadStats,
-      ),
+      builder:
+          (_) => _LogSetSheet(
+            repo: widget.repo,
+            exerciseId: widget.entry.id,
+            onLogged: _loadStats,
+          ),
     );
   }
 
@@ -676,9 +684,8 @@ class _ProgressionChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final data = points.length > 12
-        ? points.sublist(points.length - 12)
-        : points;
+    final data =
+        points.length > 12 ? points.sublist(points.length - 12) : points;
     final maxW = data
         .map((e) => e.topWeightKg)
         .fold<double>(1, (a, b) => a > b ? a : b);
@@ -693,35 +700,36 @@ class _ProgressionChart extends StatelessWidget {
         height: 90,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.end,
-          children: data.map((p) {
-            final h = (p.topWeightKg / maxW * 70).clamp(4.0, 70.0);
-            return Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 3),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      p.topWeightKg.toStringAsFixed(0),
-                      style: TextStyle(
-                        fontSize: 8,
-                        color: c.textSecondary,
-                        fontFamily: 'Rubik',
-                      ),
+          children:
+              data.map((p) {
+                final h = (p.topWeightKg / maxW * 70).clamp(4.0, 70.0);
+                return Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 3),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          p.topWeightKg.toStringAsFixed(0),
+                          style: TextStyle(
+                            fontSize: 8,
+                            color: c.textSecondary,
+                            fontFamily: 'Rubik',
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Container(
+                          height: h,
+                          decoration: BoxDecoration(
+                            color: c.accent,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 3),
-                    Container(
-                      height: h,
-                      decoration: BoxDecoration(
-                        color: c.accent,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }).toList(),
+                  ),
+                );
+              }).toList(),
         ),
       ),
     );
@@ -932,17 +940,18 @@ class _LogSetSheetState extends State<_LogSetSheet> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
-                  child: _saving
-                      ? const CupertinoActivityIndicator()
-                      : Text(
-                          'Save',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: c.textOnAccent,
-                            fontFamily: 'Rubik',
+                  child:
+                      _saving
+                          ? const CupertinoActivityIndicator()
+                          : Text(
+                            'Save',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: c.textOnAccent,
+                              fontFamily: 'Rubik',
+                            ),
                           ),
-                        ),
                 ),
               ),
             ),
@@ -1072,31 +1081,32 @@ class _CreateExerciseSheetState extends State<_CreateExerciseSheet> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: _muscleGroups.map((g) {
-              final active = g == _group;
-              return GestureDetector(
-                onTap: () => setState(() => _group = g),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 7,
-                  ),
-                  decoration: BoxDecoration(
-                    color: active ? c.accent : c.iconBg,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    g,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: active ? c.textOnAccent : c.textSecondary,
-                      fontFamily: 'Rubik',
+            children:
+                _muscleGroups.map((g) {
+                  final active = g == _group;
+                  return GestureDetector(
+                    onTap: () => setState(() => _group = g),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 7,
+                      ),
+                      decoration: BoxDecoration(
+                        color: active ? c.accent : c.iconBg,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        g,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: active ? c.textOnAccent : c.textSecondary,
+                          fontFamily: 'Rubik',
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              );
-            }).toList(),
+                  );
+                }).toList(),
           ),
           const SizedBox(height: 12),
           _Field(
@@ -1140,17 +1150,18 @@ class _CreateExerciseSheetState extends State<_CreateExerciseSheet> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
-                  child: _saving
-                      ? const CupertinoActivityIndicator()
-                      : Text(
-                          'Create',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: c.textOnAccent,
-                            fontFamily: 'Rubik',
+                  child:
+                      _saving
+                          ? const CupertinoActivityIndicator()
+                          : Text(
+                            'Create',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: c.textOnAccent,
+                              fontFamily: 'Rubik',
+                            ),
                           ),
-                        ),
                 ),
               ),
             ),
@@ -1199,9 +1210,10 @@ class _Field extends StatelessWidget {
           placeholder: placeholder,
           maxLines: maxLines,
           onChanged: onChanged,
-          keyboardType: numeric
-              ? TextInputType.numberWithOptions(decimal: decimal)
-              : TextInputType.text,
+          keyboardType:
+              numeric
+                  ? TextInputType.numberWithOptions(decimal: decimal)
+                  : TextInputType.text,
           style: TextStyle(
             color: c.textPrimary,
             fontSize: 15,

@@ -60,9 +60,10 @@ class WorkoutExercise {
     muscleGroup: (j['muscle_group'] as String?) ?? '',
     restSeconds: (j['rest_seconds'] as num?)?.toInt() ?? 90,
     comment: (j['comment'] as String?) ?? '',
-    sets: ((j['sets'] as List?) ?? [])
-        .map((e) => WorkoutSet.fromJson(e as Map<String, dynamic>))
-        .toList(),
+    sets:
+        ((j['sets'] as List?) ?? [])
+            .map((e) => WorkoutSet.fromJson(e as Map<String, dynamic>))
+            .toList(),
   );
 
   Map<String, dynamic> toJson() => {
@@ -129,9 +130,10 @@ class Workout {
     exerciseCount: (j['exercise_count'] as num?)?.toInt() ?? 0,
     timesPerformed: (j['times_performed'] as num?)?.toInt() ?? 0,
     loveCoefficient: (j['love_coefficient'] as num?)?.toDouble() ?? 0,
-    exercises: ((j['exercises'] as List?) ?? [])
-        .map((e) => WorkoutExercise.fromJson(e as Map<String, dynamic>))
-        .toList(),
+    exercises:
+        ((j['exercises'] as List?) ?? [])
+            .map((e) => WorkoutExercise.fromJson(e as Map<String, dynamic>))
+            .toList(),
   );
 
   /// Distinct muscle groups across the workout's exercises, for card chips.
@@ -162,16 +164,20 @@ class PerformedSetLog {
   final double weightKg;
   final int reps;
   final String setType;
+  final String
+  progression; // '' | weight | amplitude | efficiency | meo | dropset
   const PerformedSetLog({
     required this.weightKg,
     required this.reps,
     required this.setType,
+    this.progression = '',
   });
 
   factory PerformedSetLog.fromJson(Map<String, dynamic> j) => PerformedSetLog(
     weightKg: (j['weight_kg'] as num?)?.toDouble() ?? 0,
     reps: (j['reps'] as num?)?.toInt() ?? 0,
     setType: (j['set_type'] as String?) ?? 'working',
+    progression: (j['progression'] as String?) ?? '',
   );
 }
 
@@ -192,9 +198,10 @@ class PerformedExerciseLog {
         exerciseId: (j['exercise_id'] as num?)?.toInt() ?? 0,
         name: (j['name'] as String?) ?? '',
         muscleGroup: (j['muscle_group'] as String?) ?? '',
-        sets: ((j['sets'] as List?) ?? [])
-            .map((e) => PerformedSetLog.fromJson(e as Map<String, dynamic>))
-            .toList(),
+        sets:
+            ((j['sets'] as List?) ?? [])
+                .map((e) => PerformedSetLog.fromJson(e as Map<String, dynamic>))
+                .toList(),
       );
 
   double get volumeKg => sets
@@ -227,9 +234,10 @@ class WorkoutStats {
         'medium': (pv['medium'] as num?)?.toDouble() ?? 0,
         'hard': (pv['hard'] as num?)?.toDouble() ?? 0,
       },
-      history: ((j['history'] as List?) ?? [])
-          .map((e) => WorkoutRunPoint.fromJson(e as Map<String, dynamic>))
-          .toList(),
+      history:
+          ((j['history'] as List?) ?? [])
+              .map((e) => WorkoutRunPoint.fromJson(e as Map<String, dynamic>))
+              .toList(),
     );
   }
 }

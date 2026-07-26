@@ -891,6 +891,17 @@ class _RunDetailScreenState extends State<_RunDetailScreen> {
                   final warm = s.setType == 'warmup';
                   final fail = s.setType == 'failure';
                   final prefix = warm ? 'W ' : (fail ? 'F ' : '');
+                  const progLabels = {
+                    'weight': 'WT',
+                    'amplitude': 'AMP',
+                    'efficiency': 'EFF',
+                    'meo': 'MEO',
+                    'dropset': 'DROP',
+                  };
+                  final progSuffix =
+                      progLabels[s.progression] != null
+                          ? '  · ${progLabels[s.progression]}'
+                          : '';
                   return Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
@@ -906,7 +917,7 @@ class _RunDetailScreenState extends State<_RunDetailScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      '$prefix${units.format(s.weightKg)}${units.label} × ${s.reps}',
+                      '$prefix${units.format(s.weightKg)}${units.label} × ${s.reps}$progSuffix',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,

@@ -76,9 +76,10 @@ class UserRanks {
 
   factory UserRanks.fromJson(Map<String, dynamic> j) => UserRanks(
     profile: RankProfile.fromJson(j['profile'] as Map<String, dynamic>),
-    exerciseRanks: (j['exercise_ranks'] as List<dynamic>)
-        .map((e) => ExerciseRank.fromJson(e as Map<String, dynamic>))
-        .toList(),
+    exerciseRanks:
+        (j['exercise_ranks'] as List<dynamic>)
+            .map((e) => ExerciseRank.fromJson(e as Map<String, dynamic>))
+            .toList(),
     overallRank: j['overall_rank'] as String?,
     overallPct: (j['overall_pct'] as num?)?.toDouble(),
   );
