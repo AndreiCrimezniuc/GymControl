@@ -8,7 +8,7 @@ import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/units/units_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
-import 'package:gymboss/ui/menu_options_list/exercises/widgets/muscle_illustration.dart';
+import 'package:gymboss/ui/menu_options_list/workouts/widgets/exercise_picker.dart';
 
 const _diffs = ['easy', 'medium', 'hard'];
 const _diffLabels = {'easy': 'Easy', 'medium': 'Medium', 'hard': 'Hard'};
@@ -61,12 +61,14 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
   }
 
   Future<void> _addExercise() async {
-    final picked = await Navigator.of(context, rootNavigator: true)
-        .push<ExerciseCatalogItem>(
-          CupertinoPageRoute(
-            builder: (_) => _ExercisePicker(repo: widget.exercises),
-          ),
-        );
+    final picked = await Navigator.of(
+      context,
+      rootNavigator: true,
+    ).push<ExerciseCatalogItem>(
+      CupertinoPageRoute(
+        builder: (_) => ExercisePicker(repo: widget.exercises),
+      ),
+    );
     if (picked != null) {
       setState(() => _exercises.add(_EditExercise.blank(picked)));
     }
@@ -236,20 +238,21 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
                   color: _saving ? c.iconBg : c.accent,
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: _saving
-                    ? const CupertinoActivityIndicator()
-                    : Text(
-                        widget.existing != null
-                            ? 'SAVE CHANGES'
-                            : 'CREATE WORKOUT',
-                        style: TextStyle(
-                          fontFamily: 'Rubik',
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1.2,
-                          color: c.textOnAccent,
+                child:
+                    _saving
+                        ? const CupertinoActivityIndicator()
+                        : Text(
+                          widget.existing != null
+                              ? 'SAVE CHANGES'
+                              : 'CREATE WORKOUT',
+                          style: TextStyle(
+                            fontFamily: 'Rubik',
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.2,
+                            color: c.textOnAccent,
+                          ),
                         ),
-                      ),
               ),
             ),
           ),
@@ -582,140 +585,5 @@ class _EditExercise {
     for (final c in reps.values) {
       c.dispose();
     }
-  }
-}
-
-// ── Exercise picker ─────────────────────────────────────────────────────────
-
-class _ExercisePicker extends StatefulWidget {
-  final ExercisesRepository repo;
-  const _ExercisePicker({required this.repo});
-
-  @override
-  State<_ExercisePicker> createState() => _ExercisePickerState();
-}
-
-class _ExercisePickerState extends State<_ExercisePicker> {
-  bool _loading = true;
-  List<ExerciseCatalogItem> _all = [];
-  String _query = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    try {
-      final items = await widget.repo.getCatalog();
-      if (mounted) {
-        setState(() {
-          _all = items;
-          _loading = false;
-        });
-      }
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    final filtered = _query.isEmpty
-        ? _all
-        : _all
-              .where((e) => e.name.toLowerCase().contains(_query.toLowerCase()))
-              .toList();
-    return AppPage(
-      title: 'Pick exercise',
-      body: _loading
-          ? const Center(child: CupertinoActivityIndicator())
-          : Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 10),
-                  child: CupertinoSearchTextField(
-                    placeholder: 'Search ${_all.length} exercises',
-                    backgroundColor: c.card,
-                    style: TextStyle(color: c.textPrimary, fontFamily: 'Rubik'),
-                    onChanged: (v) => setState(() => _query = v),
-                  ),
-                ),
-                Expanded(
-                  child: ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-                    itemCount: filtered.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder: (_, i) {
-                      final e = filtered[i];
-                      return GestureDetector(
-                        onTap: () => Navigator.of(context).pop(e),
-                        child: Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: c.card,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: c.border),
-                          ),
-                          child: Row(
-                            children: [
-                              SizedBox(
-                                width: 44,
-                                height: 44,
-                                child: ExerciseVisual(
-                                  name: e.name,
-                                  muscleGroup: e.muscleGroup,
-                                  equipment: e.equipment,
-                                  category: e.category,
-                                  imageUrl: e.imageUrl,
-                                  imageUrl2: e.imageUrl2,
-                                  radius: 10,
-                                  figurePadding: 5,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      e.name,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w700,
-                                        color: c.textPrimary,
-                                        fontFamily: 'Rubik',
-                                      ),
-                                    ),
-                                    Text(
-                                      e.muscleGroup,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: c.textSecondary,
-                                        fontFamily: 'Rubik',
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Icon(
-                                CupertinoIcons.add_circled,
-                                size: 20,
-                                color: c.accent,
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-    );
   }
 }

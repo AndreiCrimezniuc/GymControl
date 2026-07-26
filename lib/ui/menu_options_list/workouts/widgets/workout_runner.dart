@@ -7,8 +7,10 @@ import 'package:gymboss/ui/core/units/units_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_dialog.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_scaffold.dart';
 import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
+import 'package:gymboss/domain/models/exercises/exercise_catalog.dart';
 import 'package:gymboss/ui/menu_options_list/exercises/widgets/muscle_illustration.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/session/workout_session_controller.dart';
+import 'package:gymboss/ui/menu_options_list/workouts/widgets/exercise_picker.dart';
 
 const _diffLabels = {'easy': 'Easy', 'medium': 'Medium', 'hard': 'Hard'};
 
@@ -51,9 +53,79 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     super.dispose();
   }
 
+  // Lazily bind text controllers to a set so sets added mid-session get theirs.
+  TextEditingController _wc(SessionSet s) => _weight.putIfAbsent(
+    s,
+    () =>
+        TextEditingController(text: s.weight)
+          ..addListener(() => s.weight = _weight[s]!.text),
+  );
+  TextEditingController _rc(SessionSet s) => _reps.putIfAbsent(
+    s,
+    () =>
+        TextEditingController(text: s.reps)
+          ..addListener(() => s.reps = _reps[s]!.text),
+  );
+
+  void _disposeSetControllers(SessionSet s) {
+    _weight.remove(s)?.dispose();
+    _reps.remove(s)?.dispose();
+  }
+
   void _minimize() {
     context.read<WorkoutSessionController>().minimize();
     Navigator.of(context).pop();
+  }
+
+  Future<void> _addExercise(WorkoutSessionController session) async {
+    final picked = await Navigator.of(
+      context,
+      rootNavigator: true,
+    ).push<ExerciseCatalogItem>(
+      CupertinoPageRoute(
+        builder: (_) => ExercisePicker(repo: session.exercisesRepo),
+      ),
+    );
+    if (picked == null) return;
+    session.addExercise(
+      exerciseId: picked.id,
+      name: picked.name,
+      muscleGroup: picked.muscleGroup,
+      imageUrl: picked.imageUrl,
+      imageUrl2: picked.imageUrl2,
+    );
+  }
+
+  Future<void> _confirmRemoveExercise(
+    WorkoutSessionController session,
+    SessionExercise g,
+  ) async {
+    HapticFeedback.selectionClick();
+    await showCupertinoModalPopup<void>(
+      context: context,
+      builder:
+          (ctx) => CupertinoActionSheet(
+            title: Text(g.name),
+            actions: [
+              CupertinoActionSheetAction(
+                isDestructiveAction: true,
+                onPressed: () {
+                  for (final s in g.sets) {
+                    _disposeSetControllers(s);
+                  }
+                  session.removeExercise(g);
+                  Navigator.of(ctx).pop();
+                },
+                child: const Text('Remove exercise'),
+              ),
+            ],
+            cancelButton: CupertinoActionSheetAction(
+              isDefaultAction: true,
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancel'),
+            ),
+          ),
+    );
   }
 
   Future<void> _confirmQuit() async {
@@ -266,7 +338,51 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
       children: [
         for (var gi = 0; gi < s.groups.length; gi++)
           _exerciseCard(c, s, units, gi + 1, s.groups[gi]),
+        _addRowButton(
+          c,
+          CupertinoIcons.add,
+          'Add exercise',
+          () => _addExercise(s),
+        ),
       ],
+    );
+  }
+
+  // A dashed, full-width "add" affordance used for both add-set and
+  // add-exercise so the two read as the same gesture.
+  Widget _addRowButton(
+    AppColors c,
+    IconData icon,
+    String label,
+    VoidCallback onTap,
+  ) {
+    return Pressable(
+      onTap: onTap,
+      child: Container(
+        height: 46,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: c.card,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: c.border),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 17, color: c.accent),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: c.accent,
+                fontFamily: 'Rubik',
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -405,6 +521,19 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                     ),
                   ),
                 ),
+                const SizedBox(width: 4),
+                Pressable(
+                  onTap: () => _confirmRemoveExercise(session, g),
+                  child: SizedBox(
+                    width: 30,
+                    height: 34,
+                    child: Icon(
+                      CupertinoIcons.ellipsis,
+                      size: 18,
+                      color: c.textSecondary,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -415,7 +544,14 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
             child: Column(
               children: [
                 for (var i = 0; i < g.sets.length; i++)
-                  _setRow(c, session, units, i + 1, g.sets[i]),
+                  _setRow(c, session, units, g, i + 1, g.sets[i]),
+                const SizedBox(height: 4),
+                _addRowButton(
+                  c,
+                  CupertinoIcons.add,
+                  'Add set',
+                  () => session.addSet(g),
+                ),
               ],
             ),
           ),
@@ -578,63 +714,82 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     AppColors c,
     WorkoutSessionController session,
     UnitsController units,
+    SessionExercise g,
     int number,
     SessionSet s,
   ) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-      decoration: BoxDecoration(
-        color: s.done ? c.accent.withValues(alpha: 0.10) : c.iconBg,
-        borderRadius: BorderRadius.circular(12),
+    return Dismissible(
+      key: ObjectKey(s),
+      direction: DismissDirection.endToStart,
+      onDismissed: (_) {
+        _disposeSetControllers(s);
+        session.removeSet(g, s);
+      },
+      background: Container(
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.only(right: 18),
+        alignment: Alignment.centerRight,
+        decoration: BoxDecoration(
+          color: c.accent.withValues(alpha: 0.16),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(CupertinoIcons.delete, size: 20, color: c.accent),
       ),
-      child: Row(
-        children: [
-          _typeChip(c, session, s),
-          const SizedBox(width: 7),
-          Container(
-            width: 26,
-            height: 30,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: s.done ? c.accent : c.card,
-              borderRadius: BorderRadius.circular(9),
-              border: Border.all(color: s.done ? c.accent : c.border),
-            ),
-            child: Text(
-              '$number',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-                color: s.done ? c.textOnAccent : c.textSecondary,
-                fontFamily: 'Rubik',
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(child: _numField(c, _weight[s]!, s.done, units.label)),
-          const SizedBox(width: 8),
-          Expanded(child: _numField(c, _reps[s]!, s.done, 'reps')),
-          const SizedBox(width: 10),
-          Pressable(
-            onTap: () => session.toggleSet(s),
-            child: Container(
-              width: 44,
-              height: 44,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        decoration: BoxDecoration(
+          color: s.done ? c.accent.withValues(alpha: 0.10) : c.iconBg,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            _typeChip(c, session, s),
+            const SizedBox(width: 7),
+            Container(
+              width: 26,
+              height: 30,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: s.done ? c.accent : c.card,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(9),
                 border: Border.all(color: s.done ? c.accent : c.border),
               ),
-              child: Icon(
-                CupertinoIcons.check_mark,
-                size: 22,
-                color: s.done ? c.textOnAccent : c.textSecondary,
+              child: Text(
+                '$number',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: s.done ? c.textOnAccent : c.textSecondary,
+                  fontFamily: 'Rubik',
+                ),
               ),
             ),
-          ),
-        ],
+            const SizedBox(width: 8),
+            Expanded(child: _numField(c, _wc(s), s.done, units.label)),
+            const SizedBox(width: 8),
+            Expanded(child: _numField(c, _rc(s), s.done, 'reps')),
+            const SizedBox(width: 10),
+            Pressable(
+              onTap: () => session.toggleSet(s),
+              child: Container(
+                width: 44,
+                height: 44,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: s.done ? c.accent : c.card,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: s.done ? c.accent : c.border),
+                ),
+                child: Icon(
+                  CupertinoIcons.check_mark,
+                  size: 22,
+                  color: s.done ? c.textOnAccent : c.textSecondary,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

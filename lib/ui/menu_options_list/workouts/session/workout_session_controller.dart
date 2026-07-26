@@ -33,6 +33,7 @@ class SessionSet {
 const setTypes = ['warmup', 'working', 'failure'];
 
 class SessionExercise {
+  final int exerciseId;
   final String name;
   final String muscleGroup;
   final String imageUrl;
@@ -40,6 +41,7 @@ class SessionExercise {
   final int restSeconds;
   final List<SessionSet> sets;
   SessionExercise({
+    required this.exerciseId,
     required this.name,
     required this.muscleGroup,
     this.imageUrl = '',
@@ -91,6 +93,10 @@ class WorkoutSessionController extends ChangeNotifier {
 
   int get doneSets =>
       _groups.fold(0, (a, g) => a + g.sets.where((s) => s.done).length);
+
+  /// The catalog repository bound at [start]; used by the runner's live
+  /// "add exercise" picker.
+  ExercisesRepository get exercisesRepo => _exercises;
 
   /// Previous best working weight (kg) for an exercise, if loaded.
   double? prFor(int exerciseId) {
@@ -167,6 +173,7 @@ class WorkoutSessionController extends ChangeNotifier {
       if (planned.isEmpty) continue;
       out.add(
         SessionExercise(
+          exerciseId: ex.exerciseId,
           name: ex.name,
           muscleGroup: ex.muscleGroup,
           imageUrl: ex.imageUrl,
@@ -237,6 +244,90 @@ class WorkoutSessionController extends ChangeNotifier {
     if (s.done || !setTypes.contains(type) || s.type == type) return;
     s.type = type;
     notifyListeners();
+  }
+
+  // ── Live edits during a session ──────────────────────────────────────────────
+
+  /// Append a new (empty) set to an exercise, seeded from its last set.
+  void addSet(SessionExercise g) {
+    final last = g.sets.isNotEmpty ? g.sets.last : null;
+    g.sets.add(
+      SessionSet(
+        exerciseId: g.exerciseId,
+        restSeconds: g.restSeconds,
+        plannedWeightKg: last?.plannedWeightKg ?? 0,
+        plannedReps: last?.plannedReps ?? 0,
+        weight: last?.weight ?? '',
+        reps: last?.reps ?? '',
+      ),
+    );
+    _totalSets++;
+    notifyListeners();
+  }
+
+  /// Remove a set from an exercise, keeping counters and volume consistent if
+  /// it had already been checked off.
+  void removeSet(SessionExercise g, SessionSet s) {
+    if (!g.sets.remove(s)) return;
+    _totalSets--;
+    _uncount(s);
+    notifyListeners();
+  }
+
+  /// Append a fresh exercise (one empty working set) to the running session.
+  void addExercise({
+    required int exerciseId,
+    required String name,
+    required String muscleGroup,
+    String imageUrl = '',
+    String imageUrl2 = '',
+    int restSeconds = 90,
+  }) {
+    _groups.add(
+      SessionExercise(
+        exerciseId: exerciseId,
+        name: name,
+        muscleGroup: muscleGroup,
+        imageUrl: imageUrl,
+        imageUrl2: imageUrl2,
+        restSeconds: restSeconds,
+        sets: [
+          SessionSet(
+            exerciseId: exerciseId,
+            restSeconds: restSeconds,
+            plannedWeightKg: 0,
+            plannedReps: 0,
+            weight: '',
+            reps: '',
+          ),
+        ],
+      ),
+    );
+    _totalSets++;
+    stopExerciseTimer(); // card indices shifted; avoid a dangling timer panel
+    notifyListeners();
+  }
+
+  /// Remove an entire exercise and all of its sets from the session.
+  void removeExercise(SessionExercise g) {
+    if (!_groups.remove(g)) return;
+    for (final s in g.sets) {
+      _totalSets--;
+      _uncount(s);
+    }
+    stopExerciseTimer();
+    notifyListeners();
+  }
+
+  /// Roll back the logged-set/volume counters for a set being removed.
+  void _uncount(SessionSet s) {
+    if (!s.done) return;
+    _loggedSets = (_loggedSets - 1).clamp(0, 1 << 30);
+    if (s.type != 'warmup') {
+      final w = _units.toKg(double.tryParse(s.weight.trim()) ?? 0);
+      final r = int.tryParse(s.reps.trim()) ?? 0;
+      _loggedVolumeKg = (_loggedVolumeKg - w * r).clamp(0, double.infinity);
+    }
   }
 
   void _startRest(int seconds) {
