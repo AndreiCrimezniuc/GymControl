@@ -383,7 +383,9 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
+                _timerToggle(c, session, index, g),
+                const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
@@ -406,6 +408,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
               ],
             ),
           ),
+          if (session.exTimerKey == index) _exTimerPanel(c, session),
           Container(height: 1, color: c.border),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
@@ -417,6 +420,156 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  static String _fmtClock(int seconds) {
+    final m = (seconds ~/ 60).toString();
+    final s = (seconds % 60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
+
+  // Stopwatch button in the exercise header. Starts a per-exercise countdown
+  // (defaulting to the planned rest) or hides the panel when already shown.
+  Widget _timerToggle(
+    AppColors c,
+    WorkoutSessionController session,
+    int index,
+    SessionExercise g,
+  ) {
+    final active = session.exTimerKey == index;
+    return Pressable(
+      onTap: () {
+        if (active) {
+          session.stopExerciseTimer();
+        } else {
+          HapticFeedback.selectionClick();
+          session.startExerciseTimer(
+            index,
+            g.restSeconds > 0 ? g.restSeconds : 60,
+          );
+        }
+      },
+      child: Container(
+        width: 34,
+        height: 34,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: active ? c.accent.withValues(alpha: 0.16) : c.iconBg,
+          borderRadius: BorderRadius.circular(11),
+        ),
+        child: Icon(
+          CupertinoIcons.timer,
+          size: 19,
+          color: active ? c.accent : c.textSecondary,
+        ),
+      ),
+    );
+  }
+
+  Widget _exTimerPanel(AppColors c, WorkoutSessionController session) {
+    final left = session.exTimerLeft;
+    final total = session.exTimerTotal;
+    final running = session.exTimerRunning;
+    final progress = total == 0 ? 0.0 : (left / total).clamp(0.0, 1.0);
+    final done = left == 0;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 4, 14, 12),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Text(
+                _fmtClock(left),
+                style: TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.w800,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                  color: done ? c.accent : c.textPrimary,
+                  fontFamily: 'Rubik',
+                ),
+              ),
+              const Spacer(),
+              _timerCtl(
+                c,
+                CupertinoIcons.minus,
+                () => session.adjustExerciseTimer(-15),
+              ),
+              const SizedBox(width: 6),
+              _timerCtl(
+                c,
+                CupertinoIcons.add,
+                () => session.adjustExerciseTimer(15),
+              ),
+              const SizedBox(width: 6),
+              _timerCtl(
+                c,
+                CupertinoIcons.arrow_counterclockwise,
+                () => session.resetExerciseTimer(),
+              ),
+              const SizedBox(width: 6),
+              // primary start / pause / resume control
+              Pressable(
+                onTap: () {
+                  if (done) {
+                    session.resetExerciseTimer();
+                    session.resumeExerciseTimer();
+                  } else if (running) {
+                    session.pauseExerciseTimer();
+                  } else {
+                    session.resumeExerciseTimer();
+                  }
+                },
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: c.accent,
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                  child: Icon(
+                    running
+                        ? CupertinoIcons.pause_fill
+                        : CupertinoIcons.play_fill,
+                    size: 20,
+                    color: c.textOnAccent,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(3),
+            child: Stack(
+              children: [
+                Container(height: 4, color: c.iconBg),
+                FractionallySizedBox(
+                  widthFactor: progress,
+                  child: Container(height: 4, color: c.accent),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _timerCtl(AppColors c, IconData icon, VoidCallback onTap) {
+    return Pressable(
+      onTap: onTap,
+      child: Container(
+        width: 34,
+        height: 34,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: c.iconBg,
+          borderRadius: BorderRadius.circular(11),
+        ),
+        child: Icon(icon, size: 17, color: c.textSecondary),
       ),
     );
   }

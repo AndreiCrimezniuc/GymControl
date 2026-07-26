@@ -274,6 +274,97 @@ class WorkoutSessionController extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ── Per-exercise timer ───────────────────────────────────────────────────────
+  // An independent, user-controlled countdown attached to a single exercise
+  // card (identified by [_exTimerKey]). Unlike the rest timer it is started
+  // manually and can be paused, resumed and reset — useful for timed holds
+  // (planks, stretches) or a controllable rest.
+  Timer? _exTimer;
+  int? _exTimerKey;
+  int _exTimerLeft = 0;
+  int _exTimerTotal = 0;
+  bool _exTimerRunning = false;
+
+  int? get exTimerKey => _exTimerKey;
+  int get exTimerLeft => _exTimerLeft;
+  int get exTimerTotal => _exTimerTotal;
+  bool get exTimerRunning => _exTimerRunning;
+
+  /// Attach and start a countdown of [seconds] to the exercise card [key].
+  /// Starting on a different card moves the timer there.
+  void startExerciseTimer(int key, int seconds) {
+    final total = seconds.clamp(1, 3600);
+    _exTimerKey = key;
+    _exTimerTotal = total;
+    _exTimerLeft = total;
+    _exTimerRunning = true;
+    _tickExerciseTimer();
+    notifyListeners();
+  }
+
+  void pauseExerciseTimer() {
+    if (!_exTimerRunning) return;
+    _exTimer?.cancel();
+    _exTimerRunning = false;
+    notifyListeners();
+  }
+
+  void resumeExerciseTimer() {
+    if (_exTimerRunning || _exTimerKey == null || _exTimerLeft <= 0) return;
+    _exTimerRunning = true;
+    _tickExerciseTimer();
+    notifyListeners();
+  }
+
+  /// Reset the countdown back to its configured total (paused).
+  void resetExerciseTimer() {
+    if (_exTimerKey == null) return;
+    _exTimer?.cancel();
+    _exTimerLeft = _exTimerTotal;
+    _exTimerRunning = false;
+    notifyListeners();
+  }
+
+  /// Adjust both the running countdown and its reset target by [delta] seconds.
+  void adjustExerciseTimer(int delta) {
+    if (_exTimerKey == null) return;
+    _exTimerTotal = (_exTimerTotal + delta).clamp(1, 3600);
+    _exTimerLeft = (_exTimerLeft + delta).clamp(0, 3600);
+    notifyListeners();
+  }
+
+  /// Detach and stop the exercise timer entirely.
+  void stopExerciseTimer() {
+    _exTimer?.cancel();
+    _exTimer = null;
+    _exTimerKey = null;
+    _exTimerLeft = 0;
+    _exTimerTotal = 0;
+    _exTimerRunning = false;
+    notifyListeners();
+  }
+
+  void _tickExerciseTimer() {
+    _exTimer?.cancel();
+    _exTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (_exTimerLeft <= 1) {
+        t.cancel();
+        _exTimerLeft = 0;
+        _exTimerRunning = false;
+        _exerciseTimerDone();
+      } else {
+        _exTimerLeft--;
+        notifyListeners();
+      }
+    });
+  }
+
+  void _exerciseTimerDone() {
+    HapticFeedback.heavyImpact();
+    SystemSound.play(SystemSoundType.alert);
+    notifyListeners();
+  }
+
   Future<void> finish() async {
     _cancelTimers();
     _resting = false;
@@ -297,14 +388,20 @@ class WorkoutSessionController extends ChangeNotifier {
     _prKg.clear();
     _loggedSets = 0;
     _loggedVolumeKg = 0;
+    _exTimerKey = null;
+    _exTimerLeft = 0;
+    _exTimerTotal = 0;
+    _exTimerRunning = false;
     notifyListeners();
   }
 
   void _cancelTimers() {
     _restTimer?.cancel();
     _ticker?.cancel();
+    _exTimer?.cancel();
     _restTimer = null;
     _ticker = null;
+    _exTimer = null;
   }
 
   @override
