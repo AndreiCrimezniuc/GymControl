@@ -162,12 +162,15 @@ void main() {
   test('share returns the code and copy/import return workouts', () async {
     final client = writeClient((req) {
       final p = req.url.path;
-      if (p.endsWith('/share'))
+      if (p.endsWith('/share')) {
         return http.Response(jsonEncode({'code': 'XYZ9'}), 200);
-      if (p.endsWith('/copy'))
+      }
+      if (p.endsWith('/copy')) {
         return http.Response(workoutJson('w-copy', 'Copy'), 201);
-      if (p.endsWith('/import'))
+      }
+      if (p.endsWith('/import')) {
         return http.Response(workoutJson('w-imp', 'Imported'), 201);
+      }
       return http.Response('{}', 404);
     });
     addTearDown(client.dispose);
