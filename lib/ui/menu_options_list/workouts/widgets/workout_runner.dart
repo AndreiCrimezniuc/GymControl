@@ -78,14 +78,12 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
   }
 
   Future<void> _addExercise(WorkoutSessionController session) async {
-    final picked = await Navigator.of(
-      context,
-      rootNavigator: true,
-    ).push<ExerciseCatalogItem>(
-      CupertinoPageRoute(
-        builder: (_) => ExercisePicker(repo: session.exercisesRepo),
-      ),
-    );
+    final picked = await Navigator.of(context, rootNavigator: true)
+        .push<ExerciseCatalogItem>(
+          CupertinoPageRoute(
+            builder: (_) => ExercisePicker(repo: session.exercisesRepo),
+          ),
+        );
     if (picked == null) return;
     session.addExercise(
       exerciseId: picked.id,
@@ -103,28 +101,27 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     HapticFeedback.selectionClick();
     await showCupertinoModalPopup<void>(
       context: context,
-      builder:
-          (ctx) => CupertinoActionSheet(
-            title: Text(g.name),
-            actions: [
-              CupertinoActionSheetAction(
-                isDestructiveAction: true,
-                onPressed: () {
-                  for (final s in g.sets) {
-                    _disposeSetControllers(s);
-                  }
-                  session.removeExercise(g);
-                  Navigator.of(ctx).pop();
-                },
-                child: const Text('Remove exercise'),
-              ),
-            ],
-            cancelButton: CupertinoActionSheetAction(
-              isDefaultAction: true,
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Cancel'),
-            ),
+      builder: (ctx) => CupertinoActionSheet(
+        title: Text(g.name),
+        actions: [
+          CupertinoActionSheetAction(
+            isDestructiveAction: true,
+            onPressed: () {
+              for (final s in g.sets) {
+                _disposeSetControllers(s);
+              }
+              session.removeExercise(g);
+              Navigator.of(ctx).pop();
+            },
+            child: const Text('Remove exercise'),
           ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          isDefaultAction: true,
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: const Text('Cancel'),
+        ),
+      ),
     );
   }
 
@@ -168,64 +165,63 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
 
     return AppScaffold(
       child: SafeArea(
-        child:
-            session.isFinished
-                ? _DoneView(
-                  workoutName: session.workout?.name ?? '',
-                  difficulty: session.difficulty,
-                  sets: session.loggedSets,
-                  volumeKg: session.loggedVolumeKg,
-                  onClose: () {
-                    session.clear();
-                    Navigator.of(context).pop();
-                  },
-                )
-                : Stack(
-                  children: [
-                    Column(
-                      children: [
-                        _header(c, session),
-                        Expanded(child: _body(c, session, units)),
-                        _finishBar(c, session),
-                      ],
-                    ),
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 92,
-                      child: IgnorePointer(
-                        ignoring: !session.resting,
-                        child: AnimatedSlide(
-                          offset:
-                              session.resting
-                                  ? Offset.zero
-                                  : const Offset(0, 0.4),
-                          duration: const Duration(milliseconds: 220),
-                          curve: const Cubic(0.23, 1, 0.32, 1),
-                          child: AnimatedOpacity(
-                            opacity: session.resting ? 1 : 0,
-                            duration: const Duration(milliseconds: 200),
-                            child: Center(
-                              child: _RestPill(
-                                secondsLeft: session.restLeft,
-                                onSkip: session.skipRest,
-                                onAdd: () => session.adjustRest(15),
-                                onSub: () => session.adjustRest(-15),
-                              ),
+        child: session.isFinished
+            ? _DoneView(
+                workoutName: session.workout?.name ?? '',
+                difficulty: session.difficulty,
+                sets: session.loggedSets,
+                volumeKg: session.loggedVolumeKg,
+                onClose: () {
+                  session.clear();
+                  Navigator.of(context).pop();
+                },
+              )
+            : Stack(
+                children: [
+                  Column(
+                    children: [
+                      _header(c, session),
+                      Expanded(child: _body(c, session, units)),
+                      _finishBar(c, session),
+                    ],
+                  ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 92,
+                    child: IgnorePointer(
+                      ignoring: !session.resting,
+                      child: AnimatedSlide(
+                        offset: session.resting
+                            ? Offset.zero
+                            : const Offset(0, 0.4),
+                        duration: const Duration(milliseconds: 220),
+                        curve: const Cubic(0.23, 1, 0.32, 1),
+                        child: AnimatedOpacity(
+                          opacity: session.resting ? 1 : 0,
+                          duration: const Duration(milliseconds: 200),
+                          child: Center(
+                            child: _RestPill(
+                              secondsLeft: session.restLeft,
+                              onSkip: session.skipRest,
+                              onAdd: () => session.adjustRest(15),
+                              onSub: () => session.adjustRest(-15),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
+              ),
       ),
     );
   }
 
   Widget _header(AppColors c, WorkoutSessionController s) {
-    final progress =
-        s.totalSets == 0 ? 0.0 : (s.doneSets / s.totalSets).clamp(0.0, 1.0);
+    final progress = s.totalSets == 0
+        ? 0.0
+        : (s.doneSets / s.totalSets).clamp(0.0, 1.0);
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
       child: Column(
@@ -440,8 +436,9 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
   ) {
     final doneInEx = g.sets.where((s) => s.done).length;
     final allDone = doneInEx == g.sets.length;
-    final pr =
-        g.sets.isNotEmpty ? session.prFor(g.sets.first.exerciseId) : null;
+    final pr = g.sets.isNotEmpty
+        ? session.prFor(g.sets.first.exerciseId)
+        : null;
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
@@ -906,64 +903,62 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     HapticFeedback.selectionClick();
     showCupertinoModalPopup<void>(
       context: context,
-      builder:
-          (ctx) => CupertinoActionSheet(
-            title: const Text('Set type'),
-            actions: [
-              for (final t in setTypes)
-                CupertinoActionSheetAction(
-                  onPressed: () {
-                    session.setSetType(s, t);
-                    Navigator.of(ctx).pop();
-                  },
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+      builder: (ctx) => CupertinoActionSheet(
+        title: const Text('Set type'),
+        actions: [
+          for (final t in setTypes)
+            CupertinoActionSheetAction(
+              onPressed: () {
+                session.setSetType(s, t);
+                Navigator.of(ctx).pop();
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (s.type == t) ...[
+                    const Icon(CupertinoIcons.check_mark, size: 18),
+                    const SizedBox(width: 6),
+                  ],
+                  Column(
                     children: [
-                      if (s.type == t) ...[
-                        const Icon(CupertinoIcons.check_mark, size: 18),
-                        const SizedBox(width: 6),
-                      ],
-                      Column(
-                        children: [
-                          Text(
-                            _typeNames[t]!,
-                            style: TextStyle(
-                              fontWeight:
-                                  s.type == t
-                                      ? FontWeight.w700
-                                      : FontWeight.w500,
-                            ),
-                          ),
-                          Text(
-                            _typeDescriptions[t]!,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF8E8E93),
-                            ),
-                          ),
-                        ],
+                      Text(
+                        _typeNames[t]!,
+                        style: TextStyle(
+                          fontWeight: s.type == t
+                              ? FontWeight.w700
+                              : FontWeight.w500,
+                        ),
+                      ),
+                      Text(
+                        _typeDescriptions[t]!,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF8E8E93),
+                        ),
                       ),
                     ],
                   ),
-                ),
-              CupertinoActionSheetAction(
-                onPressed: () {
-                  Navigator.of(ctx).pop();
-                  _pickProgression(session, s);
-                },
-                child: Text(
-                  s.progression.isEmpty
-                      ? 'Progression tag…'
-                      : 'Progression: ${_progressionNames[s.progression]}',
-                ),
+                ],
               ),
-            ],
-            cancelButton: CupertinoActionSheetAction(
-              isDefaultAction: true,
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Cancel'),
+            ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              _pickProgression(session, s);
+            },
+            child: Text(
+              s.progression.isEmpty
+                  ? 'Progression tag…'
+                  : 'Progression: ${_progressionNames[s.progression]}',
             ),
           ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          isDefaultAction: true,
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: const Text('Cancel'),
+        ),
+      ),
     );
   }
 
@@ -973,42 +968,41 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     HapticFeedback.selectionClick();
     showCupertinoModalPopup<void>(
       context: context,
-      builder:
-          (ctx) => CupertinoActionSheet(
-            title: const Text('How did this set progress?'),
-            actions: [
-              for (final p in progressionTypes)
-                CupertinoActionSheetAction(
-                  onPressed: () {
-                    session.setProgression(s, p);
-                    Navigator.of(ctx).pop();
-                  },
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      if (s.progression == p) ...[
-                        const Icon(CupertinoIcons.check_mark, size: 18),
-                        const SizedBox(width: 6),
-                      ],
-                      Text(_progressionNames[p]!),
-                    ],
-                  ),
-                ),
-              CupertinoActionSheetAction(
-                isDestructiveAction: true,
-                onPressed: () {
-                  session.setProgression(s, '');
-                  Navigator.of(ctx).pop();
-                },
-                child: const Text('No progression tag'),
+      builder: (ctx) => CupertinoActionSheet(
+        title: const Text('How did this set progress?'),
+        actions: [
+          for (final p in progressionTypes)
+            CupertinoActionSheetAction(
+              onPressed: () {
+                session.setProgression(s, p);
+                Navigator.of(ctx).pop();
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (s.progression == p) ...[
+                    const Icon(CupertinoIcons.check_mark, size: 18),
+                    const SizedBox(width: 6),
+                  ],
+                  Text(_progressionNames[p]!),
+                ],
               ),
-            ],
-            cancelButton: CupertinoActionSheetAction(
-              isDefaultAction: true,
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Cancel'),
             ),
+          CupertinoActionSheetAction(
+            isDestructiveAction: true,
+            onPressed: () {
+              session.setProgression(s, '');
+              Navigator.of(ctx).pop();
+            },
+            child: const Text('No progression tag'),
           ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          isDefaultAction: true,
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: const Text('Cancel'),
+        ),
+      ),
     );
   }
 

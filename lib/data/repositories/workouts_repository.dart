@@ -523,21 +523,20 @@ class WorkoutsRepository {
     'exercise_count': exercises.length,
     'times_performed': base?['times_performed'] ?? 0,
     'love_coefficient': base?['love_coefficient'] ?? 0,
-    'exercises':
-        exercises
-            .map(
-              (e) => {
-                'exercise_id': e.exerciseId,
-                'name': e.name,
-                'image_url': e.imageUrl,
-                'image_url2': e.imageUrl2,
-                'muscle_group': e.muscleGroup,
-                'rest_seconds': e.restSeconds,
-                'comment': e.comment,
-                'sets': e.sets.map((s) => s.toJson()).toList(),
-              },
-            )
-            .toList(),
+    'exercises': exercises
+        .map(
+          (e) => {
+            'exercise_id': e.exerciseId,
+            'name': e.name,
+            'image_url': e.imageUrl,
+            'image_url2': e.imageUrl2,
+            'muscle_group': e.muscleGroup,
+            'rest_seconds': e.restSeconds,
+            'comment': e.comment,
+            'sets': e.sets.map((s) => s.toJson()).toList(),
+          },
+        )
+        .toList(),
   };
 
   static String _encode(

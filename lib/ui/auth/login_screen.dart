@@ -54,104 +54,103 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Consumer<AuthViewModel>(
-      builder:
-          (ctx, vm, _) => AppScaffold(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
+      builder: (ctx, vm, _) => AppScaffold(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            children: [
+              const SizedBox(height: 64),
+              const GymLogo(),
+              const SizedBox(height: 48),
+              AuthCard(
                 children: [
-                  const SizedBox(height: 64),
-                  const GymLogo(),
-                  const SizedBox(height: 48),
-                  AuthCard(
-                    children: [
-                      Text(
-                        'Sign In',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w700,
-                          color: ctx.colors.textPrimary,
-                          fontFamily: 'Rubik',
-                          letterSpacing: -0.2,
-                        ),
-                      ),
-                      const SizedBox(height: 28),
-                      AutofillGroup(
-                        child: Column(
-                          children: [
-                            AuthField(
-                              controller: _emailCtrl,
-                              placeholder: 'Email',
-                              icon: CupertinoIcons.envelope_fill,
-                              keyboardType: TextInputType.emailAddress,
-                              textInputAction: TextInputAction.next,
-                              autofillHints: const [AutofillHints.username],
-                              onSubmitted: (_) => _passFocus.requestFocus(),
-                            ),
-                            const SizedBox(height: 14),
-                            AuthField(
-                              controller: _passCtrl,
-                              focusNode: _passFocus,
-                              placeholder: 'Password',
-                              icon: CupertinoIcons.lock_fill,
-                              obscureText: true,
-                              textInputAction: TextInputAction.done,
-                              autofillHints: const [AutofillHints.password],
-                              onSubmitted: (_) => _submit(vm),
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (vm.errorCode != null) ...[
-                        const SizedBox(height: 12),
-                        ErrorBanner(vm.errorCode!),
-                      ],
-                      const SizedBox(height: 28),
-                      GradientButton(
-                        label: 'Sign In',
-                        loading: vm.loading,
-                        onTap: () => _submit(vm),
-                      ),
-                      const SizedBox(height: 16),
-                      SocialButton(
-                        label: 'Continue with Google',
-                        loading: vm.loading,
-                        onTap: () => vm.loginWithGoogle(),
-                        icon: const GoogleIcon(),
-                      ),
-                      const SizedBox(height: 20),
-                      _Divider(),
-                      const SizedBox(height: 16),
-                      CupertinoButton(
-                        padding: EdgeInsets.zero,
-                        onPressed: widget.onGoToRegister,
-                        child: RichText(
-                          text: TextSpan(
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontFamily: 'Rubik',
-                              color: ctx.colors.textSecondary,
-                            ),
-                            children: [
-                              const TextSpan(text: "Don't have an account? "),
-                              TextSpan(
-                                text: 'Register',
-                                style: TextStyle(
-                                  color: ctx.colors.accent,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
+                  Text(
+                    'Sign In',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: ctx.colors.textPrimary,
+                      fontFamily: 'Rubik',
+                      letterSpacing: -0.2,
+                    ),
                   ),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 28),
+                  AutofillGroup(
+                    child: Column(
+                      children: [
+                        AuthField(
+                          controller: _emailCtrl,
+                          placeholder: 'Email',
+                          icon: CupertinoIcons.envelope_fill,
+                          keyboardType: TextInputType.emailAddress,
+                          textInputAction: TextInputAction.next,
+                          autofillHints: const [AutofillHints.username],
+                          onSubmitted: (_) => _passFocus.requestFocus(),
+                        ),
+                        const SizedBox(height: 14),
+                        AuthField(
+                          controller: _passCtrl,
+                          focusNode: _passFocus,
+                          placeholder: 'Password',
+                          icon: CupertinoIcons.lock_fill,
+                          obscureText: true,
+                          textInputAction: TextInputAction.done,
+                          autofillHints: const [AutofillHints.password],
+                          onSubmitted: (_) => _submit(vm),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (vm.errorCode != null) ...[
+                    const SizedBox(height: 12),
+                    ErrorBanner(vm.errorCode!),
+                  ],
+                  const SizedBox(height: 28),
+                  GradientButton(
+                    label: 'Sign In',
+                    loading: vm.loading,
+                    onTap: () => _submit(vm),
+                  ),
+                  const SizedBox(height: 16),
+                  SocialButton(
+                    label: 'Continue with Google',
+                    loading: vm.loading,
+                    onTap: () => vm.loginWithGoogle(),
+                    icon: const GoogleIcon(),
+                  ),
+                  const SizedBox(height: 20),
+                  _Divider(),
+                  const SizedBox(height: 16),
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    onPressed: widget.onGoToRegister,
+                    child: RichText(
+                      text: TextSpan(
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontFamily: 'Rubik',
+                          color: ctx.colors.textSecondary,
+                        ),
+                        children: [
+                          const TextSpan(text: "Don't have an account? "),
+                          TextSpan(
+                            text: 'Register',
+                            style: TextStyle(
+                              color: ctx.colors.accent,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
-            ),
+              const SizedBox(height: 40),
+            ],
           ),
+        ),
+      ),
     );
   }
 }

@@ -86,40 +86,39 @@ class _GymBossAppState extends State<GymBossApp> {
             supportedLocales: LocaleController.supported,
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             home: const _AuthGate(),
-            builder:
-                (context, child) => Stack(
-                  children: [
-                    child ?? const SizedBox.shrink(),
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      child: Consumer<WorkoutSessionController>(
-                        builder: (ctx, session, __) {
-                          if (!session.isActive ||
-                              !session.isMinimized ||
-                              session.isFinished) {
-                            return const SizedBox.shrink();
-                          }
-                          return SafeArea(
-                            top: false,
-                            child: WorkoutResumeBar(
-                              session: session,
-                              onTap: () {
-                                session.resume();
-                                _navKey.currentState?.push(
-                                  CupertinoPageRoute(
-                                    builder: (_) => const WorkoutRunnerScreen(),
-                                  ),
-                                );
-                              },
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
+            builder: (context, child) => Stack(
+              children: [
+                child ?? const SizedBox.shrink(),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: Consumer<WorkoutSessionController>(
+                    builder: (ctx, session, __) {
+                      if (!session.isActive ||
+                          !session.isMinimized ||
+                          session.isFinished) {
+                        return const SizedBox.shrink();
+                      }
+                      return SafeArea(
+                        top: false,
+                        child: WorkoutResumeBar(
+                          session: session,
+                          onTap: () {
+                            session.resume();
+                            _navKey.currentState?.push(
+                              CupertinoPageRoute(
+                                builder: (_) => const WorkoutRunnerScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  ),
                 ),
+              ],
+            ),
           );
         },
       ),

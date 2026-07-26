@@ -43,107 +43,99 @@ class _ExercisePickerState extends State<ExercisePicker> {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final filtered =
-        _query.isEmpty
-            ? _all
-            : _all
-                .where(
-                  (e) => e.name.toLowerCase().contains(_query.toLowerCase()),
-                )
-                .toList();
+    final filtered = _query.isEmpty
+        ? _all
+        : _all
+              .where((e) => e.name.toLowerCase().contains(_query.toLowerCase()))
+              .toList();
     return AppPage(
       title: 'Pick exercise',
-      body:
-          _loading
-              ? const Center(child: CupertinoActivityIndicator())
-              : Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 10),
-                    child: CupertinoSearchTextField(
-                      placeholder: 'Search ${_all.length} exercises',
-                      backgroundColor: c.card,
-                      style: TextStyle(
-                        color: c.textPrimary,
-                        fontFamily: 'Rubik',
-                      ),
-                      onChanged: (v) => setState(() => _query = v),
-                    ),
+      body: _loading
+          ? const Center(child: CupertinoActivityIndicator())
+          : Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 10),
+                  child: CupertinoSearchTextField(
+                    placeholder: 'Search ${_all.length} exercises',
+                    backgroundColor: c.card,
+                    style: TextStyle(color: c.textPrimary, fontFamily: 'Rubik'),
+                    onChanged: (v) => setState(() => _query = v),
                   ),
-                  Expanded(
-                    child: ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-                      itemCount: filtered.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
-                      itemBuilder: (_, i) {
-                        final e = filtered[i];
-                        return GestureDetector(
-                          onTap: () => Navigator.of(context).pop(e),
-                          child: Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: c.card,
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: c.border),
-                            ),
-                            child: Row(
-                              children: [
-                                SizedBox(
-                                  width: 44,
-                                  height: 44,
-                                  child: ExerciseVisual(
-                                    name: e.name,
-                                    muscleGroup: e.muscleGroup,
-                                    equipment: e.equipment,
-                                    category: e.category,
-                                    imageUrl: e.imageUrl,
-                                    imageUrl2: e.imageUrl2,
-                                    radius: 10,
-                                    figurePadding: 5,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        e.name,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w700,
-                                          color: c.textPrimary,
-                                          fontFamily: 'Rubik',
-                                        ),
-                                      ),
-                                      Text(
-                                        e.muscleGroup,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: c.textSecondary,
-                                          fontFamily: 'Rubik',
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Icon(
-                                  CupertinoIcons.add_circled,
-                                  size: 20,
-                                  color: c.accent,
-                                ),
-                              ],
-                            ),
+                ),
+                Expanded(
+                  child: ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                    itemCount: filtered.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (_, i) {
+                      final e = filtered[i];
+                      return GestureDetector(
+                        onTap: () => Navigator.of(context).pop(e),
+                        child: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: c.card,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: c.border),
                           ),
-                        );
-                      },
-                    ),
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                width: 44,
+                                height: 44,
+                                child: ExerciseVisual(
+                                  name: e.name,
+                                  muscleGroup: e.muscleGroup,
+                                  equipment: e.equipment,
+                                  category: e.category,
+                                  imageUrl: e.imageUrl,
+                                  imageUrl2: e.imageUrl2,
+                                  radius: 10,
+                                  figurePadding: 5,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      e.name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                        color: c.textPrimary,
+                                        fontFamily: 'Rubik',
+                                      ),
+                                    ),
+                                    Text(
+                                      e.muscleGroup,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: c.textSecondary,
+                                        fontFamily: 'Rubik',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Icon(
+                                CupertinoIcons.add_circled,
+                                size: 20,
+                                color: c.accent,
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                ],
-              ),
+                ),
+              ],
+            ),
     );
   }
 }

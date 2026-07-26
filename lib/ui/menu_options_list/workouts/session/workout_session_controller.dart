@@ -487,10 +487,9 @@ class WorkoutSessionController extends ChangeNotifier {
   Future<void> finish() async {
     _cancelTimers();
     _resting = false;
-    final durationSeconds =
-        _startedAt == null
-            ? 0
-            : DateTime.now().difference(_startedAt!).inSeconds;
+    final durationSeconds = _startedAt == null
+        ? 0
+        : DateTime.now().difference(_startedAt!).inSeconds;
     try {
       await _workouts.logRun(
         _workout!.id,

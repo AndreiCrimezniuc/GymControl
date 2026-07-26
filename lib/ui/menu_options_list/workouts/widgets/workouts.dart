@@ -69,12 +69,8 @@ class _WorkoutsState extends State<Workouts> {
   Future<void> _openDetail(Workout w) async {
     await Navigator.of(context, rootNavigator: true).push(
       CupertinoPageRoute(
-        builder:
-            (_) => WorkoutDetailScreen(
-              id: w.id,
-              repo: _repo,
-              exercises: _exercises,
-            ),
+        builder: (_) =>
+            WorkoutDetailScreen(id: w.id, repo: _repo, exercises: _exercises),
       ),
     );
     _load();
@@ -101,12 +97,11 @@ class _WorkoutsState extends State<Workouts> {
           child: Icon(CupertinoIcons.add_circled, size: 24, color: c.accent),
         ),
       ],
-      body:
-          _loading
-              ? const SkeletonList()
-              : _error != null
-              ? _ErrorView(error: _error!, onRetry: _load)
-              : _buildBody(c),
+      body: _loading
+          ? const SkeletonList()
+          : _error != null
+          ? _ErrorView(error: _error!, onRetry: _load)
+          : _buildBody(c),
     );
   }
 
@@ -144,11 +139,10 @@ class _WorkoutsState extends State<Workouts> {
                   sliver: SliverList.separated(
                     itemCount: list.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 10),
-                    itemBuilder:
-                        (_, i) => _WorkoutCard(
-                          w: list[i],
-                          onTap: () => _openDetail(list[i]),
-                        ),
+                    itemBuilder: (_, i) => _WorkoutCard(
+                      w: list[i],
+                      onTap: () => _openDetail(list[i]),
+                    ),
                   ),
                 ),
             ],

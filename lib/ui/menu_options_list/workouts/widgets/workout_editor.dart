@@ -61,14 +61,12 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
   }
 
   Future<void> _addExercise() async {
-    final picked = await Navigator.of(
-      context,
-      rootNavigator: true,
-    ).push<ExerciseCatalogItem>(
-      CupertinoPageRoute(
-        builder: (_) => ExercisePicker(repo: widget.exercises),
-      ),
-    );
+    final picked = await Navigator.of(context, rootNavigator: true)
+        .push<ExerciseCatalogItem>(
+          CupertinoPageRoute(
+            builder: (_) => ExercisePicker(repo: widget.exercises),
+          ),
+        );
     if (picked != null) {
       setState(() => _exercises.add(_EditExercise.blank(picked)));
     }
@@ -238,21 +236,20 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
                   color: _saving ? c.iconBg : c.accent,
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child:
-                    _saving
-                        ? const CupertinoActivityIndicator()
-                        : Text(
-                          widget.existing != null
-                              ? 'SAVE CHANGES'
-                              : 'CREATE WORKOUT',
-                          style: TextStyle(
-                            fontFamily: 'Rubik',
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 1.2,
-                            color: c.textOnAccent,
-                          ),
+                child: _saving
+                    ? const CupertinoActivityIndicator()
+                    : Text(
+                        widget.existing != null
+                            ? 'SAVE CHANGES'
+                            : 'CREATE WORKOUT',
+                        style: TextStyle(
+                          fontFamily: 'Rubik',
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.2,
+                          color: c.textOnAccent,
                         ),
+                      ),
               ),
             ),
           ),
