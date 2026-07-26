@@ -6,6 +6,7 @@ import 'package:gymboss/data/repositories/workouts_repository.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/domain/models/ranking/rank_data.dart';
 import 'package:gymboss/domain/models/streak/streak_data.dart';
+import 'package:gymboss/domain/models/workouts/workout.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
 import 'package:gymboss/ui/core/ui/widgets/skeleton.dart';
@@ -26,6 +27,8 @@ class _StatisticsState extends State<Statistics> {
   StreakData _streak = StreakData.empty;
   UserRanks _ranks = UserRanks.empty;
   int _workouts = 0;
+  StatsSummary _summary = StatsSummary.empty;
+  String _period = 'all';
 
   @override
   void initState() {
@@ -43,17 +46,28 @@ class _StatisticsState extends State<Statistics> {
         _sessions.getStreakData(),
         _ranking.getUserRanks(),
         _workoutsRepo.listOwned(),
+        _workoutsRepo.statsSummary(period: _period),
       ]);
       if (!mounted) return;
       setState(() {
         _streak = results[0] as StreakData;
         _ranks = results[1] as UserRanks;
         _workouts = (results[2] as List).length;
+        _summary = results[3] as StatsSummary;
         _loading = false;
       });
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Future<void> _setPeriod(String period) async {
+    if (period == _period) return;
+    setState(() => _period = period);
+    try {
+      final summary = await _workoutsRepo.statsSummary(period: period);
+      if (mounted) setState(() => _summary = summary);
+    } catch (_) {}
   }
 
   @override
@@ -97,6 +111,14 @@ class _StatisticsState extends State<Statistics> {
                               icon: CupertinoIcons.chart_bar_fill,
                             ),
                           ],
+                        ),
+                        const SizedBox(height: 24),
+                        _MetricsBlock(summary: _summary),
+                        const SizedBox(height: 24),
+                        _MonthlyChart(
+                          summary: _summary,
+                          period: _period,
+                          onPeriod: _setPeriod,
                         ),
                         const SizedBox(height: 24),
                         if (ranks.isEmpty)
@@ -402,6 +424,244 @@ class _RecordsList extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+}
+
+// ── Key metrics ───────────────────────────────────────────────────────────────
+
+class _MetricsBlock extends StatelessWidget {
+  final StatsSummary summary;
+  const _MetricsBlock({required this.summary});
+
+  static String _fmtDuration(int seconds) {
+    if (seconds <= 0) return '—';
+    final h = seconds ~/ 3600;
+    final m = (seconds % 3600) ~/ 60;
+    if (h > 0) return '${h}h ${m}m';
+    return '${m}m';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SectionLabel('Highlights'),
+        const SizedBox(height: 12),
+        _MetricRow(
+          icon: CupertinoIcons.time,
+          title: 'Longest workout',
+          value: _fmtDuration(summary.longestWorkoutSeconds),
+        ),
+        _MetricRow(
+          icon: CupertinoIcons.heart_fill,
+          title: 'Favorite exercise',
+          value:
+              summary.favoriteExercise.isEmpty ? '—' : summary.favoriteExercise,
+        ),
+        _MetricRow(
+          icon: CupertinoIcons.bolt_fill,
+          title: 'Strongest (vs bodyweight)',
+          value:
+              summary.strongestExercise.isEmpty
+                  ? '—'
+                  : summary.strongestExercise,
+        ),
+      ],
+    );
+  }
+}
+
+class _MetricRow extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String value;
+  const _MetricRow({
+    required this.icon,
+    required this.title,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      decoration: BoxDecoration(
+        color: c.card,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: c.border),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: c.accent),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 13,
+                color: c.textSecondary,
+                fontFamily: 'Rubik',
+              ),
+            ),
+          ),
+          Flexible(
+            child: Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: c.textPrimary,
+                fontFamily: 'Rubik',
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Workouts per month ────────────────────────────────────────────────────────
+
+class _MonthlyChart extends StatelessWidget {
+  final StatsSummary summary;
+  final String period;
+  final ValueChanged<String> onPeriod;
+  const _MonthlyChart({
+    required this.summary,
+    required this.period,
+    required this.onPeriod,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final data = summary.workoutsPerMonth;
+    final maxCount = data.fold<int>(1, (m, e) => e.count > m ? e.count : m);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const _SectionLabel('Workouts per month'),
+            const Spacer(),
+            _PeriodToggle(period: period, onPeriod: onPeriod),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Container(
+          height: 160,
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+          decoration: BoxDecoration(
+            color: c.card,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: c.border),
+          ),
+          child:
+              data.isEmpty
+                  ? Center(
+                    child: Text(
+                      'No sessions yet',
+                      style: TextStyle(
+                        color: c.textSecondary,
+                        fontFamily: 'Rubik',
+                      ),
+                    ),
+                  )
+                  : Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      for (final m in data)
+                        Expanded(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              Text(
+                                '${m.count}',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: c.textSecondary,
+                                  fontFamily: 'Rubik',
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Container(
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 3,
+                                ),
+                                height: 90 * (m.count / maxCount),
+                                decoration: BoxDecoration(
+                                  color: c.accent,
+                                  borderRadius: BorderRadius.circular(5),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                m.month.length >= 7
+                                    ? m.month.substring(5)
+                                    : m.month,
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  color: c.textSecondary,
+                                  fontFamily: 'Rubik',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PeriodToggle extends StatelessWidget {
+  final String period;
+  final ValueChanged<String> onPeriod;
+  const _PeriodToggle({required this.period, required this.onPeriod});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    Widget seg(String value, String label) {
+      final on = period == value;
+      return GestureDetector(
+        onTap: () => onPeriod(value),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+          decoration: BoxDecoration(
+            color: on ? c.accent : c.iconBg,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: on ? c.textOnAccent : c.textSecondary,
+              fontFamily: 'Rubik',
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Row(
+      children: [
+        seg('year', 'Year'),
+        const SizedBox(width: 6),
+        seg('all', 'All'),
+      ],
     );
   }
 }

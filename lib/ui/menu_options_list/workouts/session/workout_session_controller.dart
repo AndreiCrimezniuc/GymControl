@@ -487,8 +487,16 @@ class WorkoutSessionController extends ChangeNotifier {
   Future<void> finish() async {
     _cancelTimers();
     _resting = false;
+    final durationSeconds =
+        _startedAt == null
+            ? 0
+            : DateTime.now().difference(_startedAt!).inSeconds;
     try {
-      await _workouts.logRun(_workout!.id, _difficulty);
+      await _workouts.logRun(
+        _workout!.id,
+        _difficulty,
+        durationSeconds: durationSeconds,
+      );
     } catch (_) {}
     HapticFeedback.heavyImpact();
     _finished = true;

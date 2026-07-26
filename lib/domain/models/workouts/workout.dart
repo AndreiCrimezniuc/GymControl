@@ -209,6 +209,53 @@ class PerformedExerciseLog {
       .fold(0.0, (a, s) => a + s.weightKg * s.reps);
 }
 
+class MonthlyCount {
+  final String month; // YYYY-MM
+  final int count;
+  const MonthlyCount({required this.month, required this.count});
+
+  factory MonthlyCount.fromJson(Map<String, dynamic> j) => MonthlyCount(
+    month: (j['month'] as String?) ?? '',
+    count: (j['count'] as num?)?.toInt() ?? 0,
+  );
+}
+
+/// Aggregates behind the statistics screen (from GET /stats/summary).
+class StatsSummary {
+  final int totalWorkouts;
+  final int longestWorkoutSeconds;
+  final String favoriteExercise;
+  final String strongestExercise;
+  final List<MonthlyCount> workoutsPerMonth;
+
+  const StatsSummary({
+    required this.totalWorkouts,
+    required this.longestWorkoutSeconds,
+    required this.favoriteExercise,
+    required this.strongestExercise,
+    required this.workoutsPerMonth,
+  });
+
+  static const empty = StatsSummary(
+    totalWorkouts: 0,
+    longestWorkoutSeconds: 0,
+    favoriteExercise: '',
+    strongestExercise: '',
+    workoutsPerMonth: [],
+  );
+
+  factory StatsSummary.fromJson(Map<String, dynamic> j) => StatsSummary(
+    totalWorkouts: (j['total_workouts'] as num?)?.toInt() ?? 0,
+    longestWorkoutSeconds: (j['longest_workout_seconds'] as num?)?.toInt() ?? 0,
+    favoriteExercise: (j['favorite_exercise'] as String?) ?? '',
+    strongestExercise: (j['strongest_exercise'] as String?) ?? '',
+    workoutsPerMonth:
+        ((j['workouts_per_month'] as List?) ?? [])
+            .map((e) => MonthlyCount.fromJson(e as Map<String, dynamic>))
+            .toList(),
+  );
+}
+
 class WorkoutStats {
   final int timesPerformed;
   final double loveCoefficient;

@@ -87,6 +87,30 @@ class WorkoutsRepository {
     }
   }
 
+  /// Statistics-screen summary. Cached so it renders offline; [period] is
+  /// 'year' or 'all'.
+  Future<StatsSummary> statsSummary({String period = 'all'}) async {
+    final url = '${ApiConfig.apiBaseUrl}/api/v1/stats/summary?period=$period';
+    final cacheKey = 'summary_$period';
+    try {
+      final resp = await _client
+          .get(Uri.parse(url))
+          .timeout(const Duration(seconds: 15));
+      if (resp.statusCode != 200) {
+        throw Exception('GET stats/summary HTTP ${resp.statusCode}');
+      }
+      final doc = jsonDecode(resp.body) as Map<String, dynamic>;
+      await _store.putDoc('stats_summary', cacheKey, doc);
+      return StatsSummary.fromJson(doc);
+    } on Object catch (e) {
+      final cached = _store.getDoc('stats_summary', cacheKey);
+      if (isTransientNetworkFailure(e) && cached != null) {
+        return StatsSummary.fromJson(cached);
+      }
+      rethrow;
+    }
+  }
+
   Future<WorkoutStats> stats(String id) async {
     try {
       final resp = await _client
@@ -240,7 +264,11 @@ class WorkoutsRepository {
     await _enqueue('workout.delete', {'id': id});
   }
 
-  Future<void> logRun(String id, String difficulty) async {
+  Future<void> logRun(
+    String id,
+    String difficulty, {
+    int durationSeconds = 0,
+  }) async {
     final operationId = _uuid.v4();
     if (!id.startsWith('local:') &&
         await ConnectivityService.instance.isOnline()) {
@@ -250,6 +278,7 @@ class WorkoutsRepository {
               Uri.parse('$_base/$id/run'),
               body: jsonEncode({
                 'difficulty': difficulty,
+                'duration_seconds': durationSeconds,
                 'operation_id': operationId,
               }),
             )
@@ -267,6 +296,7 @@ class WorkoutsRepository {
     await _enqueue('workout.run', {
       'id': id,
       'difficulty': difficulty,
+      'duration_seconds': durationSeconds,
       'operation_id': operationId,
     });
   }
@@ -434,6 +464,7 @@ class WorkoutsRepository {
               Uri.parse('$base/$id/run'),
               body: jsonEncode({
                 'difficulty': m.args['difficulty'],
+                'duration_seconds': m.args['duration_seconds'] ?? 0,
                 'operation_id': m.args['operation_id'],
               }),
             )
