@@ -56,9 +56,9 @@ class AppColors {
   /// A soft, background-tinted card shadow for gentle depth.
   List<BoxShadow> get cardShadow => [
     BoxShadow(
-      color: isDark ? const Color(0x4D000000) : const Color(0x14442622),
-      blurRadius: 16,
-      offset: const Offset(0, 6),
+      color: isDark ? const Color(0x66000000) : const Color(0x14442622),
+      blurRadius: isDark ? 24 : 16,
+      offset: const Offset(0, 8),
     ),
   ];
 
@@ -77,8 +77,10 @@ class AppColors {
     // Darkened from #8B8480 (~3.5:1) to meet WCAG AA 4.5:1 for small text on bg/card.
     textSecondary: Color(0xFF736C67),
     textOnAccent: Color(0xFFFFFFFF),
-    accent: Color(0xFFDE3B34),
-    accentPressed: Color(0xFFC2332D),
+    // Deepened from #DE3B34 to a more restrained, editorial red so the brand
+    // reads as a serious training tool rather than a consumer app.
+    accent: Color(0xFFC8322B),
+    accentPressed: Color(0xFFA82A24),
     ringTrack: Color(0xFFEAE0DB),
     navInactive: Color(0xFFB0A6A2),
     invBg: Color(0xFF121212),
@@ -87,21 +89,23 @@ class AppColors {
 
   static const dark = AppColors(
     isDark: true,
-    bg: Color(0xFF0B0A0A),
-    bgTop: Color(0xFF0B0A0A),
-    bgBottom: Color(0xFF0B0A0A),
-    card: Color(0xFF171111),
-    iconBg: Color(0xFF221818),
-    border: Color(0xFF241B1B),
-    pillBorder: Color(0xFF332626),
-    textPrimary: Color(0xFFF3EEEE),
-    textSecondary: Color(0xFF8E8383),
+    // Cooler, flatter neutrals (dropped the brown cast) so dark surfaces read
+    // as engineered rather than warm — a more grown-up, "instrument" feel.
+    bg: Color(0xFF0A0A0B),
+    bgTop: Color(0xFF0A0A0B),
+    bgBottom: Color(0xFF0A0A0B),
+    card: Color(0xFF141416),
+    iconBg: Color(0xFF1C1C20),
+    border: Color(0xFF232327),
+    pillBorder: Color(0xFF33333A),
+    textPrimary: Color(0xFFEDEDEF),
+    textSecondary: Color(0xFF8A8A93),
     textOnAccent: Color(0xFFFFFFFF),
-    accent: Color(0xFFE0413A),
-    accentPressed: Color(0xFFC2332D),
-    ringTrack: Color(0xFF2A2020),
-    navInactive: Color(0xFF6A5E5E),
-    invBg: Color(0xFFF2ECE8),
+    accent: Color(0xFFCE3630),
+    accentPressed: Color(0xFFA82A24),
+    ringTrack: Color(0xFF26262B),
+    navInactive: Color(0xFF6A6A73),
+    invBg: Color(0xFFEDEDEF),
     invText: Color(0xFF121212),
   );
 }
