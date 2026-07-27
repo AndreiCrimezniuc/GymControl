@@ -17,7 +17,8 @@ import 'package:gymboss/ui/menu_options_list/workouts/widgets/workout_editor.dar
 import 'package:gymboss/ui/menu_options_list/workouts/session/workout_session_controller.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/workout_runner.dart';
 
-const _diffLabels = {'easy': 'Easy', 'medium': 'Medium', 'hard': 'Hard'};
+const _modes = ['normal', 'deload'];
+const _diffLabels = {'normal': 'Normal', 'deload': 'Deload'};
 
 class WorkoutDetailScreen extends StatefulWidget {
   final String id;
@@ -39,7 +40,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   WorkoutStats? _stats;
   bool _loading = true;
   String? _error;
-  String _difficulty = 'medium';
+  String _difficulty = 'normal'; // 'normal' | 'deload'
 
   @override
   void initState() {
@@ -321,7 +322,9 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                 (e) => _ExerciseBlock(
                   index: e.key + 1,
                   exercise: e.value,
-                  difficulty: _difficulty,
+                  deloadScale: _difficulty == 'deload'
+                      ? (_w?.deloadFactor ?? 0.70)
+                      : 1.0,
                   onTap: () => _openExerciseStats(e.value),
                 ),
               ),
@@ -421,9 +424,9 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
         groupValue: _difficulty,
         backgroundColor: c.iconBg,
         thumbColor: c.accent,
-        onValueChanged: (v) => setState(() => _difficulty = v ?? 'medium'),
+        onValueChanged: (v) => setState(() => _difficulty = v ?? 'normal'),
         children: {
-          for (final d in workoutDifficulties)
+          for (final d in _modes)
             d: Padding(
               padding: const EdgeInsets.symmetric(vertical: 7),
               child: Text(
@@ -440,7 +443,11 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
       );
 
   Widget _potentialVolumeLine(AppColors c) {
-    final vol = _stats?.potentialVolume[_difficulty] ?? 0;
+    // The stored plan lives under the legacy 'medium' key; Deload scales it.
+    final base = _stats?.potentialVolume['medium'] ?? 0;
+    final vol = _difficulty == 'deload'
+        ? base * (_w?.deloadFactor ?? 0.70)
+        : base;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -532,12 +539,12 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
 class _ExerciseBlock extends StatelessWidget {
   final int index;
   final WorkoutExercise exercise;
-  final String difficulty;
+  final double deloadScale; // 1.0 = Normal, <1 = Deload preview
   final VoidCallback onTap;
   const _ExerciseBlock({
     required this.index,
     required this.exercise,
-    required this.difficulty,
+    required this.deloadScale,
     required this.onTap,
   });
 
@@ -545,7 +552,8 @@ class _ExerciseBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     final units = context.units;
-    final sets = exercise.setsFor(difficulty);
+    final medium = exercise.setsFor('medium');
+    final sets = medium.isNotEmpty ? medium : exercise.sets;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
@@ -622,7 +630,7 @@ class _ExerciseBlock extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      '${units.format(s.weightKg)}${units.label} × ${s.reps}',
+                      '${units.format(s.weightKg * deloadScale)}${units.label} × ${s.reps}',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,

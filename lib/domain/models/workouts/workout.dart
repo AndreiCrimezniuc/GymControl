@@ -101,6 +101,7 @@ class Workout {
   final int exerciseCount;
   final int timesPerformed;
   final double loveCoefficient; // 0..1
+  final double deloadFactor; // deload weight multiplier vs Normal (e.g. 0.70)
   final List<WorkoutExercise> exercises;
 
   const Workout({
@@ -113,6 +114,7 @@ class Workout {
     required this.exerciseCount,
     required this.timesPerformed,
     required this.loveCoefficient,
+    this.deloadFactor = 0.70,
     required this.exercises,
   });
 
@@ -129,6 +131,7 @@ class Workout {
     exerciseCount: (j['exercise_count'] as num?)?.toInt() ?? 0,
     timesPerformed: (j['times_performed'] as num?)?.toInt() ?? 0,
     loveCoefficient: (j['love_coefficient'] as num?)?.toDouble() ?? 0,
+    deloadFactor: (j['deload_factor'] as num?)?.toDouble() ?? 0.70,
     exercises: ((j['exercises'] as List?) ?? [])
         .map((e) => WorkoutExercise.fromJson(e as Map<String, dynamic>))
         .toList(),

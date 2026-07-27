@@ -10,9 +10,6 @@ import 'package:gymboss/ui/core/units/units_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/exercise_picker.dart';
 
-const _diffs = ['easy', 'medium', 'hard'];
-const _diffLabels = {'easy': 'Easy', 'medium': 'Medium', 'hard': 'Hard'};
-
 class WorkoutEditorScreen extends StatefulWidget {
   final WorkoutsRepository repo;
   final ExercisesRepository exercises;
@@ -32,6 +29,8 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
   late final UnitsController _units;
   final _nameCtrl = TextEditingController();
   final _commentCtrl = TextEditingController();
+  // Deload weight as a percentage of Normal (default 70%).
+  final _deloadCtrl = TextEditingController(text: '70');
   final List<_EditExercise> _exercises = [];
   bool _saving = false;
   String? _error;
@@ -44,16 +43,25 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
     if (w != null) {
       _nameCtrl.text = w.name;
       _commentCtrl.text = w.comment;
+      _deloadCtrl.text = '${(w.deloadFactor * 100).round()}';
       for (final ex in w.exercises) {
         _exercises.add(_EditExercise.fromExercise(ex, _units));
       }
     }
   }
 
+  double get _deloadFactor {
+    final pct = double.tryParse(_deloadCtrl.text.trim()) ?? 70;
+    final f = pct / 100.0;
+    if (f <= 0 || f > 1) return 0.70;
+    return f;
+  }
+
   @override
   void dispose() {
     _nameCtrl.dispose();
     _commentCtrl.dispose();
+    _deloadCtrl.dispose();
     for (final e in _exercises) {
       e.dispose();
     }
@@ -104,12 +112,14 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
           name: name,
           comment: _commentCtrl.text.trim(),
           exercises: exercises,
+          deloadFactor: _deloadFactor,
         );
       } else {
         await widget.repo.create(
           name: name,
           comment: _commentCtrl.text.trim(),
           exercises: exercises,
+          deloadFactor: _deloadFactor,
         );
       }
       if (mounted) Navigator.of(context).pop(true);
@@ -142,6 +152,30 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
                   'COMMENT',
                   'Optional notes',
                   maxLines: 2,
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(child: _field(c, _deloadCtrl, 'DELOAD %', '70')),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Text(
+                          'Deload (разгрузочная) runs at this % of the Normal '
+                          'weight. Reps stay the same.',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: c.textSecondary,
+                            fontFamily: 'Rubik',
+                            height: 1.3,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 20),
                 Row(
@@ -365,42 +399,26 @@ class _ExerciseEditor extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          // per-difficulty weight × reps
-          ..._diffs.map(
-            (d) => Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 64,
-                    child: Text(
-                      _diffLabels[d]!,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: c.textSecondary,
-                        fontFamily: 'Rubik',
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: _MiniField(
-                      label: unit,
-                      controller: model.weight[d]!,
-                      dense: true,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _MiniField(
-                      label: 'reps',
-                      controller: model.reps[d]!,
-                      dense: true,
-                    ),
-                  ),
-                ],
+          // Single "Normal" plan; the Deload variant scales this by the
+          // workout's deload factor at run time.
+          Row(
+            children: [
+              Expanded(
+                child: _MiniField(
+                  label: unit,
+                  controller: model.weightCtrl,
+                  dense: true,
+                ),
               ),
-            ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _MiniField(
+                  label: 'reps',
+                  controller: model.repsCtrl,
+                  dense: true,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 4),
           CupertinoTextField(
@@ -502,12 +520,9 @@ class _EditExercise {
   final setsCtrl = TextEditingController(text: '3');
   final restCtrl = TextEditingController(text: '90');
   final commentCtrl = TextEditingController();
-  final Map<String, TextEditingController> weight = {
-    for (final d in _diffs) d: TextEditingController(),
-  };
-  final Map<String, TextEditingController> reps = {
-    for (final d in _diffs) d: TextEditingController(),
-  };
+  // One Normal plan per exercise; the Deload variant is derived at run time.
+  final weightCtrl = TextEditingController();
+  final repsCtrl = TextEditingController();
 
   _EditExercise({
     required this.exerciseId,
@@ -535,17 +550,15 @@ class _EditExercise {
     );
     m.restCtrl.text = '${ex.restSeconds}';
     m.commentCtrl.text = ex.comment;
-    var maxCount = 0;
-    for (final d in _diffs) {
-      final sets = ex.setsFor(d);
-      if (sets.length > maxCount) maxCount = sets.length;
-      if (sets.isNotEmpty) {
-        final w = units.fromKg(sets.first.weightKg);
-        m.weight[d]!.text = w == 0 ? '' : w.toStringAsFixed(w % 1 == 0 ? 0 : 1);
-        m.reps[d]!.text = sets.first.reps == 0 ? '' : '${sets.first.reps}';
-      }
+    // The Normal plan is stored under the legacy 'medium' grade.
+    final sets = ex.setsFor('medium');
+    final plan = sets.isNotEmpty ? sets : ex.sets;
+    if (plan.isNotEmpty) {
+      final w = units.fromKg(plan.first.weightKg);
+      m.weightCtrl.text = w == 0 ? '' : w.toStringAsFixed(w % 1 == 0 ? 0 : 1);
+      m.repsCtrl.text = plan.first.reps == 0 ? '' : '${plan.first.reps}';
     }
-    m.setsCtrl.text = '${maxCount == 0 ? 3 : maxCount}';
+    m.setsCtrl.text = '${plan.isEmpty ? 3 : plan.length}';
     return m;
   }
 
@@ -553,14 +566,12 @@ class _EditExercise {
     final count = int.tryParse(setsCtrl.text.trim()) ?? 1;
     final rest = int.tryParse(restCtrl.text.trim()) ?? 90;
     final n = count < 1 ? 1 : count;
-    final sets = <WorkoutSet>[];
-    for (final d in _diffs) {
-      final w = units.toKg(double.tryParse(weight[d]!.text.trim()) ?? 0);
-      final r = int.tryParse(reps[d]!.text.trim()) ?? 0;
-      for (var i = 0; i < n; i++) {
-        sets.add(WorkoutSet(difficulty: d, weightKg: w, reps: r));
-      }
-    }
+    final w = units.toKg(double.tryParse(weightCtrl.text.trim()) ?? 0);
+    final r = int.tryParse(repsCtrl.text.trim()) ?? 0;
+    final sets = <WorkoutSet>[
+      for (var i = 0; i < n; i++)
+        WorkoutSet(difficulty: 'medium', weightKg: w, reps: r),
+    ];
     return WorkoutExercise(
       exerciseId: exerciseId,
       name: name,
@@ -576,11 +587,7 @@ class _EditExercise {
     setsCtrl.dispose();
     restCtrl.dispose();
     commentCtrl.dispose();
-    for (final c in weight.values) {
-      c.dispose();
-    }
-    for (final c in reps.values) {
-      c.dispose();
-    }
+    weightCtrl.dispose();
+    repsCtrl.dispose();
   }
 }

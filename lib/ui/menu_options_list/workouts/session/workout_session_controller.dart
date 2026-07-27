@@ -67,7 +67,7 @@ class SessionExercise {
 /// runner, do something else, and resume with everything intact.
 class WorkoutSessionController extends ChangeNotifier {
   Workout? _workout;
-  String _difficulty = 'medium';
+  String _difficulty = 'normal'; // 'normal' | 'deload'
   bool _active = false;
   bool _minimized = false;
   bool _finished = false;
@@ -175,12 +175,18 @@ class WorkoutSessionController extends ChangeNotifier {
 
   List<SessionExercise> _build(
     Workout w,
-    String difficulty,
+    String mode, // 'normal' | 'deload'
     UnitsController units,
   ) {
+    // Deload runs the Normal plan at deloadFactor of the weight (reps unchanged).
+    final scale = mode == 'deload' ? w.deloadFactor : 1.0;
     final out = <SessionExercise>[];
     for (final ex in w.exercises) {
-      final planned = ex.setsFor(difficulty);
+      // The plan is stored under the legacy 'medium' grade; fall back to any
+      // sets so older data still loads.
+      final planned = ex.setsFor('medium').isNotEmpty
+          ? ex.setsFor('medium')
+          : ex.sets;
       if (planned.isEmpty) continue;
       out.add(
         SessionExercise(
@@ -192,14 +198,17 @@ class WorkoutSessionController extends ChangeNotifier {
           restSeconds: ex.restSeconds,
           sets: [
             for (final s in planned)
-              SessionSet(
-                exerciseId: ex.exerciseId,
-                restSeconds: ex.restSeconds,
-                plannedWeightKg: s.weightKg,
-                plannedReps: s.reps,
-                weight: s.weightKg == 0 ? '' : _fmt(units.fromKg(s.weightKg)),
-                reps: s.reps == 0 ? '' : '${s.reps}',
-              ),
+              () {
+                final w0 = s.weightKg * scale;
+                return SessionSet(
+                  exerciseId: ex.exerciseId,
+                  restSeconds: ex.restSeconds,
+                  plannedWeightKg: w0,
+                  plannedReps: s.reps,
+                  weight: w0 == 0 ? '' : _fmt(units.fromKg(w0)),
+                  reps: s.reps == 0 ? '' : '${s.reps}',
+                );
+              }(),
           ],
         ),
       );

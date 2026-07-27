@@ -12,7 +12,7 @@ import 'package:gymboss/ui/menu_options_list/exercises/widgets/muscle_illustrati
 import 'package:gymboss/ui/menu_options_list/workouts/session/workout_session_controller.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/exercise_picker.dart';
 
-const _diffLabels = {'easy': 'Easy', 'medium': 'Medium', 'hard': 'Hard'};
+const _diffLabels = {'normal': 'Normal', 'deload': 'Deload'};
 
 /// A view over the global [WorkoutSessionController]. Holds no session state of
 /// its own (so the session survives minimize/resume) — only the text
