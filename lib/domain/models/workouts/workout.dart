@@ -95,6 +95,7 @@ class Workout {
   final String id;
   final String name;
   final String comment;
+  final String type; // gym | aerobic
   final String visibility; // private | public
   final bool owned;
   final String shareCode;
@@ -108,6 +109,7 @@ class Workout {
     required this.id,
     required this.name,
     required this.comment,
+    this.type = 'gym',
     required this.visibility,
     required this.owned,
     required this.shareCode,
@@ -125,6 +127,7 @@ class Workout {
     id: (j['id'] as String?) ?? '',
     name: (j['name'] as String?) ?? '',
     comment: (j['comment'] as String?) ?? '',
+    type: (j['type'] as String?) ?? 'gym',
     visibility: (j['visibility'] as String?) ?? 'private',
     owned: (j['owned'] as bool?) ?? false,
     shareCode: (j['share_code'] as String?) ?? '',

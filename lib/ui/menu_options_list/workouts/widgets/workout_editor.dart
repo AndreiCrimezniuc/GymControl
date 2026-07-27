@@ -31,6 +31,7 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
   final _commentCtrl = TextEditingController();
   // Deload weight as a percentage of Normal (default 70%).
   final _deloadCtrl = TextEditingController(text: '70');
+  String _type = 'gym'; // gym | aerobic
   final List<_EditExercise> _exercises = [];
   bool _saving = false;
   String? _error;
@@ -43,6 +44,7 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
     if (w != null) {
       _nameCtrl.text = w.name;
       _commentCtrl.text = w.comment;
+      _type = w.type;
       _deloadCtrl.text = '${(w.deloadFactor * 100).round()}';
       for (final ex in w.exercises) {
         _exercises.add(_EditExercise.fromExercise(ex, _units));
@@ -95,7 +97,7 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
       setState(() => _error = 'Give the workout a name');
       return;
     }
-    if (_exercises.isEmpty) {
+    if (_type != 'aerobic' && _exercises.isEmpty) {
       setState(() => _error = 'Add at least one exercise');
       return;
     }
@@ -113,6 +115,7 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
           comment: _commentCtrl.text.trim(),
           exercises: exercises,
           deloadFactor: _deloadFactor,
+          type: _type,
         );
       } else {
         await widget.repo.create(
@@ -120,6 +123,7 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
           comment: _commentCtrl.text.trim(),
           exercises: exercises,
           deloadFactor: _deloadFactor,
+          type: _type,
         );
       }
       if (mounted) Navigator.of(context).pop(true);
@@ -144,6 +148,30 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
               children: [
+                CupertinoSlidingSegmentedControl<String>(
+                  groupValue: _type,
+                  backgroundColor: c.iconBg,
+                  thumbColor: c.accent,
+                  onValueChanged: (v) => setState(() => _type = v ?? 'gym'),
+                  children: {
+                    for (final t in const ['gym', 'aerobic'])
+                      t: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 7),
+                        child: Text(
+                          t == 'gym' ? 'Gym' : 'Aerobic',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: _type == t
+                                ? c.textOnAccent
+                                : c.textSecondary,
+                            fontFamily: 'Rubik',
+                          ),
+                        ),
+                      ),
+                  },
+                ),
+                const SizedBox(height: 14),
                 _field(c, _nameCtrl, 'NAME', 'Push Day'),
                 const SizedBox(height: 12),
                 _field(
@@ -154,29 +182,42 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
                   maxLines: 2,
                 ),
                 const SizedBox(height: 12),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Expanded(child: _field(c, _deloadCtrl, 'DELOAD %', '70')),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      flex: 2,
-                      child: Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: Text(
-                          'Deload (разгрузочная) runs at this % of the Normal '
-                          'weight. Reps stay the same.',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: c.textSecondary,
-                            fontFamily: 'Rubik',
-                            height: 1.3,
+                if (_type != 'aerobic') ...[
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Expanded(child: _field(c, _deloadCtrl, 'DELOAD %', '70')),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 2,
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Text(
+                            'Deload (разгрузочная) runs at this % of the Normal '
+                            'weight. Reps stay the same.',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: c.textSecondary,
+                              fontFamily: 'Rubik',
+                              height: 1.3,
+                            ),
                           ),
                         ),
                       ),
+                    ],
+                  ),
+                ] else ...[
+                  Text(
+                    'Aerobic workouts are timed: a stopwatch with laps. '
+                    'Exercises below are optional.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: c.textSecondary,
+                      fontFamily: 'Rubik',
+                      height: 1.3,
                     ),
-                  ],
-                ),
+                  ),
+                ],
                 const SizedBox(height: 20),
                 Row(
                   children: [

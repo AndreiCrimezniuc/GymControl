@@ -151,6 +151,7 @@ class WorkoutsRepository {
     required String comment,
     required List<WorkoutExercise> exercises,
     double deloadFactor = 0.70,
+    String type = 'gym',
   }) async {
     final serverExercises = exercises.map((e) => e.toJson()).toList();
     final clientRequestId = _uuid.v4();
@@ -161,6 +162,7 @@ class WorkoutsRepository {
       name: name,
       comment: comment,
       exercises: exercises,
+      type: type,
     );
     doc['deload_factor'] = deloadFactor;
     await _store.putDoc(_collection, tempId, doc);
@@ -175,6 +177,7 @@ class WorkoutsRepository {
           clientRequestId: clientRequestId,
           replaceTempId: tempId,
           deloadFactor: deloadFactor,
+          type: type,
         );
       } on Object catch (e) {
         if (!isTransientNetworkFailure(e)) {
@@ -191,6 +194,7 @@ class WorkoutsRepository {
       'name': name,
       'comment': comment,
       'deload_factor': deloadFactor,
+      'type': type,
       'exercises': serverExercises,
     });
     return Workout.fromJson(doc);
@@ -202,6 +206,7 @@ class WorkoutsRepository {
     required String comment,
     required List<WorkoutExercise> exercises,
     double deloadFactor = 0.70,
+    String type = 'gym',
   }) async {
     final serverExercises = exercises.map((e) => e.toJson()).toList();
     final doc = _localWorkoutDoc(
@@ -209,6 +214,7 @@ class WorkoutsRepository {
       name: name,
       comment: comment,
       exercises: exercises,
+      type: type,
       base: _store.getDoc(_collection, id),
     );
     doc['deload_factor'] = deloadFactor;
@@ -225,6 +231,7 @@ class WorkoutsRepository {
                 comment,
                 serverExercises,
                 deloadFactor: deloadFactor,
+                type: type,
               ),
             )
             .timeout(const Duration(seconds: 20));
@@ -245,6 +252,7 @@ class WorkoutsRepository {
       'name': name,
       'comment': comment,
       'deload_factor': deloadFactor,
+      'type': type,
       'exercises': serverExercises,
     });
     return Workout.fromJson(doc);
@@ -383,6 +391,7 @@ class WorkoutsRepository {
     required String clientRequestId,
     required String replaceTempId,
     double? deloadFactor,
+    String? type,
   }) async {
     final resp = await _client
         .post(
@@ -393,6 +402,7 @@ class WorkoutsRepository {
             exercises,
             clientRequestId: clientRequestId,
             deloadFactor: deloadFactor,
+            type: type,
           ),
         )
         .timeout(const Duration(seconds: 20));
@@ -526,11 +536,13 @@ class WorkoutsRepository {
     required String name,
     required String comment,
     required List<WorkoutExercise> exercises,
+    String type = 'gym',
     Map<String, dynamic>? base,
   }) => {
     'id': id,
     'name': name,
     'comment': comment,
+    'type': type,
     'visibility': base?['visibility'] ?? 'private',
     'owned': true,
     'share_code': base?['share_code'] ?? '',
@@ -559,11 +571,13 @@ class WorkoutsRepository {
     List<Map<String, dynamic>> exercises, {
     String? clientRequestId,
     double? deloadFactor,
+    String? type,
   }) => jsonEncode({
     'name': name,
     'comment': comment,
     'exercises': exercises,
     if (deloadFactor != null) 'deload_factor': deloadFactor,
+    if (type != null) 'type': type,
     if (clientRequestId != null) 'client_request_id': clientRequestId,
   });
 
@@ -572,6 +586,7 @@ class WorkoutsRepository {
     'comment': args['comment'],
     'exercises': args['exercises'],
     if (args['deload_factor'] != null) 'deload_factor': args['deload_factor'],
+    if (args['type'] != null) 'type': args['type'],
     'client_request_id': args['client_request_id'],
   });
 

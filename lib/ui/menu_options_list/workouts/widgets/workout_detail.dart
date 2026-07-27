@@ -15,6 +15,7 @@ import 'package:gymboss/ui/menu_options_list/exercises/widgets/exercise_mannequi
 import 'package:gymboss/ui/menu_options_list/exercises/widgets/muscle_illustration.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/workout_editor.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/session/workout_session_controller.dart';
+import 'package:gymboss/ui/menu_options_list/workouts/session/aerobic_runner.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/workout_runner.dart';
 
 const _modes = ['normal', 'deload'];
@@ -94,6 +95,20 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
         ],
       );
       if (!mounted || replace != true) return;
+    }
+    // Aerobic workouts use the stopwatch/laps runner instead of the set logger.
+    if (_w!.type == 'aerobic') {
+      await Navigator.of(context, rootNavigator: true).push(
+        CupertinoPageRoute(
+          builder: (_) => AerobicRunnerScreen(
+            workoutId: _w!.id,
+            workoutName: _w!.name,
+            repo: widget.repo,
+          ),
+        ),
+      );
+      if (mounted) _load();
+      return;
     }
     session.start(
       workout: _w!,
@@ -314,10 +329,13 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                 ),
               _statsRow(c, w),
               const SizedBox(height: 16),
-              _difficultyPicker(c),
-              const SizedBox(height: 8),
-              _potentialVolumeLine(c),
-              const SizedBox(height: 16),
+              // Normal/Deload + planned volume only apply to strength workouts.
+              if (w.type != 'aerobic') ...[
+                _difficultyPicker(c),
+                const SizedBox(height: 8),
+                _potentialVolumeLine(c),
+                const SizedBox(height: 16),
+              ],
               ...w.exercises.asMap().entries.map(
                 (e) => _ExerciseBlock(
                   index: e.key + 1,
