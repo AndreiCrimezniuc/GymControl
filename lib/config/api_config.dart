@@ -48,7 +48,10 @@ class ApiConfig {
   ///   --dart-define=DEV_BASE_URL=http://localhost  (web/desktop)
   static const String _devBase = String.fromEnvironment(
     'DEV_BASE_URL',
-    defaultValue: 'http://168.119.114.105',
+    // HTTPS via Let's Encrypt on a nip.io hostname that maps to the dev IP.
+    // Works on iOS/Android devices without ATS exceptions and keeps the web
+    // app same-origin when loaded from the same https host.
+    defaultValue: 'https://168.119.114.105.nip.io',
   );
 
   /// Single nginx entry point — all traffic goes through one host.
