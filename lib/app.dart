@@ -86,36 +86,35 @@ class _GymBossAppState extends State<GymBossApp> {
             supportedLocales: LocaleController.supported,
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             home: const _AuthGate(),
-            builder: (context, child) => Stack(
+            // The resume bar sits *below* the app content in a Column (not as a
+            // floating overlay) so every screen's content shifts up above it
+            // instead of being covered — otherwise bottom inputs/buttons (e.g.
+            // body metrics) become untappable while a workout is minimized.
+            builder: (context, child) => Column(
               children: [
-                child ?? const SizedBox.shrink(),
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: Consumer<WorkoutSessionController>(
-                    builder: (ctx, session, __) {
-                      if (!session.isActive ||
-                          !session.isMinimized ||
-                          session.isFinished) {
-                        return const SizedBox.shrink();
-                      }
-                      return SafeArea(
-                        top: false,
-                        child: WorkoutResumeBar(
-                          session: session,
-                          onTap: () {
-                            session.resume();
-                            _navKey.currentState?.push(
-                              CupertinoPageRoute(
-                                builder: (_) => const WorkoutRunnerScreen(),
-                              ),
-                            );
-                          },
-                        ),
-                      );
-                    },
-                  ),
+                Expanded(child: child ?? const SizedBox.shrink()),
+                Consumer<WorkoutSessionController>(
+                  builder: (ctx, session, __) {
+                    if (!session.isActive ||
+                        !session.isMinimized ||
+                        session.isFinished) {
+                      return const SizedBox.shrink();
+                    }
+                    return SafeArea(
+                      top: false,
+                      child: WorkoutResumeBar(
+                        session: session,
+                        onTap: () {
+                          session.resume();
+                          _navKey.currentState?.push(
+                            CupertinoPageRoute(
+                              builder: (_) => const WorkoutRunnerScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
