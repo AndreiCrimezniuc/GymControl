@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 
 class BottomNavItem {
@@ -63,7 +64,12 @@ class _NavButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: onTap,
+      onTap: onTap == null
+          ? null
+          : () {
+              if (!active) HapticFeedback.selectionClick();
+              onTap!();
+            },
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

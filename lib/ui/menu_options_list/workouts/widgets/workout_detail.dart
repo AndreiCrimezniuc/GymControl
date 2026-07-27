@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:gymboss/data/repositories/exercises_repository.dart';
 import 'package:gymboss/data/repositories/workouts_repository.dart';
@@ -442,7 +443,10 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
         groupValue: _difficulty,
         backgroundColor: c.iconBg,
         thumbColor: c.accent,
-        onValueChanged: (v) => setState(() => _difficulty = v ?? 'normal'),
+        onValueChanged: (v) {
+          HapticFeedback.selectionClick();
+          setState(() => _difficulty = v ?? 'normal');
+        },
         children: {
           for (final d in _modes)
             d: Padding(

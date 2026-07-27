@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:gymboss/data/repositories/exercises_repository.dart';
 import 'package:gymboss/data/repositories/workouts_repository.dart';
@@ -152,7 +153,10 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
                   groupValue: _type,
                   backgroundColor: c.iconBg,
                   thumbColor: c.accent,
-                  onValueChanged: (v) => setState(() => _type = v ?? 'gym'),
+                  onValueChanged: (v) {
+                    HapticFeedback.selectionClick();
+                    setState(() => _type = v ?? 'gym');
+                  },
                   children: {
                     for (final t in const ['gym', 'aerobic'])
                       t: Padding(

@@ -293,8 +293,11 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
             child: Stack(
               children: [
                 Container(height: 5, color: c.iconBg),
-                FractionallySizedBox(
+                // Fills smoothly as sets are completed — a quiet, satisfying beat.
+                AnimatedFractionallySizedBox(
                   widthFactor: progress,
+                  duration: const Duration(milliseconds: 420),
+                  curve: const Cubic(0.23, 1, 0.32, 1),
                   child: Container(height: 5, color: c.accent),
                 ),
               ],
@@ -751,7 +754,9 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
         ),
         child: Icon(CupertinoIcons.delete, size: 20, color: c.accent),
       ),
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 240),
+        curve: const Cubic(0.23, 1, 0.32, 1),
         margin: const EdgeInsets.symmetric(vertical: 4),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         decoration: BoxDecoration(
@@ -792,7 +797,9 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
             const SizedBox(width: 10),
             Pressable(
               onTap: () => session.toggleSet(s),
-              child: Container(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: const Cubic(0.23, 1, 0.32, 1),
                 width: 44,
                 height: 44,
                 alignment: Alignment.center,
@@ -801,10 +808,17 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: s.done ? c.accent : c.border),
                 ),
-                child: Icon(
-                  CupertinoIcons.check_mark,
-                  size: 22,
-                  color: s.done ? c.textOnAccent : c.textSecondary,
+                child: AnimatedScale(
+                  scale: s.done ? 1.0 : 0.82,
+                  duration: const Duration(milliseconds: 200),
+                  curve: s.done
+                      ? const Cubic(0.34, 1.56, 0.64, 1) // gentle overshoot pop
+                      : const Cubic(0.23, 1, 0.32, 1),
+                  child: Icon(
+                    CupertinoIcons.check_mark,
+                    size: 22,
+                    color: s.done ? c.textOnAccent : c.textSecondary,
+                  ),
                 ),
               ),
             ),
