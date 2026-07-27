@@ -99,11 +99,30 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     SessionExercise g,
   ) async {
     HapticFeedback.selectionClick();
+    final i = session.groups.indexOf(g);
+    final canUp = i > 0;
+    final canDown = i >= 0 && i < session.groups.length - 1;
     await showCupertinoModalPopup<void>(
       context: context,
       builder: (ctx) => CupertinoActionSheet(
         title: Text(g.name),
         actions: [
+          if (canUp)
+            CupertinoActionSheetAction(
+              onPressed: () {
+                session.moveExercise(g, -1);
+                Navigator.of(ctx).pop();
+              },
+              child: const Text('Move up'),
+            ),
+          if (canDown)
+            CupertinoActionSheetAction(
+              onPressed: () {
+                session.moveExercise(g, 1);
+                Navigator.of(ctx).pop();
+              },
+              child: const Text('Move down'),
+            ),
           CupertinoActionSheetAction(
             isDestructiveAction: true,
             onPressed: () {
@@ -485,7 +504,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        '${g.sets.length} sets  ·  rest ${g.restSeconds}s'
+                        'Rest ${g.restSeconds}s'
                         '${pr != null ? '  ·  PR ${units.format(pr)}${units.label}' : ''}',
                         style: TextStyle(
                           fontSize: 12,
@@ -901,63 +920,27 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
 
   void _pickSetType(WorkoutSessionController session, SessionSet s) {
     HapticFeedback.selectionClick();
-    showCupertinoModalPopup<void>(
-      context: context,
-      builder: (ctx) => CupertinoActionSheet(
-        title: const Text('Set type'),
-        actions: [
-          for (final t in setTypes)
-            CupertinoActionSheetAction(
-              onPressed: () {
-                session.setSetType(s, t);
-                Navigator.of(ctx).pop();
-              },
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (s.type == t) ...[
-                    const Icon(CupertinoIcons.check_mark, size: 18),
-                    const SizedBox(width: 6),
-                  ],
-                  Column(
-                    children: [
-                      Text(
-                        _typeNames[t]!,
-                        style: TextStyle(
-                          fontWeight: s.type == t
-                              ? FontWeight.w700
-                              : FontWeight.w500,
-                        ),
-                      ),
-                      Text(
-                        _typeDescriptions[t]!,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF8E8E93),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              _pickProgression(session, s);
-            },
-            child: Text(
-              s.progression.isEmpty
-                  ? 'Progression tag…'
-                  : 'Progression: ${_progressionNames[s.progression]}',
-            ),
+    _showPickerSheet(
+      title: 'Set type',
+      rows: [
+        for (final t in setTypes)
+          _PickerRow(
+            title: _typeNames[t]!,
+            subtitle: _typeDescriptions[t]!,
+            badge: _typeVisual(context.colors, t).badge,
+            badgeBg: _typeVisual(context.colors, t).bg,
+            badgeFg: _typeVisual(context.colors, t).fg,
+            selected: s.type == t,
+            onTap: () => session.setSetType(s, t),
           ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          isDefaultAction: true,
-          onPressed: () => Navigator.of(ctx).pop(),
-          child: const Text('Cancel'),
-        ),
+      ],
+      footer: _PickerRow(
+        title: s.progression.isEmpty
+            ? 'Progression tag…'
+            : 'Progression: ${_progressionNames[s.progression]}',
+        icon: CupertinoIcons.arrow_up_right,
+        onTap: () => _pickProgression(session, s),
+        keepOpenAfterTap: true,
       ),
     );
   }
@@ -966,43 +949,165 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
   // just adding load — issue #4.
   void _pickProgression(WorkoutSessionController session, SessionSet s) {
     HapticFeedback.selectionClick();
+    _showPickerSheet(
+      title: 'How did this set progress?',
+      rows: [
+        for (final p in progressionTypes)
+          _PickerRow(
+            title: _progressionNames[p]!,
+            badge: _progressionBadges[p],
+            selected: s.progression == p,
+            onTap: () => session.setProgression(s, p),
+          ),
+        _PickerRow(
+          title: 'No progression tag',
+          destructive: true,
+          selected: s.progression.isEmpty,
+          onTap: () => session.setProgression(s, ''),
+        ),
+      ],
+    );
+  }
+
+  // A themed bottom-sheet picker (grab handle, app surface, tap-to-select rows)
+  // used for set type and progression — stylistically part of the product
+  // rather than the stock iOS action sheet.
+  void _showPickerSheet({
+    required String title,
+    required List<_PickerRow> rows,
+    _PickerRow? footer,
+  }) {
+    final c = context.colors;
     showCupertinoModalPopup<void>(
       context: context,
-      builder: (ctx) => CupertinoActionSheet(
-        title: const Text('How did this set progress?'),
-        actions: [
-          for (final p in progressionTypes)
-            CupertinoActionSheetAction(
-              onPressed: () {
-                session.setProgression(s, p);
-                Navigator.of(ctx).pop();
-              },
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (s.progression == p) ...[
-                    const Icon(CupertinoIcons.check_mark, size: 18),
-                    const SizedBox(width: 6),
-                  ],
-                  Text(_progressionNames[p]!),
-                ],
+      builder: (ctx) {
+        Widget row(_PickerRow r) => Pressable(
+          onTap: () {
+            r.onTap();
+            if (!r.keepOpenAfterTap) Navigator.of(ctx).pop();
+          },
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            decoration: BoxDecoration(
+              color: c.iconBg,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: r.selected ? c.accent : c.border,
+                width: r.selected ? 1.5 : 1,
               ),
             ),
-          CupertinoActionSheetAction(
-            isDestructiveAction: true,
-            onPressed: () {
-              session.setProgression(s, '');
-              Navigator.of(ctx).pop();
-            },
-            child: const Text('No progression tag'),
+            child: Row(
+              children: [
+                if (r.badge != null)
+                  Container(
+                    width: 40,
+                    height: 30,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: r.badgeBg ?? c.card,
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                    child: Text(
+                      r.badge!,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: r.badgeFg ?? c.textSecondary,
+                        fontFamily: 'Rubik',
+                      ),
+                    ),
+                  )
+                else if (r.icon != null)
+                  Icon(r.icon, size: 20, color: c.textSecondary),
+                if (r.badge != null || r.icon != null)
+                  const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        r.title,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: r.selected
+                              ? FontWeight.w700
+                              : FontWeight.w600,
+                          color: r.destructive ? c.accent : c.textPrimary,
+                          fontFamily: 'Rubik',
+                        ),
+                      ),
+                      if (r.subtitle != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          r.subtitle!,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: c.textSecondary,
+                            fontFamily: 'Rubik',
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                if (r.selected)
+                  Icon(CupertinoIcons.check_mark, size: 18, color: c.accent),
+              ],
+            ),
           ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          isDefaultAction: true,
-          onPressed: () => Navigator.of(ctx).pop(),
-          child: const Text('Cancel'),
-        ),
-      ),
+        );
+
+        return Container(
+          decoration: BoxDecoration(
+            color: c.bg,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+            border: Border(top: BorderSide(color: c.border)),
+          ),
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 14),
+                    decoration: BoxDecoration(
+                      color: c.border,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(left: 4, bottom: 12),
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: c.textPrimary,
+                      fontFamily: 'Rubik',
+                    ),
+                  ),
+                ),
+                ...rows.map(row),
+                if (footer != null) ...[
+                  Container(
+                    height: 1,
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    color: c.border,
+                  ),
+                  row(footer),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -1266,4 +1371,31 @@ class _DoneView extends StatelessWidget {
       ),
     ),
   );
+}
+
+// A single option in the themed picker sheet (set type / progression).
+class _PickerRow {
+  final String title;
+  final String? subtitle;
+  final String? badge;
+  final Color? badgeBg;
+  final Color? badgeFg;
+  final IconData? icon;
+  final bool selected;
+  final bool destructive;
+  final bool keepOpenAfterTap;
+  final VoidCallback onTap;
+
+  const _PickerRow({
+    required this.title,
+    required this.onTap,
+    this.subtitle,
+    this.badge,
+    this.badgeBg,
+    this.badgeFg,
+    this.icon,
+    this.selected = false,
+    this.destructive = false,
+    this.keepOpenAfterTap = false,
+  });
 }

@@ -52,6 +52,24 @@ void main() {
       expect(c.totalSets, 1);
     });
 
+    test('moveExercise reorders and clamps at the ends', () {
+      final c = WorkoutSessionController();
+      c.addExercise(exerciseId: 1, name: 'Bench', muscleGroup: 'chest');
+      c.addExercise(exerciseId: 2, name: 'Row', muscleGroup: 'back');
+      c.addExercise(exerciseId: 3, name: 'Squat', muscleGroup: 'legs');
+      final row = c.groups[1];
+
+      c.moveExercise(row, -1); // Row -> index 0
+      expect(c.groups.map((g) => g.exerciseId), [2, 1, 3]);
+
+      c.moveExercise(row, 1); // back to index 1
+      expect(c.groups.map((g) => g.exerciseId), [1, 2, 3]);
+
+      // clamp: moving the first up is a no-op
+      c.moveExercise(c.groups.first, -1);
+      expect(c.groups.map((g) => g.exerciseId), [1, 2, 3]);
+    });
+
     test('adding an exercise detaches any running exercise timer', () {
       final c = WorkoutSessionController();
       c.addExercise(exerciseId: 1, name: 'Bench', muscleGroup: 'chest');

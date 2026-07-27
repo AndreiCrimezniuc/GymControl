@@ -336,6 +336,17 @@ class WorkoutSessionController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Move an exercise up (delta -1) or down (delta +1) in the session order.
+  void moveExercise(SessionExercise g, int delta) {
+    final i = _groups.indexOf(g);
+    final j = i + delta;
+    if (i < 0 || j < 0 || j >= _groups.length) return;
+    _groups.removeAt(i);
+    _groups.insert(j, g);
+    stopExerciseTimer(); // card indices shifted; avoid a dangling timer panel
+    notifyListeners();
+  }
+
   /// Remove an entire exercise and all of its sets from the session.
   void removeExercise(SessionExercise g) {
     if (!_groups.remove(g)) return;
