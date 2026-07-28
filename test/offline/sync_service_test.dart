@@ -72,7 +72,31 @@ void main() {
 
     await sync.flush();
 
-    expect(store.pending(), hasLength(1));
-    expect(store.pending().single.retries, greaterThanOrEqualTo(1));
+    expect(store.pending(), isEmpty);
+    expect(store.deadLetters(), hasLength(1));
+    expect(store.deadLetters().single.retries, greaterThanOrEqualTo(1));
+  });
+
+  test('dead-letter does not block later independent mutations', () async {
+    await store.enqueue(
+      Mutation(id: 'bad', seq: 1, kind: 'bad.kind', args: const {}),
+    );
+    await store.enqueue(
+      Mutation(id: 'good', seq: 2, kind: 'good.kind', args: const {}),
+    );
+    final applied = <String>[];
+    final sync = service();
+    addTearDown(sync.dispose);
+    sync.registerHandler('bad.kind', (_, _) async => const SyncOutcome.drop());
+    sync.registerHandler('good.kind', (_, mutation) async {
+      applied.add(mutation.id);
+      return const SyncOutcome.done();
+    });
+
+    await sync.flush();
+
+    expect(applied, ['good']);
+    expect(store.pending(), isEmpty);
+    expect(store.deadLetters().map((mutation) => mutation.id), ['bad']);
   });
 }

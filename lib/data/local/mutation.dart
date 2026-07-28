@@ -7,6 +7,7 @@ class Mutation {
   kind; // e.g. 'workout.create' | 'workout.update' | 'workout.delete'
   final Map<String, dynamic> args; // handler-specific payload
   int retries;
+  bool deadLetter;
 
   Mutation({
     required this.id,
@@ -14,6 +15,7 @@ class Mutation {
     required this.kind,
     required this.args,
     this.retries = 0,
+    this.deadLetter = false,
   });
 
   Map<String, dynamic> toJson() => {
@@ -22,6 +24,7 @@ class Mutation {
     'kind': kind,
     'args': args,
     'retries': retries,
+    'dead_letter': deadLetter,
   };
 
   factory Mutation.fromJson(Map<String, dynamic> j) => Mutation(
@@ -30,5 +33,6 @@ class Mutation {
     kind: j['kind'] as String,
     args: Map<String, dynamic>.from(j['args'] as Map),
     retries: (j['retries'] as num?)?.toInt() ?? 0,
+    deadLetter: j['dead_letter'] as bool? ?? false,
   );
 }

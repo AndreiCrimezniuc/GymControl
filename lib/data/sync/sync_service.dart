@@ -89,7 +89,7 @@ class SyncService {
 
   AuthenticatedClient? _client;
   StreamSubscription<bool>? _sub;
-  bool _flushing = false;
+  Completer<void>? _flushCompleter;
   bool _online = true;
 
   /// Reactive sync health for the UI (online state + pending-change count).
@@ -140,10 +140,18 @@ class SyncService {
     // Keep the UI's pending count fresh even when we can't drain right now
     // (offline, or an enqueue happened while another flush is in flight).
     notifyChanged();
-    if (client == null || _flushing || !_store.isReady) return;
-    if (!await _isOnline()) return;
-    _flushing = true;
+    if (client == null || !_store.isReady) return;
+    final active = _flushCompleter;
+    if (active != null) {
+      await active.future;
+      return flush();
+    }
+    // Claim the drain before awaiting connectivity. Multiple flushSoon calls
+    // can otherwise all pass the guard and replay the same mutation.
+    final completer = Completer<void>();
+    _flushCompleter = completer;
     try {
+      if (!await _isOnline()) return;
       for (final m in _store.pending()) {
         final handler = _handlers[m.kind];
         if (handler == null) {
@@ -172,12 +180,12 @@ class SyncService {
           }
           await _store.removeMutation(m.id);
         } else if (out.permanent) {
-          // Keep rejected mutations as a durable dead-letter instead of
-          // silently losing the user's offline change. A future UI can expose
-          // and resolve it; later mutations must not overtake it.
+          // Quarantine poison work as a durable dead letter. It remains
+          // available for diagnostics/future retry UI, while independent later
+          // changes continue syncing instead of being blocked forever.
           m.retries += 1;
+          m.deadLetter = true;
           await _store.updateMutation(m);
-          break;
         } else {
           m.retries += 1;
           await _store.updateMutation(m);
@@ -185,8 +193,9 @@ class SyncService {
         }
       }
     } finally {
-      _flushing = false;
+      _flushCompleter = null;
       notifyChanged();
+      completer.complete();
     }
   }
 

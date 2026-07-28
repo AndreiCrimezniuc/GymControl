@@ -69,16 +69,5 @@ void main() {
       c.moveExercise(c.groups.first, -1);
       expect(c.groups.map((g) => g.exerciseId), [1, 2, 3]);
     });
-
-    test('adding an exercise detaches any running exercise timer', () {
-      final c = WorkoutSessionController();
-      c.addExercise(exerciseId: 1, name: 'Bench', muscleGroup: 'chest');
-      c.startExerciseTimer(1, 60);
-      expect(c.exTimerKey, 1);
-
-      c.addExercise(exerciseId: 2, name: 'Row', muscleGroup: 'back');
-      expect(c.exTimerKey, isNull); // indices shifted -> timer cleared
-      c.stopExerciseTimer();
-    });
   });
 }

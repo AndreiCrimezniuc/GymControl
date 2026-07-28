@@ -123,8 +123,7 @@ class LocalStore {
 
   Future<void> removeMutation(String id) => _outbox.delete(_scoped(id));
 
-  /// Pending mutations in application (seq) order.
-  List<Mutation> pending() {
+  List<Mutation> _mutations() {
     final list = _outbox.keys
         .cast<String>()
         .where((key) => key.startsWith(_prefix))
@@ -134,6 +133,15 @@ class LocalStore {
     list.sort((a, b) => a.seq.compareTo(b.seq));
     return list;
   }
+
+  /// Replayable mutations in application (seq) order. Permanently rejected
+  /// mutations stay durable as dead letters, but cannot poison the live queue.
+  List<Mutation> pending() =>
+      _mutations().where((mutation) => !mutation.deadLetter).toList();
+
+  /// Permanently rejected work retained for diagnostics and future retry UI.
+  List<Mutation> deadLetters() =>
+      _mutations().where((mutation) => mutation.deadLetter).toList();
 
   bool get hasPending => pending().isNotEmpty;
 

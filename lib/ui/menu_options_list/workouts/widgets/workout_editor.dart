@@ -7,6 +7,7 @@ import 'package:gymboss/domain/models/exercises/exercise_catalog.dart';
 import 'package:gymboss/domain/models/workouts/workout.dart';
 import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
+import 'package:gymboss/ui/core/input/numeric_limit_formatter.dart';
 import 'package:gymboss/ui/core/units/units_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/exercise_picker.dart';
@@ -149,33 +150,42 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
               children: [
-                CupertinoSlidingSegmentedControl<String>(
-                  groupValue: _type,
-                  backgroundColor: c.iconBg,
-                  thumbColor: c.accent,
-                  onValueChanged: (v) {
-                    HapticFeedback.selectionClick();
-                    setState(() => _type = v ?? 'gym');
-                  },
-                  children: {
-                    for (final t in const ['gym', 'aerobic'])
-                      t: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 7),
-                        child: Text(
-                          t == 'gym' ? 'Gym' : 'Aerobic',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: _type == t
-                                ? c.textOnAccent
-                                : c.textSecondary,
-                            fontFamily: 'Rubik',
+                if (widget.existing == null)
+                  CupertinoSlidingSegmentedControl<String>(
+                    groupValue: _type,
+                    backgroundColor: c.iconBg,
+                    thumbColor: c.accent,
+                    onValueChanged: (v) {
+                      HapticFeedback.selectionClick();
+                      setState(() {
+                        _type = v ?? 'gym';
+                        if (_type == 'aerobic') {
+                          for (final exercise in _exercises) {
+                            exercise.dispose();
+                          }
+                          _exercises.clear();
+                        }
+                      });
+                    },
+                    children: {
+                      for (final t in const ['gym', 'aerobic'])
+                        t: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 7),
+                          child: Text(
+                            t == 'gym' ? 'Gym' : 'Aerobic',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: _type == t
+                                  ? c.textOnAccent
+                                  : c.textSecondary,
+                              fontFamily: 'Rubik',
+                            ),
                           ),
                         ),
-                      ),
-                  },
-                ),
-                const SizedBox(height: 14),
+                    },
+                  ),
+                if (widget.existing == null) const SizedBox(height: 14),
                 _field(c, _nameCtrl, 'NAME', 'Push Day'),
                 const SizedBox(height: 12),
                 _field(
@@ -524,6 +534,9 @@ class _MiniField extends StatelessWidget {
       controller: controller,
       placeholder: label,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      inputFormatters: [
+        NumericLimitFormatter(allowDecimal: label != 'Sets' && label != 'reps'),
+      ],
       textAlign: TextAlign.center,
       style: TextStyle(color: c.textPrimary, fontSize: 14, fontFamily: 'Rubik'),
       placeholderStyle: TextStyle(color: c.textSecondary, fontSize: 13),
@@ -608,11 +621,10 @@ class _EditExercise {
   }
 
   WorkoutExercise toDomain(UnitsController units) {
-    final count = int.tryParse(setsCtrl.text.trim()) ?? 1;
-    final rest = int.tryParse(restCtrl.text.trim()) ?? 90;
-    final n = count < 1 ? 1 : count;
-    final w = units.toKg(double.tryParse(weightCtrl.text.trim()) ?? 0);
-    final r = int.tryParse(repsCtrl.text.trim()) ?? 0;
+    final n = clampWorkoutInteger(setsCtrl.text, minimum: 1);
+    final rest = clampWorkoutInteger(restCtrl.text);
+    final w = units.toKg(clampWorkoutDecimal(weightCtrl.text));
+    final r = clampWorkoutInteger(repsCtrl.text);
     final sets = <WorkoutSet>[
       for (var i = 0; i < n; i++)
         WorkoutSet(difficulty: 'medium', weightKg: w, reps: r),

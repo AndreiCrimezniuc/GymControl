@@ -48,6 +48,24 @@ void main() {
     expect(store.pending().map((m) => m.id), ['m2']);
   });
 
+  test('dead letters are durable but excluded from the replay queue', () async {
+    await store.enqueue(
+      Mutation(
+        id: 'dead',
+        seq: 1,
+        kind: 'workout.update',
+        args: const {},
+        deadLetter: true,
+      ),
+    );
+    await store.enqueue(
+      Mutation(id: 'live', seq: 2, kind: 'workout.update', args: const {}),
+    );
+
+    expect(store.pending().map((mutation) => mutation.id), ['live']);
+    expect(store.deadLetters().map((mutation) => mutation.id), ['dead']);
+  });
+
   test(
     'remapId reconciles temp id across docs, lists, and pending mutations',
     () async {

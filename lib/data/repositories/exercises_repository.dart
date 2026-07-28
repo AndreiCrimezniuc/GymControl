@@ -81,8 +81,9 @@ class ExercisesRepository {
     required int reps,
     String setType = 'working',
     String progression = '',
+    String? operationId,
   }) async {
-    final operationId = _uuid.v4();
+    operationId ??= _uuid.v4();
     final args = {
       'exerciseId': id,
       'weight_kg': weightKg,
