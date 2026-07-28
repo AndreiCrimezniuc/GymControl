@@ -208,4 +208,46 @@ void main() {
     expect(detail.single.name, 'Squat');
     expect(detail.single.sets.single.progression, 'amplitude');
   });
+
+  test('folder CRUD and assignment use the expected API contract', () async {
+    final requests = <http.Request>[];
+    final client = writeClient((req) {
+      requests.add(req);
+      if (req.method == 'GET' && req.url.path.endsWith('/workout-folders')) {
+        return http.Response(
+          jsonEncode([
+            {'id': 'f1', 'name': 'Strength', 'position': 0},
+          ]),
+          200,
+        );
+      }
+      if (req.method == 'POST') {
+        return http.Response(
+          jsonEncode({'id': 'f2', 'name': 'Cardio', 'position': 1}),
+          201,
+        );
+      }
+      return http.Response('', 204);
+    });
+    addTearDown(client.dispose);
+    final repo = WorkoutsRepository(client: client);
+
+    expect((await repo.listFolders()).single.name, 'Strength');
+    expect((await repo.createFolder('Cardio')).id, 'f2');
+    await repo.renameFolder('f2', 'Conditioning');
+    await repo.assignFolder('w1', 'f2');
+    await repo.assignFolder('w1', null);
+    await repo.deleteFolder('f2');
+
+    expect(requests.map((r) => r.method), [
+      'GET',
+      'POST',
+      'PUT',
+      'PUT',
+      'PUT',
+      'DELETE',
+    ]);
+    expect(jsonDecode(requests[3].body), containsPair('folder_id', 'f2'));
+    expect(jsonDecode(requests[4].body), containsPair('folder_id', null));
+  });
 }

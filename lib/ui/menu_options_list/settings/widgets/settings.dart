@@ -11,6 +11,8 @@ import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/units/units_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_dialog.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
+import 'package:gymboss/ui/core/subscription/pro_controller.dart';
+import 'package:gymboss/ui/subscription/paywall_screen.dart';
 
 class Settings extends StatefulWidget {
   const Settings({super.key});
@@ -70,6 +72,7 @@ class _SettingsState extends State<Settings> {
     final weight = _profile?.weightKg;
     final height = _profile?.heightCm;
     final dontAsk = _profile?.dontAskWeight ?? false;
+    final pro = context.watch<ProController>();
 
     return AppPage(
       title: l.settingsTitle,
@@ -117,6 +120,43 @@ class _SettingsState extends State<Settings> {
                 onChanged: (_) => theme.toggle(),
               ),
               const _UnitsTile(),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _Section(
+            title: 'GymBoss Pro · Development',
+            children: [
+              _SwitchTile(
+                icon: CupertinoIcons.bolt_fill,
+                label: 'Pro account',
+                value: pro.isPro,
+                onChanged: pro.loading
+                    ? (_) {}
+                    : (value) async {
+                        try {
+                          await pro.setPro(value);
+                        } catch (_) {
+                          if (!context.mounted) return;
+                          showAppDialog<void>(
+                            context,
+                            title: 'Could not update Pro status',
+                            actions: [
+                              AppDialogAction(
+                                'OK',
+                                onPressed: () => Navigator.pop(context),
+                              ),
+                            ],
+                          );
+                        }
+                      },
+              ),
+              _SettingsTile(
+                icon: CupertinoIcons.creditcard_fill,
+                label: 'Preview paywall',
+                onTap: () => Navigator.of(context, rootNavigator: true).push(
+                  CupertinoPageRoute(builder: (_) => const PaywallScreen()),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 20),

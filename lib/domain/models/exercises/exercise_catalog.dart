@@ -41,15 +41,21 @@ class ExerciseCatalogItem {
 class ExerciseProgressionPoint {
   final String date;
   final double topWeightKg;
+  final int topReps;
+  final double volumeKg;
   const ExerciseProgressionPoint({
     required this.date,
     required this.topWeightKg,
+    this.topReps = 0,
+    this.volumeKg = 0,
   });
 
   factory ExerciseProgressionPoint.fromJson(Map<String, dynamic> j) =>
       ExerciseProgressionPoint(
         date: (j['date'] as String?) ?? '',
         topWeightKg: (j['top_weight_kg'] as num?)?.toDouble() ?? 0,
+        topReps: (j['top_reps'] as num?)?.toInt() ?? 0,
+        volumeKg: (j['volume_kg'] as num?)?.toDouble() ?? 0,
       );
 }
 

@@ -14,6 +14,7 @@ import 'package:gymboss/ui/core/locale/locale_controller.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/units/units_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_scaffold.dart';
+import 'package:gymboss/ui/core/subscription/pro_controller.dart';
 import 'package:gymboss/ui/home_screen/home_screen.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/session/resume_bar.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/session/workout_session_controller.dart';
@@ -32,6 +33,7 @@ class _GymBossAppState extends State<GymBossApp> {
   final _navKey = GlobalKey<NavigatorState>();
   late final AuthenticatedClient _client;
   late final AuthViewModel _authVm;
+  late final ProController _pro;
 
   @override
   void initState() {
@@ -43,6 +45,7 @@ class _GymBossAppState extends State<GymBossApp> {
     _authVm = AuthViewModel(
       AuthRepository(service: _authService, storage: _storage, client: _client),
     )..checkAuth();
+    _pro = ProController(_client);
   }
 
   @override
@@ -68,6 +71,7 @@ class _GymBossAppState extends State<GymBossApp> {
           create: (_) => LocaleController(),
         ),
         ChangeNotifierProvider<AuthViewModel>.value(value: _authVm),
+        ChangeNotifierProvider<ProController>.value(value: _pro),
         Provider<AuthenticatedClient>.value(value: _client),
       ],
       child: Consumer2<ThemeController, LocaleController>(
@@ -160,6 +164,7 @@ class _AuthGateState extends State<_AuthGate> {
           );
         }
         if (vm.status == AuthStatus.authenticated) {
+          context.read<ProController>().load();
           return const HomeScreen();
         }
         return const _AuthFlow();

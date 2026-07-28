@@ -41,6 +41,60 @@ class WorkoutsRepository {
   Future<List<Workout>> listPublic() =>
       _cachedList('$_base/public', _publicKey);
 
+  Future<List<WorkoutFolder>> listFolders() async {
+    final response = await _client.get(
+      Uri.parse('${ApiConfig.apiBaseUrl}/api/v1/workout-folders'),
+    );
+    if (response.statusCode != 200) {
+      throw Exception(_err(response.body, response.statusCode));
+    }
+    return (jsonDecode(response.body) as List)
+        .map((item) => WorkoutFolder.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<WorkoutFolder> createFolder(String name) async {
+    final response = await _client.post(
+      Uri.parse('${ApiConfig.apiBaseUrl}/api/v1/workout-folders'),
+      body: jsonEncode({'name': name}),
+    );
+    if (response.statusCode != 201) {
+      throw Exception(_err(response.body, response.statusCode));
+    }
+    return WorkoutFolder.fromJson(
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
+  }
+
+  Future<void> renameFolder(String id, String name) async {
+    final response = await _client.put(
+      Uri.parse('${ApiConfig.apiBaseUrl}/api/v1/workout-folders/$id'),
+      body: jsonEncode({'name': name}),
+    );
+    if (response.statusCode != 204) {
+      throw Exception(_err(response.body, response.statusCode));
+    }
+  }
+
+  Future<void> deleteFolder(String id) async {
+    final response = await _client.delete(
+      Uri.parse('${ApiConfig.apiBaseUrl}/api/v1/workout-folders/$id'),
+    );
+    if (response.statusCode != 204) {
+      throw Exception(_err(response.body, response.statusCode));
+    }
+  }
+
+  Future<void> assignFolder(String workoutId, String? folderId) async {
+    final response = await _client.put(
+      Uri.parse('${ApiConfig.apiBaseUrl}/api/v1/workouts/$workoutId/folder'),
+      body: jsonEncode({'folder_id': folderId}),
+    );
+    if (response.statusCode != 204) {
+      throw Exception(_err(response.body, response.statusCode));
+    }
+  }
+
   Future<List<Workout>> _cachedList(String url, String key) async {
     try {
       final resp = await _client
@@ -549,6 +603,7 @@ class WorkoutsRepository {
     'exercise_count': exercises.length,
     'times_performed': base?['times_performed'] ?? 0,
     'love_coefficient': base?['love_coefficient'] ?? 0,
+    'folder_id': base?['folder_id'],
     'exercises': exercises
         .map(
           (e) => {

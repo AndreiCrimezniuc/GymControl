@@ -558,8 +558,6 @@ class _StatsBlock extends StatelessWidget {
             _StatCard(value: s.rank ?? '—', label: 'RANK'),
           ],
         ),
-        const SizedBox(height: 12),
-        _LoveBar(score: s.loveScore),
         if (s.progression.length >= 2) ...[
           const SizedBox(height: 16),
           _SectionLabel('Progression'),
@@ -616,72 +614,42 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-class _LoveBar extends StatelessWidget {
-  final int score; // 0..10
-  const _LoveBar({required this.score});
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: c.card,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: c.border),
-      ),
-      child: Row(
-        children: [
-          Icon(CupertinoIcons.heart_fill, size: 18, color: c.accent),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Love coefficient  ·  $score/10',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: c.textPrimary,
-                    fontFamily: 'Rubik',
-                  ),
-                ),
-                const SizedBox(height: 6),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(3),
-                  child: Stack(
-                    children: [
-                      Container(height: 6, color: c.iconBg),
-                      FractionallySizedBox(
-                        widthFactor: (score / 10).clamp(0.0, 1.0),
-                        child: Container(height: 6, color: c.accent),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProgressionChart extends StatelessWidget {
+class _ProgressionChart extends StatefulWidget {
   final List<ExerciseProgressionPoint> points;
   const _ProgressionChart({required this.points});
 
   @override
+  State<_ProgressionChart> createState() => _ProgressionChartState();
+}
+
+class _ProgressionChartState extends State<_ProgressionChart> {
+  String _metric = 'weight';
+  String _period = 'all';
+
+  @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final data = points.length > 12
-        ? points.sublist(points.length - 12)
-        : points;
-    final maxW = data
-        .map((e) => e.topWeightKg)
-        .fold<double>(1, (a, b) => a > b ? a : b);
+    final now = DateTime.now();
+    final days = switch (_period) {
+      '1m' => 31,
+      '3m' => 93,
+      '1y' => 366,
+      _ => null,
+    };
+    final data = widget.points.where((point) {
+      if (days == null) return true;
+      final date = DateTime.tryParse(point.date);
+      return date != null && now.difference(date).inDays <= days;
+    }).toList();
+    final values = data
+        .map(
+          (point) => switch (_metric) {
+            'volume' => point.volumeKg,
+            'reps' => point.topReps.toDouble(),
+            _ => point.topWeightKg,
+          },
+        )
+        .toList();
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
       decoration: BoxDecoration(
@@ -689,43 +657,113 @@ class _ProgressionChart extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: c.border),
       ),
-      child: SizedBox(
-        height: 90,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: data.map((p) {
-            final h = (p.topWeightKg / maxW * 70).clamp(4.0, 70.0);
-            return Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 3),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      p.topWeightKg.toStringAsFixed(0),
-                      style: TextStyle(
-                        fontSize: 8,
-                        color: c.textSecondary,
-                        fontFamily: 'Rubik',
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Container(
-                      height: h,
-                      decoration: BoxDecoration(
-                        color: c.accent,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                  ],
-                ),
+      child: Column(
+        children: [
+          CupertinoSlidingSegmentedControl<String>(
+            groupValue: _metric,
+            children: const {
+              'weight': Padding(
+                padding: EdgeInsets.symmetric(horizontal: 5),
+                child: Text('Weight'),
               ),
-            );
-          }).toList(),
-        ),
+              'volume': Text('Volume'),
+              'reps': Text('Reps'),
+            },
+            onValueChanged: (value) =>
+                setState(() => _metric = value ?? 'weight'),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 130,
+            width: double.infinity,
+            child: values.length < 2
+                ? Center(
+                    child: Text(
+                      'Not enough data for this period',
+                      style: TextStyle(color: c.textSecondary),
+                    ),
+                  )
+                : CustomPaint(
+                    painter: _LineChartPainter(
+                      values: values,
+                      lineColor: c.accent,
+                      gridColor: c.border,
+                    ),
+                  ),
+          ),
+          const SizedBox(height: 10),
+          CupertinoSlidingSegmentedControl<String>(
+            groupValue: _period,
+            children: const {
+              '1m': Text('1M'),
+              '3m': Text('3M'),
+              '1y': Text('1Y'),
+              'all': Text('All'),
+            },
+            onValueChanged: (value) => setState(() => _period = value ?? 'all'),
+          ),
+        ],
       ),
     );
   }
+}
+
+class _LineChartPainter extends CustomPainter {
+  final List<double> values;
+  final Color lineColor;
+  final Color gridColor;
+
+  const _LineChartPainter({
+    required this.values,
+    required this.lineColor,
+    required this.gridColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final grid = Paint()
+      ..color = gridColor
+      ..strokeWidth = 1;
+    for (var i = 0; i <= 3; i++) {
+      final y = size.height * i / 3;
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), grid);
+    }
+    final minValue = values.reduce((a, b) => a < b ? a : b);
+    final maxValue = values.reduce((a, b) => a > b ? a : b);
+    final range = (maxValue - minValue).abs() < 0.001
+        ? 1.0
+        : maxValue - minValue;
+    final path = Path();
+    for (var i = 0; i < values.length; i++) {
+      final x = size.width * i / (values.length - 1);
+      final y =
+          size.height - ((values[i] - minValue) / range * (size.height - 12));
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+    final paint = Paint()
+      ..color = lineColor
+      ..strokeWidth = 3
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    canvas.drawPath(path, paint);
+    for (var i = 0; i < values.length; i++) {
+      final x = size.width * i / (values.length - 1);
+      final y =
+          size.height - ((values[i] - minValue) / range * (size.height - 12));
+      canvas.drawCircle(Offset(x, y), 4, Paint()..color = lineColor);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _LineChartPainter oldDelegate) =>
+      oldDelegate.values != values ||
+      oldDelegate.lineColor != lineColor ||
+      oldDelegate.gridColor != gridColor;
 }
 
 class _Chip extends StatelessWidget {

@@ -419,24 +419,32 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   Widget _statsRow(AppColors c, Workout w) => Row(
     children: [
       _StatChip(
-        icon: CupertinoIcons.heart_fill,
-        label: 'Love',
-        value: '${_stats?.loveScore ?? w.loveScore}/10',
+        icon: CupertinoIcons.chart_bar_alt_fill,
+        label: 'Volume',
+        value: context.units.formatVolume(
+          _stats?.potentialVolume['medium'] ?? 0,
+        ),
       ),
       const SizedBox(width: 10),
       _StatChip(
-        icon: CupertinoIcons.flame,
+        icon: CupertinoIcons.clock_fill,
+        label: 'Avg time',
+        value: _formatDuration(_stats?.averageDurationSeconds ?? 0),
+      ),
+      const SizedBox(width: 10),
+      _StatChip(
+        icon: CupertinoIcons.checkmark_alt_circle_fill,
         label: 'Done',
         value: '${_stats?.timesPerformed ?? w.timesPerformed}x',
       ),
-      const SizedBox(width: 10),
-      _StatChip(
-        icon: CupertinoIcons.square_stack_3d_up,
-        label: 'Exercises',
-        value: '${w.exerciseCount}',
-      ),
     ],
   );
+
+  String _formatDuration(int seconds) {
+    if (seconds <= 0) return '—';
+    final minutes = (seconds / 60).round();
+    return minutes >= 60 ? '${minutes ~/ 60}h ${minutes % 60}m' : '${minutes}m';
+  }
 
   Widget _difficultyPicker(AppColors c) =>
       CupertinoSlidingSegmentedControl<String>(

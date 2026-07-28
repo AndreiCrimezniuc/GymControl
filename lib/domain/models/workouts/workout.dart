@@ -104,6 +104,7 @@ class Workout {
   final double loveCoefficient; // 0..1
   final double deloadFactor; // deload weight multiplier vs Normal (e.g. 0.70)
   final List<WorkoutExercise> exercises;
+  final String? folderId;
 
   const Workout({
     required this.id,
@@ -118,6 +119,7 @@ class Workout {
     required this.loveCoefficient,
     this.deloadFactor = 0.70,
     required this.exercises,
+    this.folderId,
   });
 
   bool get isPublic => visibility == 'public';
@@ -138,6 +140,7 @@ class Workout {
     exercises: ((j['exercises'] as List?) ?? [])
         .map((e) => WorkoutExercise.fromJson(e as Map<String, dynamic>))
         .toList(),
+    folderId: j['folder_id'] as String?,
   );
 
   /// Distinct muscle groups across the workout's exercises, for card chips.
@@ -151,6 +154,24 @@ class Workout {
     }
     return out;
   }
+}
+
+class WorkoutFolder {
+  final String id;
+  final String name;
+  final int position;
+
+  const WorkoutFolder({
+    required this.id,
+    required this.name,
+    required this.position,
+  });
+
+  factory WorkoutFolder.fromJson(Map<String, dynamic> json) => WorkoutFolder(
+    id: json['id'] as String? ?? '',
+    name: json['name'] as String? ?? '',
+    position: (json['position'] as num?)?.toInt() ?? 0,
+  );
 }
 
 class WorkoutRunPoint {
@@ -263,12 +284,14 @@ class WorkoutStats {
   final double loveCoefficient;
   final Map<String, double> potentialVolume; // difficulty -> tonnage
   final List<WorkoutRunPoint> history;
+  final int averageDurationSeconds;
 
   const WorkoutStats({
     required this.timesPerformed,
     required this.loveCoefficient,
     required this.potentialVolume,
     required this.history,
+    this.averageDurationSeconds = 0,
   });
 
   int get loveScore => (loveCoefficient * 10).round().clamp(0, 10);
@@ -286,6 +309,8 @@ class WorkoutStats {
       history: ((j['history'] as List?) ?? [])
           .map((e) => WorkoutRunPoint.fromJson(e as Map<String, dynamic>))
           .toList(),
+      averageDurationSeconds:
+          (j['average_duration_seconds'] as num?)?.toInt() ?? 0,
     );
   }
 }

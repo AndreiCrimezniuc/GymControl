@@ -8,6 +8,9 @@ import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
 import 'package:gymboss/ui/core/ui/widgets/skeleton.dart';
+import 'package:gymboss/ui/core/ui/widgets/app_dialog.dart';
+import 'package:gymboss/ui/core/subscription/pro_controller.dart';
+import 'package:gymboss/ui/subscription/paywall_screen.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/workout_editor.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/workout_detail.dart';
 
@@ -27,6 +30,8 @@ class _WorkoutsState extends State<Workouts> {
   String? _error;
   List<Workout> _mine = [];
   List<Workout> _public = [];
+  List<WorkoutFolder> _folders = [];
+  String? _folderId;
 
   @override
   void initState() {
@@ -45,14 +50,16 @@ class _WorkoutsState extends State<Workouts> {
       });
     }
     try {
-      final results = await Future.wait([
+      final results = await Future.wait<Object>([
         _repo.listOwned(),
         _repo.listPublic(),
+        _repo.listFolders(),
       ]);
       if (mounted) {
         setState(() {
-          _mine = results[0];
-          _public = results[1];
+          _mine = results[0] as List<Workout>;
+          _public = results[1] as List<Workout>;
+          _folders = results[2] as List<WorkoutFolder>;
           _loading = false;
         });
       }
@@ -77,6 +84,10 @@ class _WorkoutsState extends State<Workouts> {
   }
 
   Future<void> _create() async {
+    if (_mine.length >= 5 && !context.read<ProController>().isPro) {
+      await _openPaywall();
+      return;
+    }
     final created = await Navigator.of(context, rootNavigator: true).push<bool>(
       CupertinoPageRoute(
         builder: (_) => WorkoutEditorScreen(repo: _repo, exercises: _exercises),
@@ -84,6 +95,173 @@ class _WorkoutsState extends State<Workouts> {
     );
     if (created == true) _load();
   }
+
+  Future<void> _openPaywall() => Navigator.of(
+    context,
+    rootNavigator: true,
+  ).push(CupertinoPageRoute(builder: (_) => const PaywallScreen()));
+
+  Future<String?> _askName(String title, {String initial = ''}) async {
+    final controller = TextEditingController(text: initial);
+    final value = await showCupertinoDialog<String>(
+      context: context,
+      builder: (dialogContext) => CupertinoAlertDialog(
+        title: Text(title),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: CupertinoTextField(
+            controller: controller,
+            autofocus: true,
+            placeholder: 'Folder name',
+          ),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () =>
+                Navigator.pop(dialogContext, controller.text.trim()),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    return value?.isEmpty == true ? null : value;
+  }
+
+  Future<void> _createFolder() async {
+    if (!context.read<ProController>().isPro) {
+      await _openPaywall();
+      return;
+    }
+    final name = await _askName('New folder');
+    if (name == null) return;
+    try {
+      await _repo.createFolder(name);
+      await _load(spinner: false);
+    } catch (error) {
+      await _showActionError(error);
+    }
+  }
+
+  Future<void> _manageFolder(WorkoutFolder folder) async {
+    await showCupertinoModalPopup<void>(
+      context: context,
+      builder: (sheetContext) => CupertinoActionSheet(
+        title: Text(folder.name),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () async {
+              Navigator.pop(sheetContext);
+              final name = await _askName(
+                'Rename folder',
+                initial: folder.name,
+              );
+              if (name == null) return;
+              try {
+                await _repo.renameFolder(folder.id, name);
+                await _load(spinner: false);
+              } catch (error) {
+                await _showActionError(error);
+              }
+            },
+            child: const Text('Rename'),
+          ),
+          CupertinoActionSheetAction(
+            isDestructiveAction: true,
+            onPressed: () {
+              Navigator.pop(sheetContext);
+              _deleteFolder(folder);
+            },
+            child: const Text('Delete folder'),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.pop(sheetContext),
+          child: const Text('Cancel'),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _deleteFolder(WorkoutFolder folder) async {
+    final count = _mine.where((w) => w.folderId == folder.id).length;
+    final confirmed = await showAppDialog<bool>(
+      context,
+      title: 'Delete “${folder.name}”?',
+      message:
+          'This will permanently delete the folder and all $count workout${count == 1 ? '' : 's'} inside it. This cannot be undone.',
+      actions: [
+        AppDialogAction(
+          'Cancel',
+          onPressed: () => Navigator.pop(context, false),
+        ),
+        AppDialogAction(
+          'Delete everything',
+          isDestructive: true,
+          onPressed: () => Navigator.pop(context, true),
+        ),
+      ],
+    );
+    if (confirmed != true) return;
+    try {
+      await _repo.deleteFolder(folder.id);
+      if (_folderId == folder.id) _folderId = null;
+      await _load(spinner: false);
+    } catch (error) {
+      await _showActionError(error);
+    }
+  }
+
+  Future<void> _assignFolder(Workout workout) async {
+    await showCupertinoModalPopup<void>(
+      context: context,
+      builder: (sheetContext) => CupertinoActionSheet(
+        title: Text('Move “${workout.name}”'),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () async {
+              Navigator.pop(sheetContext);
+              await _moveWorkout(workout.id, null);
+            },
+            child: const Text('Default folder'),
+          ),
+          for (final folder in _folders)
+            CupertinoActionSheetAction(
+              onPressed: () async {
+                Navigator.pop(sheetContext);
+                await _moveWorkout(workout.id, folder.id);
+              },
+              child: Text(folder.name),
+            ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.pop(sheetContext),
+          child: const Text('Cancel'),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _moveWorkout(String workoutId, String? folderId) async {
+    try {
+      await _repo.assignFolder(workoutId, folderId);
+      await _load(spinner: false);
+    } catch (error) {
+      await _showActionError(error);
+    }
+  }
+
+  Future<void> _showActionError(Object error) => showAppDialog<void>(
+    context,
+    title: 'Couldn’t save changes',
+    message: error.toString().replaceFirst('Exception: ', ''),
+    actions: [AppDialogAction('OK', onPressed: () => Navigator.pop(context))],
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -106,7 +284,9 @@ class _WorkoutsState extends State<Workouts> {
   }
 
   Widget _buildBody(AppColors c) {
-    final list = _tab == 0 ? _mine : _public;
+    final list = _tab == 0
+        ? _mine.where((w) => w.folderId == _folderId).toList()
+        : _public;
     return Column(
       children: [
         Padding(
@@ -122,6 +302,34 @@ class _WorkoutsState extends State<Workouts> {
             },
           ),
         ),
+        if (_tab == 0)
+          SizedBox(
+            height: 48,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              children: [
+                _FolderChip(
+                  label: 'Default',
+                  selected: _folderId == null,
+                  onTap: () => setState(() => _folderId = null),
+                ),
+                for (final folder in _folders)
+                  _FolderChip(
+                    label: folder.name,
+                    selected: _folderId == folder.id,
+                    onTap: () => setState(() => _folderId = folder.id),
+                    onLongPress: () => _manageFolder(folder),
+                    onManage: () => _manageFolder(folder),
+                  ),
+                _FolderChip(
+                  label: 'New folder',
+                  icon: CupertinoIcons.add,
+                  onTap: _createFolder,
+                ),
+              ],
+            ),
+          ),
         Expanded(
           child: CustomScrollView(
             slivers: [
@@ -142,6 +350,10 @@ class _WorkoutsState extends State<Workouts> {
                     itemBuilder: (_, i) => _WorkoutCard(
                       w: list[i],
                       onTap: () => _openDetail(list[i]),
+                      onLongPress: _tab == 0
+                          ? () => _assignFolder(list[i])
+                          : null,
+                      onManage: _tab == 0 ? () => _assignFolder(list[i]) : null,
                     ),
                   ),
                 ),
@@ -169,19 +381,32 @@ class _WorkoutsState extends State<Workouts> {
 class _WorkoutCard extends StatelessWidget {
   final Workout w;
   final VoidCallback onTap;
-  const _WorkoutCard({required this.w, required this.onTap});
+  final VoidCallback? onLongPress;
+  final VoidCallback? onManage;
+  const _WorkoutCard({
+    required this.w,
+    required this.onTap,
+    this.onLongPress,
+    this.onManage,
+  });
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     return GestureDetector(
       onTap: onTap,
+      onLongPress: onLongPress,
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: c.card,
+          gradient: LinearGradient(
+            colors: [c.accent.withValues(alpha: 0.14), c.card, c.card],
+            stops: const [0, 0.32, 1],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: c.border),
+          border: Border.all(color: c.accent.withValues(alpha: 0.28)),
           boxShadow: c.cardShadow,
         ),
         child: Column(
@@ -223,6 +448,19 @@ class _WorkoutCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                if (onManage != null) ...[
+                  const SizedBox(width: 6),
+                  CupertinoButton(
+                    padding: const EdgeInsets.all(4),
+                    minimumSize: const Size(30, 30),
+                    onPressed: onManage,
+                    child: Icon(
+                      CupertinoIcons.ellipsis,
+                      size: 18,
+                      color: c.textSecondary,
+                    ),
+                  ),
+                ],
               ],
             ),
             const SizedBox(height: 6),
@@ -254,18 +492,6 @@ class _WorkoutCard extends StatelessWidget {
             const SizedBox(height: 10),
             Row(
               children: [
-                Icon(CupertinoIcons.heart_fill, size: 13, color: c.accent),
-                const SizedBox(width: 4),
-                Text(
-                  '${w.loveScore}/10',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: c.textSecondary,
-                    fontFamily: 'Rubik',
-                  ),
-                ),
-                const SizedBox(width: 14),
                 Icon(CupertinoIcons.flame, size: 13, color: c.textSecondary),
                 const SizedBox(width: 4),
                 Text(
@@ -285,6 +511,75 @@ class _WorkoutCard extends StatelessWidget {
                 ),
               ],
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FolderChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final IconData? icon;
+  final VoidCallback onTap;
+  final VoidCallback? onLongPress;
+  final VoidCallback? onManage;
+
+  const _FolderChip({
+    required this.label,
+    this.selected = false,
+    this.icon,
+    required this.onTap,
+    this.onLongPress,
+    this.onManage,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return GestureDetector(
+      onTap: onTap,
+      onLongPress: onLongPress,
+      child: Container(
+        margin: const EdgeInsets.only(right: 8, bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 13),
+        decoration: BoxDecoration(
+          color: selected ? colors.accent : colors.iconBg,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            if (icon != null) ...[
+              Icon(icon, size: 15, color: colors.textSecondary),
+              const SizedBox(width: 5),
+            ],
+            Text(
+              label,
+              style: TextStyle(
+                color: selected ? colors.textOnAccent : colors.textPrimary,
+                fontWeight: FontWeight.w700,
+                fontSize: 12,
+                fontFamily: 'Rubik',
+              ),
+            ),
+            if (onManage != null) ...[
+              const SizedBox(width: 4),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onManage,
+                child: Padding(
+                  padding: const EdgeInsets.all(5),
+                  child: Icon(
+                    CupertinoIcons.ellipsis,
+                    size: 16,
+                    color: selected
+                        ? colors.textOnAccent
+                        : colors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
