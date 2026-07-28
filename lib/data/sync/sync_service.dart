@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
+
 import 'package:gymboss/data/local/local_store.dart';
 import 'package:gymboss/data/local/mutation.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
@@ -48,6 +50,24 @@ class SyncOutcome {
 typedef MutationHandler =
     Future<SyncOutcome> Function(AuthenticatedClient client, Mutation m);
 
+/// A snapshot of sync health for the UI: whether the device is online and how
+/// many local changes are still waiting to reach the backend.
+@immutable
+class SyncStatus {
+  final bool online;
+  final int pending;
+  const SyncStatus({required this.online, required this.pending});
+
+  bool get hasPending => pending > 0;
+
+  @override
+  bool operator ==(Object other) =>
+      other is SyncStatus && other.online == online && other.pending == pending;
+
+  @override
+  int get hashCode => Object.hash(online, pending);
+}
+
 /// Drains the outbox against the backend whenever the app is online. Handlers
 /// are registered per mutation kind by the offline-first repositories.
 class SyncService {
@@ -70,6 +90,20 @@ class SyncService {
   AuthenticatedClient? _client;
   StreamSubscription<bool>? _sub;
   bool _flushing = false;
+  bool _online = true;
+
+  /// Reactive sync health for the UI (online state + pending-change count).
+  /// Repositories call [notifyChanged] after enqueuing; connectivity and flush
+  /// update it automatically.
+  final ValueNotifier<SyncStatus> status = ValueNotifier(
+    const SyncStatus(online: true, pending: 0),
+  );
+
+  /// Recomputes [status] from the current online flag and outbox depth.
+  void notifyChanged() {
+    final pending = _store.isReady ? _store.pending().length : 0;
+    status.value = SyncStatus(online: _online, pending: pending);
+  }
 
   void registerHandler(String kind, MutationHandler handler) {
     _handlers[kind] = handler;
@@ -83,8 +117,16 @@ class SyncService {
   void bind(AuthenticatedClient client) {
     _client = client;
     _sub ??= _onlineChanges.listen((online) {
+      _online = online;
+      notifyChanged();
       if (online) flush();
     });
+    unawaited(
+      _isOnline().then((v) {
+        _online = v;
+        notifyChanged();
+      }),
+    );
     flush();
   }
 
@@ -95,6 +137,9 @@ class SyncService {
   /// ordering and idempotency are preserved; drops permanent failures.
   Future<void> flush() async {
     final client = _client;
+    // Keep the UI's pending count fresh even when we can't drain right now
+    // (offline, or an enqueue happened while another flush is in flight).
+    notifyChanged();
     if (client == null || _flushing || !_store.isReady) return;
     if (!await _isOnline()) return;
     _flushing = true;
@@ -141,11 +186,13 @@ class SyncService {
       }
     } finally {
       _flushing = false;
+      notifyChanged();
     }
   }
 
   void dispose() {
     _sub?.cancel();
     _sub = null;
+    status.dispose();
   }
 }
