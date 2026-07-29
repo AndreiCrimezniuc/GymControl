@@ -173,15 +173,16 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     final save = await showAppDialog<bool>(
       context,
       title: 'Finish workout?',
-      message: 'Choose whether to save checked sets to your statistics.',
+      message:
+          '${session.doneSets} of ${session.totalSets} sets are complete. Choose how you want to finish.',
       actions: [
         AppDialogAction(
-          'Discard',
+          'Finish without saving',
           isDestructive: true,
           onPressed: () => Navigator.pop(context, false),
         ),
         AppDialogAction(
-          'Save statistics',
+          'Finish and save',
           onPressed: () => Navigator.pop(context, true),
         ),
       ],

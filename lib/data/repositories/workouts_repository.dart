@@ -22,8 +22,10 @@ import 'package:gymboss/domain/models/workouts/workout.dart';
 /// share) surface a clear offline error when there's no connection.
 class WorkoutsRepository {
   static const _collection = 'workout';
+  static const _folderCollection = 'workout-folder';
   static const _ownedKey = 'workouts:owned';
   static const _publicKey = 'workouts:public';
+  static const _foldersKey = 'workout-folders';
   static const _uuid = Uuid();
   static bool _handlersRegistered = false;
 
@@ -42,15 +44,32 @@ class WorkoutsRepository {
       _cachedList('$_base/public', _publicKey);
 
   Future<List<WorkoutFolder>> listFolders() async {
-    final response = await _client.get(
-      Uri.parse('${ApiConfig.apiBaseUrl}/api/v1/workout-folders'),
-    );
-    if (response.statusCode != 200) {
-      throw Exception(_err(response.body, response.statusCode));
+    try {
+      final response = await _client
+          .get(Uri.parse('${ApiConfig.apiBaseUrl}/api/v1/workout-folders'))
+          .timeout(const Duration(seconds: 10));
+      if (response.statusCode != 200) {
+        throw Exception(_err(response.body, response.statusCode));
+      }
+      final raw = (jsonDecode(response.body) as List)
+          .cast<Map<String, dynamic>>();
+      for (final folder in raw) {
+        await _store.putDoc(_folderCollection, folder['id'] as String, folder);
+      }
+      await _store.putListIds(
+        _foldersKey,
+        raw.map((folder) => folder['id'] as String).toList(),
+      );
+      return raw.map(WorkoutFolder.fromJson).toList();
+    } on Object catch (error) {
+      if (isTransientNetworkFailure(error) && _store.hasList(_foldersKey)) {
+        return _store
+            .getListDocs(_folderCollection, _foldersKey)
+            .map(WorkoutFolder.fromJson)
+            .toList();
+      }
+      rethrow;
     }
-    return (jsonDecode(response.body) as List)
-        .map((item) => WorkoutFolder.fromJson(item as Map<String, dynamic>))
-        .toList();
   }
 
   Future<WorkoutFolder> createFolder(String name) async {
@@ -61,9 +80,12 @@ class WorkoutsRepository {
     if (response.statusCode != 201) {
       throw Exception(_err(response.body, response.statusCode));
     }
-    return WorkoutFolder.fromJson(
-      jsonDecode(response.body) as Map<String, dynamic>,
-    );
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    final folder = WorkoutFolder.fromJson(body);
+    await _store.putDoc(_folderCollection, folder.id, body);
+    final ids = _store.getListIds(_foldersKey).toList()..remove(folder.id);
+    await _store.putListIds(_foldersKey, [...ids, folder.id]);
+    return folder;
   }
 
   Future<void> renameFolder(String id, String name) async {
@@ -74,6 +96,10 @@ class WorkoutsRepository {
     if (response.statusCode != 204) {
       throw Exception(_err(response.body, response.statusCode));
     }
+    final cached = _store.getDoc(_folderCollection, id);
+    if (cached != null) {
+      await _store.putDoc(_folderCollection, id, {...cached, 'name': name});
+    }
   }
 
   Future<void> deleteFolder(String id) async {
@@ -83,6 +109,8 @@ class WorkoutsRepository {
     if (response.statusCode != 204) {
       throw Exception(_err(response.body, response.statusCode));
     }
+    await _store.deleteDoc(_folderCollection, id);
+    await _store.removeFromList(_foldersKey, id);
   }
 
   Future<void> assignFolder(String workoutId, String? folderId) async {
@@ -92,6 +120,13 @@ class WorkoutsRepository {
     );
     if (response.statusCode != 204) {
       throw Exception(_err(response.body, response.statusCode));
+    }
+    final cached = _store.getDoc(_collection, workoutId);
+    if (cached != null) {
+      await _store.putDoc(_collection, workoutId, {
+        ...cached,
+        'folder_id': folderId,
+      });
     }
   }
 

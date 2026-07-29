@@ -27,7 +27,11 @@ class _WorkoutsState extends State<Workouts> {
 
   int _tab = 0; // 0 = mine, 1 = public
   bool _loading = true;
+  bool _loadingLibrary = false;
+  bool _libraryLoaded = false;
+  bool _foldersReady = false;
   String? _error;
+  String? _libraryError;
   List<Workout> _mine = [];
   List<Workout> _public = [];
   List<WorkoutFolder> _folders = [];
@@ -50,18 +54,25 @@ class _WorkoutsState extends State<Workouts> {
       });
     }
     try {
-      final results = await Future.wait<Object>([
-        _repo.listOwned(),
-        _repo.listPublic(),
-        _repo.listFolders(),
-      ]);
+      final mine = await _repo.listOwned();
       if (mounted) {
         setState(() {
-          _mine = results[0] as List<Workout>;
-          _public = results[1] as List<Workout>;
-          _folders = results[2] as List<WorkoutFolder>;
+          _mine = mine;
           _loading = false;
         });
+      }
+      try {
+        final folders = await _repo.listFolders();
+        if (mounted) {
+          setState(() {
+            _folders = folders;
+            _foldersReady = true;
+          });
+        }
+      } catch (_) {
+        // The default folder and cached workouts remain fully usable even when
+        // the optional folder request cannot be completed.
+        if (mounted) setState(() => _foldersReady = false);
       }
     } catch (e) {
       if (mounted) {
@@ -71,6 +82,52 @@ class _WorkoutsState extends State<Workouts> {
         });
       }
     }
+  }
+
+  Future<void> _loadLibrary({bool force = false}) async {
+    if (_loadingLibrary || (_libraryLoaded && !force)) return;
+    setState(() {
+      _loadingLibrary = true;
+      _libraryError = null;
+    });
+    try {
+      final items = await _repo.listPublic();
+      if (!mounted) return;
+      setState(() {
+        _public = items;
+        _libraryLoaded = true;
+      });
+    } catch (error) {
+      if (mounted) setState(() => _libraryError = error.toString());
+    } finally {
+      if (mounted) setState(() => _loadingLibrary = false);
+    }
+  }
+
+  void _selectTab(int value) {
+    setState(() => _tab = value);
+    if (value == 1) _loadLibrary();
+  }
+
+  Future<bool> _requirePro() async {
+    final pro = context.read<ProController>();
+    final known = pro.isKnown || await pro.load(force: true);
+    if (!mounted) return false;
+    if (!known) {
+      await showAppDialog<void>(
+        context,
+        title: 'Couldn’t verify Pro access',
+        message:
+            'Check your connection and try again. Your current workouts are still available.',
+        actions: [
+          AppDialogAction('OK', onPressed: () => Navigator.pop(context)),
+        ],
+      );
+      return false;
+    }
+    if (pro.isPro) return true;
+    await _openPaywall();
+    return false;
   }
 
   Future<void> _openDetail(Workout w) async {
@@ -84,10 +141,8 @@ class _WorkoutsState extends State<Workouts> {
   }
 
   Future<void> _create() async {
-    if (_mine.length >= 5 && !context.read<ProController>().isPro) {
-      await _openPaywall();
-      return;
-    }
+    if (_mine.length >= 5 && !await _requirePro()) return;
+    if (!mounted) return;
     final created = await Navigator.of(context, rootNavigator: true).push<bool>(
       CupertinoPageRoute(
         builder: (_) => WorkoutEditorScreen(repo: _repo, exercises: _exercises),
@@ -134,10 +189,7 @@ class _WorkoutsState extends State<Workouts> {
   }
 
   Future<void> _createFolder() async {
-    if (!context.read<ProController>().isPro) {
-      await _openPaywall();
-      return;
-    }
+    if (!await _requirePro()) return;
     final name = await _askName('New folder');
     if (name == null) return;
     try {
@@ -269,9 +321,10 @@ class _WorkoutsState extends State<Workouts> {
     return AppPage(
       title: 'Workouts',
       actions: [
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: _create,
+        CupertinoButton(
+          padding: EdgeInsets.zero,
+          minimumSize: const Size(44, 44),
+          onPressed: _create,
           child: Icon(CupertinoIcons.add_circled, size: 24, color: c.accent),
         ),
       ],
@@ -285,7 +338,9 @@ class _WorkoutsState extends State<Workouts> {
 
   Widget _buildBody(AppColors c) {
     final list = _tab == 0
-        ? _mine.where((w) => w.folderId == _folderId).toList()
+        ? !_foldersReady
+              ? _mine
+              : _mine.where((w) => w.folderId == _folderId).toList()
         : _public;
     return Column(
       children: [
@@ -295,22 +350,25 @@ class _WorkoutsState extends State<Workouts> {
             groupValue: _tab,
             backgroundColor: c.iconBg,
             thumbColor: c.card,
-            onValueChanged: (v) => setState(() => _tab = v ?? 0),
+            onValueChanged: (v) => _selectTab(v ?? 0),
             children: {
               0: _seg('Mine (${_mine.length})', c),
-              1: _seg('Library (${_public.length})', c),
+              1: _seg(
+                _libraryLoaded ? 'Library (${_public.length})' : 'Library',
+                c,
+              ),
             },
           ),
         ),
         if (_tab == 0)
           SizedBox(
-            height: 48,
+            height: 52,
             child: ListView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 20),
               children: [
                 _FolderChip(
-                  label: 'Default',
+                  label: _foldersReady ? 'Default' : 'All workouts',
                   selected: _folderId == null,
                   onTap: () => setState(() => _folderId = null),
                 ),
@@ -331,34 +389,46 @@ class _WorkoutsState extends State<Workouts> {
             ),
           ),
         Expanded(
-          child: CustomScrollView(
-            slivers: [
-              CupertinoSliverRefreshControl(
-                onRefresh: () => _load(spinner: false),
-              ),
-              if (list.isEmpty)
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: _EmptyView(mine: _tab == 0, onCreate: _create),
+          child: _tab == 1 && _loadingLibrary
+              ? const SkeletonList()
+              : _tab == 1 && _libraryError != null
+              ? _ErrorView(
+                  error: _libraryError!,
+                  onRetry: () => _loadLibrary(force: true),
                 )
-              else
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                  sliver: SliverList.separated(
-                    itemCount: list.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 10),
-                    itemBuilder: (_, i) => _WorkoutCard(
-                      w: list[i],
-                      onTap: () => _openDetail(list[i]),
-                      onLongPress: _tab == 0
-                          ? () => _assignFolder(list[i])
-                          : null,
-                      onManage: _tab == 0 ? () => _assignFolder(list[i]) : null,
+              : CustomScrollView(
+                  slivers: [
+                    CupertinoSliverRefreshControl(
+                      onRefresh: () => _tab == 0
+                          ? _load(spinner: false)
+                          : _loadLibrary(force: true),
                     ),
-                  ),
+                    if (list.isEmpty)
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: _EmptyView(mine: _tab == 0, onCreate: _create),
+                      )
+                    else
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                        sliver: SliverList.separated(
+                          itemCount: list.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 10),
+                          itemBuilder: (_, i) => _WorkoutCard(
+                            w: list[i],
+                            onTap: () => _openDetail(list[i]),
+                            onLongPress: _tab == 0
+                                ? () => _assignFolder(list[i])
+                                : null,
+                            onManage: _tab == 0
+                                ? () => _assignFolder(list[i])
+                                : null,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
-            ],
-          ),
         ),
       ],
     );
@@ -393,125 +463,130 @@ class _WorkoutCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return GestureDetector(
-      onTap: onTap,
-      onLongPress: onLongPress,
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [c.accent.withValues(alpha: 0.14), c.card, c.card],
-            stops: const [0, 0.32, 1],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+    return Semantics(
+      button: true,
+      label: 'Open ${w.name}',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        onLongPress: onLongPress,
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [c.accent.withValues(alpha: 0.14), c.card, c.card],
+              stops: const [0, 0.32, 1],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: c.accent.withValues(alpha: 0.28)),
+            boxShadow: c.cardShadow,
           ),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: c.accent.withValues(alpha: 0.28)),
-          boxShadow: c.cardShadow,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    w.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: c.textPrimary,
-                      fontFamily: 'Rubik',
-                    ),
-                  ),
-                ),
-                if (w.isPublic)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: c.accent.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
                     child: Text(
-                      'PUBLIC',
+                      w.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 9,
+                        fontSize: 16,
                         fontWeight: FontWeight.w800,
-                        letterSpacing: 0.5,
-                        color: c.accent,
+                        color: c.textPrimary,
                         fontFamily: 'Rubik',
                       ),
                     ),
                   ),
-                if (onManage != null) ...[
-                  const SizedBox(width: 6),
-                  CupertinoButton(
-                    padding: const EdgeInsets.all(4),
-                    minimumSize: const Size(30, 30),
-                    onPressed: onManage,
-                    child: Icon(
-                      CupertinoIcons.ellipsis,
-                      size: 18,
-                      color: c.textSecondary,
+                  if (w.isPublic)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: c.accent.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        'PUBLIC',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.5,
+                          color: c.accent,
+                          fontFamily: 'Rubik',
+                        ),
+                      ),
                     ),
-                  ),
+                  if (onManage != null) ...[
+                    const SizedBox(width: 6),
+                    CupertinoButton(
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(44, 44),
+                      onPressed: onManage,
+                      child: Icon(
+                        CupertinoIcons.ellipsis,
+                        size: 18,
+                        color: c.textSecondary,
+                      ),
+                    ),
+                  ],
                 ],
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              '${w.exerciseCount} exercise${w.exerciseCount == 1 ? '' : 's'}'
-              '${w.muscleGroups.isNotEmpty ? '  ·  ${w.muscleGroups.take(3).join(', ')}' : ''}',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 12,
-                color: c.textSecondary,
-                fontFamily: 'Rubik',
               ),
-            ),
-            if (w.comment.isNotEmpty) ...[
-              const SizedBox(height: 4),
+              const SizedBox(height: 6),
               Text(
-                w.comment,
+                '${w.exerciseCount} exercise${w.exerciseCount == 1 ? '' : 's'}'
+                '${w.muscleGroups.isNotEmpty ? '  ·  ${w.muscleGroups.take(3).join(', ')}' : ''}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 12,
                   color: c.textSecondary,
                   fontFamily: 'Rubik',
-                  fontStyle: FontStyle.italic,
                 ),
               ),
-            ],
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Icon(CupertinoIcons.flame, size: 13, color: c.textSecondary),
-                const SizedBox(width: 4),
+              if (w.comment.isNotEmpty) ...[
+                const SizedBox(height: 4),
                 Text(
-                  '${w.timesPerformed}x',
+                  w.comment,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 12,
-                    fontWeight: FontWeight.w600,
                     color: c.textSecondary,
                     fontFamily: 'Rubik',
+                    fontStyle: FontStyle.italic,
                   ),
                 ),
-                const Spacer(),
-                Icon(
-                  CupertinoIcons.arrow_right,
-                  size: 15,
-                  color: c.textSecondary,
-                ),
               ],
-            ),
-          ],
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Icon(CupertinoIcons.flame, size: 13, color: c.textSecondary),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${w.timesPerformed}x',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: c.textSecondary,
+                      fontFamily: 'Rubik',
+                    ),
+                  ),
+                  const Spacer(),
+                  Icon(
+                    CupertinoIcons.arrow_right,
+                    size: 15,
+                    color: c.textSecondary,
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -538,38 +613,43 @@ class _FolderChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    return GestureDetector(
-      onTap: onTap,
-      onLongPress: onLongPress,
-      child: Container(
-        margin: const EdgeInsets.only(right: 8, bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 13),
-        decoration: BoxDecoration(
-          color: selected ? colors.accent : colors.iconBg,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Row(
-          children: [
-            if (icon != null) ...[
-              Icon(icon, size: 15, color: colors.textSecondary),
-              const SizedBox(width: 5),
-            ],
-            Text(
-              label,
-              style: TextStyle(
-                color: selected ? colors.textOnAccent : colors.textPrimary,
-                fontWeight: FontWeight.w700,
-                fontSize: 12,
-                fontFamily: 'Rubik',
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        onLongPress: onLongPress,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 44),
+          margin: const EdgeInsets.only(right: 8, bottom: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 13),
+          decoration: BoxDecoration(
+            color: selected ? colors.accent : colors.iconBg,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Row(
+            children: [
+              if (icon != null) ...[
+                Icon(icon, size: 15, color: colors.textSecondary),
+                const SizedBox(width: 5),
+              ],
+              Text(
+                label,
+                style: TextStyle(
+                  color: selected ? colors.textOnAccent : colors.textPrimary,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                  fontFamily: 'Rubik',
+                ),
               ),
-            ),
-            if (onManage != null) ...[
-              const SizedBox(width: 4),
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: onManage,
-                child: Padding(
-                  padding: const EdgeInsets.all(5),
+              if (onManage != null) ...[
+                const SizedBox(width: 4),
+                CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  minimumSize: const Size(44, 44),
+                  onPressed: onManage,
                   child: Icon(
                     CupertinoIcons.ellipsis,
                     size: 16,
@@ -578,9 +658,9 @@ class _FolderChip extends StatelessWidget {
                         : colors.textSecondary,
                   ),
                 ),
-              ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

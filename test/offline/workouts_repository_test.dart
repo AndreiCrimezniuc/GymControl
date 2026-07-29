@@ -51,4 +51,25 @@ void main() {
       expect(workouts.single.name, 'Offline push');
     },
   );
+
+  test('workout folders fall back to durable cache offline', () async {
+    await store.putDoc('workout-folder', 'f1', {
+      'id': 'f1',
+      'name': 'Strength',
+      'position': 0,
+    });
+    await store.putListIds('workout-folders', ['f1']);
+
+    final client = AuthenticatedClient(
+      storage: TokenStorage(),
+      authService: AuthService(),
+      inner: MockClient((_) async => throw const SocketException('offline')),
+    );
+    addTearDown(client.dispose);
+
+    final folders = await WorkoutsRepository(client: client).listFolders();
+
+    expect(folders, hasLength(1));
+    expect(folders.single.name, 'Strength');
+  });
 }

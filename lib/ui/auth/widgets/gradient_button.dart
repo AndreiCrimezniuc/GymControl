@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
+import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
 
 class GradientButton extends StatelessWidget {
   final String label;
@@ -16,7 +17,8 @@ class GradientButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return GestureDetector(
+    return Pressable(
+      semanticLabel: label,
       onTap: loading ? null : onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),

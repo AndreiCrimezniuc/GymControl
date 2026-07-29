@@ -8,6 +8,7 @@ import 'package:gymboss/data/services/auth/token_storage.dart';
 import 'package:gymboss/data/sync/sync_service.dart';
 import 'package:gymboss/ui/auth/login_screen.dart';
 import 'package:gymboss/ui/auth/register_screen.dart';
+import 'package:gymboss/ui/auth/widgets/gym_logo.dart';
 import 'package:gymboss/ui/auth/view_model/auth_view_model.dart';
 import 'package:gymboss/l10n/app_localizations.dart';
 import 'package:gymboss/ui/core/locale/locale_controller.dart';
@@ -138,6 +139,34 @@ class _AuthGate extends StatefulWidget {
 
 class _AuthGateState extends State<_AuthGate> {
   StreamSubscription<void>? _sessionSub;
+  Timer? _slowTimer;
+  Timer? _stalledTimer;
+  bool _slow = false;
+  bool _stalled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _startBootTimers();
+  }
+
+  void _startBootTimers() {
+    _slowTimer?.cancel();
+    _stalledTimer?.cancel();
+    _slow = false;
+    _stalled = false;
+    _slowTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _slow = true);
+    });
+    _stalledTimer = Timer(const Duration(seconds: 10), () {
+      if (mounted) setState(() => _stalled = true);
+    });
+  }
+
+  void _retryAuth() {
+    setState(_startBootTimers);
+    context.read<AuthViewModel>().checkAuth();
+  }
 
   @override
   void didChangeDependencies() {
@@ -151,6 +180,8 @@ class _AuthGateState extends State<_AuthGate> {
   @override
   void dispose() {
     _sessionSub?.cancel();
+    _slowTimer?.cancel();
+    _stalledTimer?.cancel();
     super.dispose();
   }
 
@@ -159,10 +190,56 @@ class _AuthGateState extends State<_AuthGate> {
     return Consumer<AuthViewModel>(
       builder: (ctx, vm, _) {
         if (vm.status == AuthStatus.unknown) {
-          return const AppScaffold(
-            child: Center(child: CupertinoActivityIndicator()),
+          return AppScaffold(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const GymLogo(),
+                    const SizedBox(height: 28),
+                    const CupertinoActivityIndicator(radius: 12),
+                    const SizedBox(height: 14),
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      child: Text(
+                        _slow
+                            ? 'Restoring your session…'
+                            : 'Getting things ready…',
+                        key: ValueKey(_slow),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: context.colors.textSecondary,
+                          fontFamily: 'Rubik',
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                    if (_stalled) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        'This is taking longer than expected.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: context.colors.textSecondary,
+                          fontFamily: 'Rubik',
+                          fontSize: 13,
+                        ),
+                      ),
+                      CupertinoButton(
+                        onPressed: _retryAuth,
+                        child: const Text('Try again'),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
           );
         }
+        _slowTimer?.cancel();
+        _stalledTimer?.cancel();
         if (vm.status == AuthStatus.authenticated) {
           context.read<ProController>().load();
           return const HomeScreen();

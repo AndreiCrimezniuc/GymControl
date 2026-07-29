@@ -128,10 +128,14 @@ class _SettingsState extends State<Settings> {
             children: [
               _SwitchTile(
                 icon: CupertinoIcons.bolt_fill,
-                label: 'Pro account',
+                label: pro.isKnown
+                    ? 'Pro account'
+                    : pro.loading
+                    ? 'Checking Pro access…'
+                    : 'Pro status unavailable',
                 value: pro.isPro,
-                onChanged: pro.loading
-                    ? (_) {}
+                onChanged: !pro.isKnown || pro.loading
+                    ? null
                     : (value) async {
                         try {
                           await pro.setPro(value);
@@ -150,6 +154,12 @@ class _SettingsState extends State<Settings> {
                         }
                       },
               ),
+              if (pro.state == ProAccessState.unavailable)
+                _SettingsTile(
+                  icon: CupertinoIcons.refresh,
+                  label: 'Retry Pro status',
+                  onTap: () => pro.load(force: true),
+                ),
               _SettingsTile(
                 icon: CupertinoIcons.creditcard_fill,
                 label: 'Preview paywall',
@@ -343,7 +353,7 @@ class _SwitchTile extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool value;
-  final ValueChanged<bool> onChanged;
+  final ValueChanged<bool>? onChanged;
   const _SwitchTile({
     required this.icon,
     required this.label,

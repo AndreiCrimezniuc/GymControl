@@ -285,9 +285,10 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
       title: w?.name ?? 'Workout',
       actions: [
         if (w != null && w.owned)
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: _menu,
+          CupertinoButton(
+            padding: EdgeInsets.zero,
+            minimumSize: const Size(44, 44),
+            onPressed: _menu,
             child: Icon(
               CupertinoIcons.ellipsis,
               size: 22,

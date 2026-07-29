@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
+import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
 
 class GoogleIcon extends StatelessWidget {
   const GoogleIcon({super.key});
@@ -63,7 +64,8 @@ class SocialButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return GestureDetector(
+    return Pressable(
+      semanticLabel: label,
       onTap: loading ? null : onTap,
       child: Container(
         height: 50,

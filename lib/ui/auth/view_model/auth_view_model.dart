@@ -20,9 +20,20 @@ class AuthViewModel extends ChangeNotifier {
   bool get loading => _loading;
 
   Future<void> checkAuth() async {
-    final loggedIn = await _repo.isLoggedIn;
-    _status = loggedIn ? AuthStatus.authenticated : AuthStatus.unauthenticated;
+    _status = AuthStatus.unknown;
+    _errorCode = null;
     notifyListeners();
+    try {
+      final loggedIn = await _repo.isLoggedIn;
+      _status = loggedIn
+          ? AuthStatus.authenticated
+          : AuthStatus.unauthenticated;
+    } catch (e, s) {
+      _errorCode = _handleError(e, s);
+      _status = AuthStatus.unauthenticated;
+    } finally {
+      notifyListeners();
+    }
   }
 
   Future<void> login(String email, String password) async {
