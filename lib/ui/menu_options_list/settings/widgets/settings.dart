@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:gymboss/core/errors/app_error.dart';
+import 'package:gymboss/data/diagnostics/diagnostic_service.dart';
 import 'package:gymboss/data/repositories/ranking_repository.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/domain/models/ranking/rank_data.dart';
@@ -24,6 +25,7 @@ class Settings extends StatefulWidget {
 class _SettingsState extends State<Settings> {
   late final RankingRepository _ranking;
   RankProfile? _profile;
+  bool _sendingDiagnostics = false;
 
   @override
   void initState() {
@@ -63,6 +65,68 @@ class _SettingsState extends State<Settings> {
       context: context,
       builder: (_) => const _AboutSheet(),
     );
+  }
+
+  Future<void> _sendDiagnostics() async {
+    final diagnostics = DiagnosticService.instance;
+    final count = diagnostics.eventCount;
+    if (count == 0) {
+      await showAppDialog<void>(
+        context,
+        title: 'No diagnostics to send',
+        message: 'The local diagnostic buffer is currently empty.',
+        actions: [
+          AppDialogAction('OK', onPressed: () => Navigator.pop(context)),
+        ],
+      );
+      return;
+    }
+    final confirmed = await showAppDialog<bool>(
+      context,
+      title: 'Send diagnostics?',
+      message:
+          'This sends $count technical event${count == 1 ? '' : 's'} to GymBoss support. '
+          'Tokens, email, workout contents, comments and stack traces are not included.',
+      actions: [
+        AppDialogAction(
+          'Cancel',
+          onPressed: () => Navigator.pop(context, false),
+        ),
+        AppDialogAction('Send', onPressed: () => Navigator.pop(context, true)),
+      ],
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _sendingDiagnostics = true);
+    try {
+      final result = await diagnostics.send(
+        context.read<AuthenticatedClient>(),
+      );
+      if (!mounted) return;
+      setState(() => _sendingDiagnostics = false);
+      await showAppDialog<void>(
+        context,
+        title: 'Diagnostics sent',
+        message:
+            '${result.eventCount} event${result.eventCount == 1 ? '' : 's'} sent. '
+            'Reference: ${result.reportId.substring(0, 8)}',
+        actions: [
+          AppDialogAction('OK', onPressed: () => Navigator.pop(context)),
+        ],
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _sendingDiagnostics = false);
+      await showAppDialog<void>(
+        context,
+        title: 'Could not send diagnostics',
+        message:
+            'The events remain on this device. Check your connection and try again.',
+        actions: [
+          AppDialogAction('OK', onPressed: () => Navigator.pop(context)),
+        ],
+      );
+    }
   }
 
   @override
@@ -190,6 +254,13 @@ class _SettingsState extends State<Settings> {
                 icon: CupertinoIcons.info_circle_fill,
                 label: l.labelAbout,
                 onTap: _openAbout,
+              ),
+              _SettingsTile(
+                icon: CupertinoIcons.waveform_path_ecg,
+                label: _sendingDiagnostics
+                    ? 'Sending diagnostics…'
+                    : 'Send diagnostics (${DiagnosticService.instance.eventCount})',
+                onTap: _sendingDiagnostics ? () {} : _sendDiagnostics,
               ),
             ],
           ),

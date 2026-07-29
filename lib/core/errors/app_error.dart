@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:gymboss/data/diagnostics/diagnostic_service.dart';
 import 'package:logger/logger.dart';
 
 final _log = Logger();
@@ -118,6 +121,13 @@ class AppError implements Exception {
       '[${errorCode.code}] $_internalMessage',
       error: _cause,
       stackTrace: stack,
+    );
+    unawaited(
+      DiagnosticService.instance.record(
+        'app.error',
+        level: ClientDiagnosticLevel.error,
+        attributes: {'error_code': errorCode.code},
+      ),
     );
   }
 
