@@ -1,4 +1,10 @@
-# Dynamic Island / Live Activity — implementation guide
+# Dynamic Island / Live Activity — future proposal
+
+> Status: **not implemented and not part of the current release**. This document
+> is a design recipe only. Plugin versions, serialization behavior, Apple
+> capabilities, privacy, and background behavior must be revalidated before
+> implementation. Current functionality is documented in
+> [MOBILE.md](https://github.com/Control-Labs-Holding/backend-api/blob/main/docs/MOBILE.md).
 
 Show the workout timer + current exercise in the iOS Dynamic Island and Lock
 Screen while a session is active. This is **native iOS (ActivityKit)** and only
