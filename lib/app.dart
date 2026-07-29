@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:gymboss/data/repositories/auth_repository.dart';
+import 'package:gymboss/data/diagnostics/diagnostic_service.dart';
 import 'package:gymboss/data/services/auth/auth_service.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/data/services/auth/token_storage.dart';
@@ -95,34 +96,35 @@ class _GymBossAppState extends State<GymBossApp> {
             // floating overlay) so every screen's content shifts up above it
             // instead of being covered — otherwise bottom inputs/buttons (e.g.
             // body metrics) become untappable while a workout is minimized.
-            builder: (context, child) => Column(
-              children: [
-                Expanded(child: child ?? const SizedBox.shrink()),
-                Consumer<WorkoutSessionController>(
-                  builder: (ctx, session, __) {
-                    if (!session.isActive ||
-                        !session.isMinimized ||
-                        session.isFinished) {
-                      return const SizedBox.shrink();
-                    }
-                    return SafeArea(
-                      top: false,
-                      child: WorkoutResumeBar(
-                        session: session,
-                        onTap: () {
-                          session.resume();
-                          _navKey.currentState?.push(
-                            CupertinoPageRoute(
-                              builder: (_) => const WorkoutRunnerScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                    );
-                  },
+            builder:
+                (context, child) => Column(
+                  children: [
+                    Expanded(child: child ?? const SizedBox.shrink()),
+                    Consumer<WorkoutSessionController>(
+                      builder: (ctx, session, __) {
+                        if (!session.isActive ||
+                            !session.isMinimized ||
+                            session.isFinished) {
+                          return const SizedBox.shrink();
+                        }
+                        return SafeArea(
+                          top: false,
+                          child: WorkoutResumeBar(
+                            session: session,
+                            onTap: () {
+                              session.resume();
+                              _navKey.currentState?.push(
+                                CupertinoPageRoute(
+                                  builder: (_) => const WorkoutRunnerScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ),
-              ],
-            ),
           );
         },
       ),
@@ -143,6 +145,7 @@ class _AuthGateState extends State<_AuthGate> {
   Timer? _stalledTimer;
   bool _slow = false;
   bool _stalled = false;
+  bool _diagnosticUploadStarted = false;
 
   @override
   void initState() {
@@ -242,8 +245,17 @@ class _AuthGateState extends State<_AuthGate> {
         _stalledTimer?.cancel();
         if (vm.status == AuthStatus.authenticated) {
           context.read<ProController>().load();
+          if (!_diagnosticUploadStarted) {
+            _diagnosticUploadStarted = true;
+            unawaited(
+              DiagnosticService.instance.tryAutomaticSend(
+                context.read<AuthenticatedClient>(),
+              ),
+            );
+          }
           return const HomeScreen();
         }
+        _diagnosticUploadStarted = false;
         return const _AuthFlow();
       },
     );

@@ -67,6 +67,10 @@ class ApiConfig {
   static String get apiBaseUrl =>
       _apiOverride.isNotEmpty ? _apiOverride : _base;
 
+  static Uri get privacyPolicyUrl => Uri.parse('$_base/privacy');
+  static Uri get termsUrl => Uri.parse('$_base/terms');
+  static Uri get supportUrl => Uri.parse('$_base/support');
+
   /// Resolves a possibly-relative media path to an absolute URL against the API
   /// host. Exercise illustrations are stored as "/api/v1/exercise-images/x.png";
   /// absolute URLs (custom user images) and empty strings are returned as-is.

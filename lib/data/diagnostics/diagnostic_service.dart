@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:gymboss/config/api_config.dart';
@@ -28,6 +29,9 @@ class DiagnosticService {
   static final DiagnosticService instance = DiagnosticService._();
   static const _boxName = 'diagnostic_events';
   static const _maxEvents = 200;
+  static const _autoUploadKey = 'diagnostics_auto_upload';
+  static const _lastAutoAttemptKey = 'diagnostics_last_auto_attempt';
+  static const _autoAttemptInterval = Duration(hours: 6);
   static const _uuid = Uuid();
 
   static const _allowedAttributes = {
@@ -46,6 +50,16 @@ class DiagnosticService {
 
   bool get isReady => _box != null;
   int get eventCount => _box?.length ?? 0;
+
+  Future<bool> get automaticUploadEnabled async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_autoUploadKey) ?? true;
+  }
+
+  Future<void> setAutomaticUploadEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_autoUploadKey, enabled);
+  }
 
   Future<void> init({
     Box<String>? box,
@@ -102,11 +116,12 @@ class DiagnosticService {
 
     // Snapshot keys so events recorded during upload remain in the buffer.
     final keys = box.keys.cast<String>().take(_maxEvents).toList();
-    final events = keys
-        .map((key) => box.get(key))
-        .whereType<String>()
-        .map((value) => jsonDecode(value) as Map<String, dynamic>)
-        .toList();
+    final events =
+        keys
+            .map((key) => box.get(key))
+            .whereType<String>()
+            .map((value) => jsonDecode(value) as Map<String, dynamic>)
+            .toList();
     final reportId = _uuid.v4();
     final response = await client
         .post(
@@ -125,6 +140,37 @@ class DiagnosticService {
     }
     await box.deleteAll(keys);
     return DiagnosticSendResult(reportId, events.length);
+  }
+
+  /// Uploads the bounded privacy-safe buffer after authentication.
+  ///
+  /// The upload is throttled on-device and never includes messages, stack
+  /// traces, tokens, email, workout content, or free-form text. Failed uploads
+  /// keep the buffer for a later retry.
+  Future<DiagnosticSendResult?> tryAutomaticSend(
+    AuthenticatedClient client,
+  ) async {
+    final box = _box;
+    if (box == null || box.isEmpty || !await automaticUploadEnabled) {
+      return null;
+    }
+    final prefs = await SharedPreferences.getInstance();
+    final lastAttempt = DateTime.tryParse(
+      prefs.getString(_lastAutoAttemptKey) ?? '',
+    );
+    if (lastAttempt != null &&
+        DateTime.now().toUtc().difference(lastAttempt) < _autoAttemptInterval) {
+      return null;
+    }
+    await prefs.setString(
+      _lastAutoAttemptKey,
+      DateTime.now().toUtc().toIso8601String(),
+    );
+    try {
+      return await send(client);
+    } catch (_) {
+      return null;
+    }
   }
 
   @visibleForTesting

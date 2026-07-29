@@ -1,5 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:gymboss/config/api_config.dart';
 import 'package:gymboss/core/errors/app_error.dart';
 import 'package:gymboss/data/diagnostics/diagnostic_service.dart';
 import 'package:gymboss/data/repositories/ranking_repository.dart';
@@ -26,12 +28,19 @@ class _SettingsState extends State<Settings> {
   late final RankingRepository _ranking;
   RankProfile? _profile;
   bool _sendingDiagnostics = false;
+  bool _automaticDiagnostics = true;
 
   @override
   void initState() {
     super.initState();
     _ranking = RankingRepository(client: context.read<AuthenticatedClient>());
     _loadProfile();
+    _loadDiagnosticsPreference();
+  }
+
+  Future<void> _loadDiagnosticsPreference() async {
+    final enabled = await DiagnosticService.instance.automaticUploadEnabled;
+    if (mounted) setState(() => _automaticDiagnostics = enabled);
   }
 
   Future<void> _loadProfile() async {
@@ -44,11 +53,12 @@ class _SettingsState extends State<Settings> {
   void _openBodyMetrics() {
     showCupertinoModalPopup<void>(
       context: context,
-      builder: (_) => _BodyMetricsSheet(
-        ranking: _ranking,
-        profile: _profile,
-        onSaved: (p) => setState(() => _profile = p),
-      ),
+      builder:
+          (_) => _BodyMetricsSheet(
+            ranking: _ranking,
+            profile: _profile,
+            onSaved: (p) => setState(() => _profile = p),
+          ),
     );
   }
 
@@ -65,6 +75,20 @@ class _SettingsState extends State<Settings> {
       context: context,
       builder: (_) => const _AboutSheet(),
     );
+  }
+
+  Future<void> _openExternal(Uri url) async {
+    final opened = await launchUrl(url, mode: LaunchMode.externalApplication);
+    if (!opened && mounted) {
+      await showAppDialog<void>(
+        context,
+        title: 'Could not open link',
+        message: url.toString(),
+        actions: [
+          AppDialogAction('OK', onPressed: () => Navigator.pop(context)),
+        ],
+      );
+    }
   }
 
   Future<void> _sendDiagnostics() async {
@@ -150,17 +174,19 @@ class _SettingsState extends State<Settings> {
               _ValueTile(
                 icon: CupertinoIcons.chart_bar_circle_fill,
                 label: l.labelWeight,
-                value: weight != null
-                    ? '${weight.toStringAsFixed(1)} kg'
-                    : 'Not set',
+                value:
+                    weight != null
+                        ? '${weight.toStringAsFixed(1)} kg'
+                        : 'Not set',
                 onTap: _openBodyMetrics,
               ),
               _ValueTile(
                 icon: CupertinoIcons.person_fill,
                 label: l.labelHeight,
-                value: height != null
-                    ? '${height.toStringAsFixed(0)} cm'
-                    : 'Not set',
+                value:
+                    height != null
+                        ? '${height.toStringAsFixed(0)} cm'
+                        : 'Not set',
                 onTap: _openBodyMetrics,
               ),
               if (dontAsk)
@@ -176,9 +202,10 @@ class _SettingsState extends State<Settings> {
             title: l.sectionAppearance,
             children: [
               _SwitchTile(
-                icon: theme.isDark
-                    ? CupertinoIcons.moon_fill
-                    : CupertinoIcons.sun_max_fill,
+                icon:
+                    theme.isDark
+                        ? CupertinoIcons.moon_fill
+                        : CupertinoIcons.sun_max_fill,
                 label: l.labelDarkMode,
                 value: theme.isDark,
                 onChanged: (_) => theme.toggle(),
@@ -192,31 +219,33 @@ class _SettingsState extends State<Settings> {
             children: [
               _SwitchTile(
                 icon: CupertinoIcons.bolt_fill,
-                label: pro.isKnown
-                    ? 'Pro account'
-                    : pro.loading
-                    ? 'Checking Pro access…'
-                    : 'Pro status unavailable',
+                label:
+                    pro.isKnown
+                        ? 'Pro account'
+                        : pro.loading
+                        ? 'Checking Pro access…'
+                        : 'Pro status unavailable',
                 value: pro.isPro,
-                onChanged: !pro.isKnown || pro.loading
-                    ? null
-                    : (value) async {
-                        try {
-                          await pro.setPro(value);
-                        } catch (_) {
-                          if (!context.mounted) return;
-                          showAppDialog<void>(
-                            context,
-                            title: 'Could not update Pro status',
-                            actions: [
-                              AppDialogAction(
-                                'OK',
-                                onPressed: () => Navigator.pop(context),
-                              ),
-                            ],
-                          );
-                        }
-                      },
+                onChanged:
+                    !pro.isKnown || pro.loading
+                        ? null
+                        : (value) async {
+                          try {
+                            await pro.setPro(value);
+                          } catch (_) {
+                            if (!context.mounted) return;
+                            showAppDialog<void>(
+                              context,
+                              title: 'Could not update Pro status',
+                              actions: [
+                                AppDialogAction(
+                                  'OK',
+                                  onPressed: () => Navigator.pop(context),
+                                ),
+                              ],
+                            );
+                          }
+                        },
               ),
               if (pro.state == ProAccessState.unavailable)
                 _SettingsTile(
@@ -227,9 +256,10 @@ class _SettingsState extends State<Settings> {
               _SettingsTile(
                 icon: CupertinoIcons.creditcard_fill,
                 label: 'Preview paywall',
-                onTap: () => Navigator.of(context, rootNavigator: true).push(
-                  CupertinoPageRoute(builder: (_) => const PaywallScreen()),
-                ),
+                onTap:
+                    () => Navigator.of(context, rootNavigator: true).push(
+                      CupertinoPageRoute(builder: (_) => const PaywallScreen()),
+                    ),
               ),
             ],
           ),
@@ -256,11 +286,52 @@ class _SettingsState extends State<Settings> {
                 onTap: _openAbout,
               ),
               _SettingsTile(
+                icon: CupertinoIcons.hand_raised_fill,
+                label: 'Privacy policy',
+                onTap: () => _openExternal(ApiConfig.privacyPolicyUrl),
+              ),
+              _SettingsTile(
+                icon: CupertinoIcons.doc_text_fill,
+                label: 'Terms of use',
+                onTap: () => _openExternal(ApiConfig.termsUrl),
+              ),
+              _SettingsTile(
+                icon: CupertinoIcons.question_circle_fill,
+                label: 'Support',
+                onTap: () => _openExternal(ApiConfig.supportUrl),
+              ),
+              _SettingsTile(
                 icon: CupertinoIcons.waveform_path_ecg,
-                label: _sendingDiagnostics
-                    ? 'Sending diagnostics…'
-                    : 'Send diagnostics (${DiagnosticService.instance.eventCount})',
+                label:
+                    _sendingDiagnostics
+                        ? 'Sending diagnostics…'
+                        : 'Send diagnostics (${DiagnosticService.instance.eventCount})',
                 onTap: _sendingDiagnostics ? () {} : _sendDiagnostics,
+              ),
+              _SwitchTile(
+                icon: CupertinoIcons.shield_lefthalf_fill,
+                label: 'Share technical diagnostics automatically',
+                value: _automaticDiagnostics,
+                onChanged: (value) async {
+                  await DiagnosticService.instance.setAutomaticUploadEnabled(
+                    value,
+                  );
+                  if (mounted) {
+                    setState(() => _automaticDiagnostics = value);
+                  }
+                },
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: Text(
+                  'Helps us detect app errors. Includes only event codes, app version and platform; never email, workout content, tokens or stack traces.',
+                  style: TextStyle(
+                    color: context.colors.textSecondary,
+                    fontFamily: 'Rubik',
+                    fontSize: 12,
+                    height: 1.35,
+                  ),
+                ),
               ),
             ],
           ),
@@ -308,11 +379,12 @@ class _Section extends StatelessWidget {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: children.length,
-            separatorBuilder: (_, __) => Container(
-              height: 1,
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              color: c.border,
-            ),
+            separatorBuilder:
+                (_, __) => Container(
+                  height: 1,
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  color: c.border,
+                ),
             itemBuilder: (_, i) => children[i],
           ),
         ),
@@ -522,36 +594,37 @@ class _LanguageTile extends StatelessWidget {
   void _pick(BuildContext context, LocaleController ctrl, AppLocalizations l) {
     showCupertinoModalPopup<void>(
       context: context,
-      builder: (_) => CupertinoActionSheet(
-        actions: [
-          CupertinoActionSheetAction(
-            onPressed: () {
-              ctrl.setLocale(null);
-              Navigator.pop(context);
-            },
-            child: Text(l.languageSystem),
+      builder:
+          (_) => CupertinoActionSheet(
+            actions: [
+              CupertinoActionSheetAction(
+                onPressed: () {
+                  ctrl.setLocale(null);
+                  Navigator.pop(context);
+                },
+                child: Text(l.languageSystem),
+              ),
+              CupertinoActionSheetAction(
+                onPressed: () {
+                  ctrl.setLocale(const Locale('en'));
+                  Navigator.pop(context);
+                },
+                child: Text(l.languageEnglish),
+              ),
+              CupertinoActionSheetAction(
+                onPressed: () {
+                  ctrl.setLocale(const Locale('ru'));
+                  Navigator.pop(context);
+                },
+                child: Text(l.languageRussian),
+              ),
+            ],
+            cancelButton: CupertinoActionSheetAction(
+              isDefaultAction: true,
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
           ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              ctrl.setLocale(const Locale('en'));
-              Navigator.pop(context);
-            },
-            child: Text(l.languageEnglish),
-          ),
-          CupertinoActionSheetAction(
-            onPressed: () {
-              ctrl.setLocale(const Locale('ru'));
-              Navigator.pop(context);
-            },
-            child: Text(l.languageRussian),
-          ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          isDefaultAction: true,
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-      ),
     );
   }
 }
@@ -725,17 +798,18 @@ class _BodyMetricsSheetState extends State<_BodyMetricsSheet> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
-                  child: _saving
-                      ? const CupertinoActivityIndicator()
-                      : Text(
-                          'Save',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: c.textOnAccent,
-                            fontFamily: 'Rubik',
+                  child:
+                      _saving
+                          ? const CupertinoActivityIndicator()
+                          : Text(
+                            'Save',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: c.textOnAccent,
+                              fontFamily: 'Rubik',
+                            ),
                           ),
-                        ),
                 ),
               ),
             ),

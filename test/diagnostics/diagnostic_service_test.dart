@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:gymboss/data/diagnostics/diagnostic_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   late Directory temp;
@@ -19,7 +20,10 @@ void main() {
     );
   });
 
-  tearDown(() => box.clear());
+  tearDown(() async {
+    await box.clear();
+    SharedPreferences.setMockInitialValues({});
+  });
 
   tearDownAll(() async {
     await box.close();
@@ -57,5 +61,13 @@ void main() {
     }
 
     expect(DiagnosticService.instance.eventCount, 200);
+  });
+
+  test('automatic upload is enabled by default and can be disabled', () async {
+    SharedPreferences.setMockInitialValues({});
+
+    expect(await DiagnosticService.instance.automaticUploadEnabled, isTrue);
+    await DiagnosticService.instance.setAutomaticUploadEnabled(false);
+    expect(await DiagnosticService.instance.automaticUploadEnabled, isFalse);
   });
 }
