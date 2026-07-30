@@ -101,11 +101,12 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
     if (_w!.type == 'aerobic') {
       await Navigator.of(context, rootNavigator: true).push(
         CupertinoPageRoute(
-          builder: (_) => AerobicRunnerScreen(
-            workoutId: _w!.id,
-            workoutName: _w!.name,
-            repo: widget.repo,
-          ),
+          builder:
+              (_) => AerobicRunnerScreen(
+                workoutId: _w!.id,
+                workoutName: _w!.name,
+                repo: widget.repo,
+              ),
         ),
       );
       if (mounted) _load();
@@ -151,11 +152,12 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   Future<void> _edit() async {
     final saved = await Navigator.of(context, rootNavigator: true).push<bool>(
       CupertinoPageRoute(
-        builder: (_) => WorkoutEditorScreen(
-          repo: widget.repo,
-          exercises: widget.exercises,
-          existing: _w,
-        ),
+        builder:
+            (_) => WorkoutEditorScreen(
+              repo: widget.repo,
+              exercises: widget.exercises,
+              existing: _w,
+            ),
       ),
     );
     if (saved == true) _load();
@@ -164,12 +166,24 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   void _openRunDetail(String date, String difficulty) {
     Navigator.of(context, rootNavigator: true).push(
       CupertinoPageRoute(
-        builder: (_) => _RunDetailScreen(
-          workoutId: _w!.id,
-          date: date,
-          difficulty: difficulty,
-          repo: widget.repo,
-        ),
+        builder:
+            (_) => _RunDetailScreen(
+              workoutId: _w!.id,
+              date: date,
+              difficulty: difficulty,
+              repo: widget.repo,
+            ),
+      ),
+    );
+  }
+
+  void _openHistory() {
+    final history = _stats?.history ?? const <WorkoutRunPoint>[];
+    Navigator.of(context, rootNavigator: true).push(
+      CupertinoPageRoute(
+        builder:
+            (_) =>
+                _WorkoutHistoryScreen(history: history, onOpen: _openRunDetail),
       ),
     );
   }
@@ -177,21 +191,22 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   void _openExerciseStats(WorkoutExercise ex) {
     Navigator.of(context, rootNavigator: true).push(
       CupertinoPageRoute(
-        builder: (_) => ExerciseDetailScreen(
-          entry: ExerciseCatalogItem(
-            id: ex.exerciseId,
-            name: ex.name,
-            muscleGroup: ex.muscleGroup,
-            equipment: '',
-            category: '',
-            level: '',
-            force: '',
-            imageUrl: ex.imageUrl,
-            imageUrl2: '',
-            instructions: '',
-          ),
-          repo: widget.exercises,
-        ),
+        builder:
+            (_) => ExerciseDetailScreen(
+              entry: ExerciseCatalogItem(
+                id: ex.exerciseId,
+                name: ex.name,
+                muscleGroup: ex.muscleGroup,
+                equipment: '',
+                category: '',
+                level: '',
+                force: '',
+                imageUrl: ex.imageUrl,
+                imageUrl2: '',
+                instructions: '',
+              ),
+              repo: widget.exercises,
+            ),
       ),
     );
   }
@@ -296,16 +311,17 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
             ),
           ),
       ],
-      body: _loading
-          ? const Center(child: CupertinoActivityIndicator())
-          : _error != null || w == null
-          ? Center(
-              child: Text(
-                'Could not load',
-                style: TextStyle(color: c.textSecondary, fontFamily: 'Rubik'),
-              ),
-            )
-          : _buildBody(c, w),
+      body:
+          _loading
+              ? const Center(child: CupertinoActivityIndicator())
+              : _error != null || w == null
+              ? Center(
+                child: Text(
+                  'Could not load',
+                  style: TextStyle(color: c.textSecondary, fontFamily: 'Rubik'),
+                ),
+              )
+              : _buildBody(c, w),
     );
   }
 
@@ -342,9 +358,10 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                 (e) => _ExerciseBlock(
                   index: e.key + 1,
                   exercise: e.value,
-                  deloadScale: _difficulty == 'deload'
-                      ? (_w?.deloadFactor ?? 0.70)
-                      : 1.0,
+                  deloadScale:
+                      _difficulty == 'deload'
+                          ? (_w?.deloadFactor ?? 0.70)
+                          : 1.0,
                   onTap: () => _openExerciseStats(e.value),
                 ),
               ),
@@ -352,59 +369,68 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                 const SizedBox(height: 8),
                 _SectionLabel('History'),
                 const SizedBox(height: 8),
-                ..._stats!.history
-                    .take(12)
-                    .map(
-                      (h) => Pressable(
-                        onTap: () => _openRunDetail(h.date, h.difficulty),
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(vertical: 3),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 11,
-                          ),
+                Pressable(
+                  onTap: _openHistory,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 14,
+                    ),
+                    decoration: BoxDecoration(
+                      color: c.card,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: c.border),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
                           decoration: BoxDecoration(
-                            color: c.card,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: c.border),
+                            color: c.iconBg,
+                            borderRadius: BorderRadius.circular(11),
                           ),
-                          child: Row(
+                          child: Icon(
+                            CupertinoIcons.calendar,
+                            size: 19,
+                            color: c.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Icon(
-                                CupertinoIcons.calendar,
-                                size: 14,
-                                color: c.textSecondary,
-                              ),
-                              const SizedBox(width: 8),
                               Text(
-                                h.date,
+                                'Workout calendar',
                                 style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
                                   color: c.textPrimary,
                                   fontFamily: 'Rubik',
                                 ),
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(height: 2),
                               Text(
-                                _diffLabels[h.difficulty] ?? h.difficulty,
+                                '${_stats!.history.length} completed session${_stats!.history.length == 1 ? '' : 's'}',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: c.textSecondary,
                                   fontFamily: 'Rubik',
                                 ),
                               ),
-                              const Spacer(),
-                              Icon(
-                                CupertinoIcons.chevron_right,
-                                size: 14,
-                                color: c.textSecondary,
-                              ),
                             ],
                           ),
                         ),
-                      ),
+                        Icon(
+                          CupertinoIcons.chevron_right,
+                          size: 15,
+                          color: c.textSecondary,
+                        ),
+                      ],
                     ),
+                  ),
+                ),
               ],
             ],
           ),
@@ -476,9 +502,8 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   Widget _potentialVolumeLine(AppColors c) {
     // The stored plan lives under the legacy 'medium' key; Deload scales it.
     final base = _stats?.potentialVolume['medium'] ?? 0;
-    final vol = _difficulty == 'deload'
-        ? base * (_w?.deloadFactor ?? 0.70)
-        : base;
+    final vol =
+        _difficulty == 'deload' ? base * (_w?.deloadFactor ?? 0.70) : base;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -505,9 +530,18 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
     child: Container(
       height: 54,
       alignment: Alignment.center,
-      decoration: BoxDecoration(
+      decoration: ShapeDecoration(
         color: c.accent,
-        borderRadius: BorderRadius.circular(14),
+        shape: ContinuousRectangleBorder(
+          borderRadius: BorderRadius.circular(26),
+        ),
+        shadows: [
+          BoxShadow(
+            color: c.accent.withValues(alpha: c.isDark ? 0.28 : 0.20),
+            blurRadius: 16,
+            offset: const Offset(0, 7),
+          ),
+        ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -519,7 +553,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
           ),
           const SizedBox(width: 8),
           Text(
-            'LAUNCH · ${_diffLabels[_difficulty]!.toUpperCase()}',
+            'START WORKOUT · ${_diffLabels[_difficulty]!.toUpperCase()}',
             style: TextStyle(
               fontFamily: 'Rubik',
               fontSize: 15,
@@ -649,28 +683,29 @@ class _ExerciseBlock extends StatelessWidget {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: sets.asMap().entries.map((e) {
-                  final s = e.value;
-                  return Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: c.iconBg,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      '${units.format(s.weightKg * deloadScale)}${units.label} × ${s.reps}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: c.textPrimary,
-                        fontFamily: 'Rubik',
-                      ),
-                    ),
-                  );
-                }).toList(),
+                children:
+                    sets.asMap().entries.map((e) {
+                      final s = e.value;
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: c.iconBg,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '${units.format(s.weightKg * deloadScale)}${units.label} × ${s.reps}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: c.textPrimary,
+                            fontFamily: 'Rubik',
+                          ),
+                        ),
+                      );
+                    }).toList(),
               ),
             ],
             if (exercise.comment.isNotEmpty) ...[
@@ -760,6 +795,259 @@ class _SectionLabel extends StatelessWidget {
 
 const _runDiffLabels = {'easy': 'Easy', 'medium': 'Medium', 'hard': 'Hard'};
 
+class _WorkoutHistoryScreen extends StatefulWidget {
+  final List<WorkoutRunPoint> history;
+  final void Function(String date, String difficulty) onOpen;
+
+  const _WorkoutHistoryScreen({required this.history, required this.onOpen});
+
+  @override
+  State<_WorkoutHistoryScreen> createState() => _WorkoutHistoryScreenState();
+}
+
+class _WorkoutHistoryScreenState extends State<_WorkoutHistoryScreen> {
+  static const _monthNames = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
+  static const _weekdays = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+
+  late DateTime _month;
+  late final Map<String, WorkoutRunPoint> _sessionsByDate;
+
+  @override
+  void initState() {
+    super.initState();
+    _sessionsByDate = {
+      for (final session in widget.history) session.date: session,
+    };
+    final latest = widget.history
+        .map((session) => DateTime.tryParse(session.date))
+        .whereType<DateTime>()
+        .fold<DateTime?>(
+          null,
+          (current, date) =>
+              current == null || date.isAfter(current) ? date : current,
+        );
+    final initial = latest ?? DateTime.now();
+    _month = DateTime(initial.year, initial.month);
+  }
+
+  String _dateKey(DateTime date) =>
+      '${date.year.toString().padLeft(4, '0')}-'
+      '${date.month.toString().padLeft(2, '0')}-'
+      '${date.day.toString().padLeft(2, '0')}';
+
+  void _moveMonth(int offset) {
+    HapticFeedback.selectionClick();
+    setState(() => _month = DateTime(_month.year, _month.month + offset));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final firstDay = DateTime(_month.year, _month.month);
+    final dayCount = DateTime(_month.year, _month.month + 1, 0).day;
+    final leading = firstDay.weekday - DateTime.monday;
+    final cellCount = ((leading + dayCount + 6) ~/ 7) * 7;
+
+    return AppPage(
+      title: 'Workout history',
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+        children: [
+          Container(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 14),
+            decoration: BoxDecoration(
+              color: c.card,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: c.border),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    CupertinoButton(
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(44, 44),
+                      onPressed: () => _moveMonth(-1),
+                      child: Icon(
+                        CupertinoIcons.chevron_left,
+                        size: 18,
+                        color: c.textPrimary,
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        '${_monthNames[_month.month - 1]} ${_month.year}',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                          color: c.textPrimary,
+                          fontFamily: 'Rubik',
+                        ),
+                      ),
+                    ),
+                    CupertinoButton(
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(44, 44),
+                      onPressed: () => _moveMonth(1),
+                      child: Icon(
+                        CupertinoIcons.chevron_right,
+                        size: 18,
+                        color: c.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children:
+                      _weekdays
+                          .map(
+                            (day) => Expanded(
+                              child: Text(
+                                day,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: c.textSecondary,
+                                  fontFamily: 'Rubik',
+                                ),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                ),
+                const SizedBox(height: 8),
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 7,
+                    mainAxisSpacing: 5,
+                    crossAxisSpacing: 5,
+                  ),
+                  itemCount: cellCount,
+                  itemBuilder: (context, index) {
+                    final day = index - leading + 1;
+                    if (day < 1 || day > dayCount) {
+                      return const SizedBox.shrink();
+                    }
+                    final date = DateTime(_month.year, _month.month, day);
+                    final session = _sessionsByDate[_dateKey(date)];
+                    return _CalendarDay(
+                      day: day,
+                      session: session,
+                      onTap:
+                          session == null
+                              ? null
+                              : () => widget.onOpen(
+                                session.date,
+                                session.difficulty,
+                              ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 7,
+                height: 7,
+                decoration: BoxDecoration(
+                  color: c.accent,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 7),
+              Text(
+                'Tap a marked day to view the workout',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: c.textSecondary,
+                  fontFamily: 'Rubik',
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CalendarDay extends StatelessWidget {
+  final int day;
+  final WorkoutRunPoint? session;
+  final VoidCallback? onTap;
+
+  const _CalendarDay({required this.day, this.session, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final completed = session != null;
+    return Semantics(
+      button: completed,
+      label: completed ? 'Workout on ${session!.date}' : '$day',
+      child: Pressable(
+        onTap: onTap,
+        child: DecoratedBox(
+          decoration: ShapeDecoration(
+            color: completed ? c.accent : const Color(0x00000000),
+            shape: ContinuousRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
+            ),
+          ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Text(
+                '$day',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: completed ? FontWeight.w800 : FontWeight.w500,
+                  color: completed ? c.textOnAccent : c.textPrimary,
+                  fontFamily: 'Rubik',
+                ),
+              ),
+              if (completed)
+                Positioned(
+                  bottom: 5,
+                  child: Container(
+                    width: 3,
+                    height: 3,
+                    decoration: BoxDecoration(
+                      color: c.textOnAccent,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Shows what a past session actually was: the sets logged on that date for the
 /// workout's exercises, grouped by exercise, with total working volume.
 class _RunDetailScreen extends StatefulWidget {
@@ -810,33 +1098,34 @@ class _RunDetailScreenState extends State<_RunDetailScreen> {
     final totalVol = items.fold<double>(0, (a, e) => a + e.volumeKg);
     return AppPage(
       title: widget.date,
-      body: _loading
-          ? const Center(child: CupertinoActivityIndicator())
-          : items.isEmpty
-          ? Center(
-              child: Text(
-                'No logged sets for this session',
-                style: TextStyle(color: c.textSecondary, fontFamily: 'Rubik'),
-              ),
-            )
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-              children: [
-                Row(
-                  children: [
-                    _summaryTile(
-                      c,
-                      _runDiffLabels[widget.difficulty] ?? widget.difficulty,
-                      'DIFFICULTY',
-                    ),
-                    const SizedBox(width: 10),
-                    _summaryTile(c, units.formatVolume(totalVol), 'VOLUME'),
-                  ],
+      body:
+          _loading
+              ? const Center(child: CupertinoActivityIndicator())
+              : items.isEmpty
+              ? Center(
+                child: Text(
+                  'No logged sets for this session',
+                  style: TextStyle(color: c.textSecondary, fontFamily: 'Rubik'),
                 ),
-                const SizedBox(height: 16),
-                ...items.map((e) => _exerciseTile(c, units, e)),
-              ],
-            ),
+              )
+              : ListView(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                children: [
+                  Row(
+                    children: [
+                      _summaryTile(
+                        c,
+                        _runDiffLabels[widget.difficulty] ?? widget.difficulty,
+                        'DIFFICULTY',
+                      ),
+                      const SizedBox(width: 10),
+                      _summaryTile(c, units.formatVolume(totalVol), 'VOLUME'),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  ...items.map((e) => _exerciseTile(c, units, e)),
+                ],
+              ),
     );
   }
 
@@ -919,44 +1208,50 @@ class _RunDetailScreenState extends State<_RunDetailScreen> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: e.sets.map<Widget>((s) {
-              final warm = s.setType == 'warmup';
-              final fail = s.setType == 'failure';
-              final prefix = warm ? 'W ' : (fail ? 'F ' : '');
-              const progLabels = {
-                'weight': 'WT',
-                'amplitude': 'AMP',
-                'efficiency': 'EFF',
-                'meo': 'MEO',
-                'dropset': 'DROP',
-              };
-              final progSuffix = progLabels[s.progression] != null
-                  ? '  · ${progLabels[s.progression]}'
-                  : '';
-              return Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: warm
-                      ? c.iconBg
-                      : (fail ? c.accent.withValues(alpha: 0.12) : c.iconBg),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  '$prefix${units.format(s.weightKg)}${units.label} × ${s.reps}$progSuffix',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: warm
-                        ? c.textSecondary
-                        : (fail ? c.accent : c.textPrimary),
-                    fontFamily: 'Rubik',
-                  ),
-                ),
-              );
-            }).toList(),
+            children:
+                e.sets.map<Widget>((s) {
+                  final warm = s.setType == 'warmup';
+                  final fail = s.setType == 'failure';
+                  final prefix = warm ? 'W ' : (fail ? 'F ' : '');
+                  const progLabels = {
+                    'weight': 'WT',
+                    'amplitude': 'AMP',
+                    'efficiency': 'EFF',
+                    'meo': 'MEO',
+                    'dropset': 'DROP',
+                  };
+                  final progSuffix =
+                      progLabels[s.progression] != null
+                          ? '  · ${progLabels[s.progression]}'
+                          : '';
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color:
+                          warm
+                              ? c.iconBg
+                              : (fail
+                                  ? c.accent.withValues(alpha: 0.12)
+                                  : c.iconBg),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '$prefix${units.format(s.weightKg)}${units.label} × ${s.reps}$progSuffix',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color:
+                            warm
+                                ? c.textSecondary
+                                : (fail ? c.accent : c.textPrimary),
+                        fontFamily: 'Rubik',
+                      ),
+                    ),
+                  );
+                }).toList(),
           ),
         ],
       ),

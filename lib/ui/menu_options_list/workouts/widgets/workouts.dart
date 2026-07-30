@@ -133,8 +133,12 @@ class _WorkoutsState extends State<Workouts> {
   Future<void> _openDetail(Workout w) async {
     await Navigator.of(context, rootNavigator: true).push(
       CupertinoPageRoute(
-        builder: (_) =>
-            WorkoutDetailScreen(id: w.id, repo: _repo, exercises: _exercises),
+        builder:
+            (_) => WorkoutDetailScreen(
+              id: w.id,
+              repo: _repo,
+              exercises: _exercises,
+            ),
       ),
     );
     _load();
@@ -160,29 +164,30 @@ class _WorkoutsState extends State<Workouts> {
     final controller = TextEditingController(text: initial);
     final value = await showCupertinoDialog<String>(
       context: context,
-      builder: (dialogContext) => CupertinoAlertDialog(
-        title: Text(title),
-        content: Padding(
-          padding: const EdgeInsets.only(top: 12),
-          child: CupertinoTextField(
-            controller: controller,
-            autofocus: true,
-            placeholder: 'Folder name',
+      builder:
+          (dialogContext) => CupertinoAlertDialog(
+            title: Text(title),
+            content: Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: CupertinoTextField(
+                controller: controller,
+                autofocus: true,
+                placeholder: 'Folder name',
+              ),
+            ),
+            actions: [
+              CupertinoDialogAction(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancel'),
+              ),
+              CupertinoDialogAction(
+                isDefaultAction: true,
+                onPressed:
+                    () => Navigator.pop(dialogContext, controller.text.trim()),
+                child: const Text('Save'),
+              ),
+            ],
           ),
-        ),
-        actions: [
-          CupertinoDialogAction(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          CupertinoDialogAction(
-            isDefaultAction: true,
-            onPressed: () =>
-                Navigator.pop(dialogContext, controller.text.trim()),
-            child: const Text('Save'),
-          ),
-        ],
-      ),
     );
     controller.dispose();
     return value?.isEmpty == true ? null : value;
@@ -203,40 +208,41 @@ class _WorkoutsState extends State<Workouts> {
   Future<void> _manageFolder(WorkoutFolder folder) async {
     await showCupertinoModalPopup<void>(
       context: context,
-      builder: (sheetContext) => CupertinoActionSheet(
-        title: Text(folder.name),
-        actions: [
-          CupertinoActionSheetAction(
-            onPressed: () async {
-              Navigator.pop(sheetContext);
-              final name = await _askName(
-                'Rename folder',
-                initial: folder.name,
-              );
-              if (name == null) return;
-              try {
-                await _repo.renameFolder(folder.id, name);
-                await _load(spinner: false);
-              } catch (error) {
-                await _showActionError(error);
-              }
-            },
-            child: const Text('Rename'),
+      builder:
+          (sheetContext) => CupertinoActionSheet(
+            title: Text(folder.name),
+            actions: [
+              CupertinoActionSheetAction(
+                onPressed: () async {
+                  Navigator.pop(sheetContext);
+                  final name = await _askName(
+                    'Rename folder',
+                    initial: folder.name,
+                  );
+                  if (name == null) return;
+                  try {
+                    await _repo.renameFolder(folder.id, name);
+                    await _load(spinner: false);
+                  } catch (error) {
+                    await _showActionError(error);
+                  }
+                },
+                child: const Text('Rename'),
+              ),
+              CupertinoActionSheetAction(
+                isDestructiveAction: true,
+                onPressed: () {
+                  Navigator.pop(sheetContext);
+                  _deleteFolder(folder);
+                },
+                child: const Text('Delete folder'),
+              ),
+            ],
+            cancelButton: CupertinoActionSheetAction(
+              onPressed: () => Navigator.pop(sheetContext),
+              child: const Text('Cancel'),
+            ),
           ),
-          CupertinoActionSheetAction(
-            isDestructiveAction: true,
-            onPressed: () {
-              Navigator.pop(sheetContext);
-              _deleteFolder(folder);
-            },
-            child: const Text('Delete folder'),
-          ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          onPressed: () => Navigator.pop(sheetContext),
-          child: const Text('Cancel'),
-        ),
-      ),
     );
   }
 
@@ -272,30 +278,31 @@ class _WorkoutsState extends State<Workouts> {
   Future<void> _assignFolder(Workout workout) async {
     await showCupertinoModalPopup<void>(
       context: context,
-      builder: (sheetContext) => CupertinoActionSheet(
-        title: Text('Move “${workout.name}”'),
-        actions: [
-          CupertinoActionSheetAction(
-            onPressed: () async {
-              Navigator.pop(sheetContext);
-              await _moveWorkout(workout.id, null);
-            },
-            child: const Text('Default folder'),
-          ),
-          for (final folder in _folders)
-            CupertinoActionSheetAction(
-              onPressed: () async {
-                Navigator.pop(sheetContext);
-                await _moveWorkout(workout.id, folder.id);
-              },
-              child: Text(folder.name),
+      builder:
+          (sheetContext) => CupertinoActionSheet(
+            title: Text('Move “${workout.name}”'),
+            actions: [
+              CupertinoActionSheetAction(
+                onPressed: () async {
+                  Navigator.pop(sheetContext);
+                  await _moveWorkout(workout.id, null);
+                },
+                child: const Text('Default folder'),
+              ),
+              for (final folder in _folders)
+                CupertinoActionSheetAction(
+                  onPressed: () async {
+                    Navigator.pop(sheetContext);
+                    await _moveWorkout(workout.id, folder.id);
+                  },
+                  child: Text(folder.name),
+                ),
+            ],
+            cancelButton: CupertinoActionSheetAction(
+              onPressed: () => Navigator.pop(sheetContext),
+              child: const Text('Cancel'),
             ),
-        ],
-        cancelButton: CupertinoActionSheetAction(
-          onPressed: () => Navigator.pop(sheetContext),
-          child: const Text('Cancel'),
-        ),
-      ),
+          ),
     );
   }
 
@@ -328,20 +335,22 @@ class _WorkoutsState extends State<Workouts> {
           child: Icon(CupertinoIcons.add_circled, size: 24, color: c.accent),
         ),
       ],
-      body: _loading
-          ? const SkeletonList()
-          : _error != null
-          ? _ErrorView(error: _error!, onRetry: _load)
-          : _buildBody(c),
+      body:
+          _loading
+              ? const SkeletonList()
+              : _error != null
+              ? _ErrorView(error: _error!, onRetry: _load)
+              : _buildBody(c),
     );
   }
 
   Widget _buildBody(AppColors c) {
-    final list = _tab == 0
-        ? !_foldersReady
-              ? _mine
-              : _mine.where((w) => w.folderId == _folderId).toList()
-        : _public;
+    final list =
+        _tab == 0
+            ? !_foldersReady
+                ? _mine
+                : _mine.where((w) => w.folderId == _folderId).toList()
+            : _public;
     return Column(
       children: [
         Padding(
@@ -389,46 +398,52 @@ class _WorkoutsState extends State<Workouts> {
             ),
           ),
         Expanded(
-          child: _tab == 1 && _loadingLibrary
-              ? const SkeletonList()
-              : _tab == 1 && _libraryError != null
-              ? _ErrorView(
-                  error: _libraryError!,
-                  onRetry: () => _loadLibrary(force: true),
-                )
-              : CustomScrollView(
-                  slivers: [
-                    CupertinoSliverRefreshControl(
-                      onRefresh: () => _tab == 0
-                          ? _load(spinner: false)
-                          : _loadLibrary(force: true),
-                    ),
-                    if (list.isEmpty)
-                      SliverFillRemaining(
-                        hasScrollBody: false,
-                        child: _EmptyView(mine: _tab == 0, onCreate: _create),
-                      )
-                    else
-                      SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                        sliver: SliverList.separated(
-                          itemCount: list.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(height: 10),
-                          itemBuilder: (_, i) => _WorkoutCard(
-                            w: list[i],
-                            onTap: () => _openDetail(list[i]),
-                            onLongPress: _tab == 0
-                                ? () => _assignFolder(list[i])
-                                : null,
-                            onManage: _tab == 0
-                                ? () => _assignFolder(list[i])
-                                : null,
+          child:
+              _tab == 1 && _loadingLibrary
+                  ? const SkeletonList()
+                  : _tab == 1 && _libraryError != null
+                  ? _ErrorView(
+                    error: _libraryError!,
+                    onRetry: () => _loadLibrary(force: true),
+                  )
+                  : CustomScrollView(
+                    slivers: [
+                      CupertinoSliverRefreshControl(
+                        onRefresh:
+                            () =>
+                                _tab == 0
+                                    ? _load(spinner: false)
+                                    : _loadLibrary(force: true),
+                      ),
+                      if (list.isEmpty)
+                        SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: _EmptyView(mine: _tab == 0, onCreate: _create),
+                        )
+                      else
+                        SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                          sliver: SliverList.separated(
+                            itemCount: list.length,
+                            separatorBuilder:
+                                (_, __) => const SizedBox(height: 10),
+                            itemBuilder:
+                                (_, i) => _WorkoutCard(
+                                  w: list[i],
+                                  onTap: () => _openDetail(list[i]),
+                                  onLongPress:
+                                      _tab == 0
+                                          ? () => _assignFolder(list[i])
+                                          : null,
+                                  onManage:
+                                      _tab == 0
+                                          ? () => _assignFolder(list[i])
+                                          : null,
+                                ),
                           ),
                         ),
-                      ),
-                  ],
-                ),
+                    ],
+                  ),
         ),
       ],
     );
@@ -474,13 +489,27 @@ class _WorkoutCard extends StatelessWidget {
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [c.accent.withValues(alpha: 0.14), c.card, c.card],
-              stops: const [0, 0.32, 1],
+              colors:
+                  c.isDark
+                      ? const [
+                        Color(0xFF252428),
+                        Color(0xFF18181B),
+                        Color(0xFF121214),
+                      ]
+                      : const [
+                        Color(0xFFFFFFFF),
+                        Color(0xFFF5F1EF),
+                        Color(0xFFECE6E3),
+                      ],
+              stops: const [0, 0.48, 1],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: c.accent.withValues(alpha: 0.28)),
+            border: Border.all(
+              color:
+                  c.isDark ? const Color(0xFF343239) : const Color(0xFFE1D7D3),
+            ),
             boxShadow: c.cardShadow,
           ),
           child: Column(
@@ -653,9 +682,8 @@ class _FolderChip extends StatelessWidget {
                   child: Icon(
                     CupertinoIcons.ellipsis,
                     size: 16,
-                    color: selected
-                        ? colors.textOnAccent
-                        : colors.textSecondary,
+                    color:
+                        selected ? colors.textOnAccent : colors.textSecondary,
                   ),
                 ),
               ],
