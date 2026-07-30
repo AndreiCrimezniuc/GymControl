@@ -62,6 +62,7 @@ void main() {
       'date': '2026-07-30',
       'duration_seconds': 3600,
       'reps': 125,
+      'volume_kg': 8250.5,
       'workouts': 1,
     });
     final measurement = BodyMeasurement.fromJson({
@@ -73,6 +74,7 @@ void main() {
 
     expect(point.durationSeconds, 3600);
     expect(point.reps, 125);
+    expect(point.volumeKg, 8250.5);
     expect(measurement.weightKg, 82.4);
     expect(measurement.bodyFatPercent, isNull);
     expect(measurement.toJson()['waist_cm'], 81);

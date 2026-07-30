@@ -260,12 +260,14 @@ class ActivityPoint {
   final String date;
   final int durationSeconds;
   final int reps;
+  final double volumeKg;
   final int workouts;
 
   const ActivityPoint({
     required this.date,
     required this.durationSeconds,
     required this.reps,
+    required this.volumeKg,
     required this.workouts,
   });
 
@@ -273,6 +275,7 @@ class ActivityPoint {
     date: json['date'] as String? ?? '',
     durationSeconds: (json['duration_seconds'] as num?)?.toInt() ?? 0,
     reps: (json['reps'] as num?)?.toInt() ?? 0,
+    volumeKg: (json['volume_kg'] as num?)?.toDouble() ?? 0,
     workouts: (json['workouts'] as num?)?.toInt() ?? 0,
   );
 }

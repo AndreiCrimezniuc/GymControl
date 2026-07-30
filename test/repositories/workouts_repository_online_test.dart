@@ -89,12 +89,13 @@ void main() {
     expect(s.workoutsPerMonth.single.count, 9);
   });
 
-  test('activity parses global duration and reps points', () async {
+  test('activity parses global training volume points', () async {
     final body = jsonEncode([
       {
         'date': '2026-07-30',
         'duration_seconds': 3600,
         'reps': 140,
+        'volume_kg': 9250.5,
         'workouts': 1,
       },
     ]);
@@ -108,6 +109,7 @@ void main() {
     ).activity(period: 'year');
     expect(points.single.durationSeconds, 3600);
     expect(points.single.reps, 140);
+    expect(points.single.volumeKg, 9250.5);
   });
 
   test('stats parses potential volume + history and caches', () async {

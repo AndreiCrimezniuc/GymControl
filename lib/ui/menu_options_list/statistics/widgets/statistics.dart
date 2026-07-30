@@ -314,8 +314,6 @@ class _ActivityChart extends StatefulWidget {
 }
 
 class _ActivityChartState extends State<_ActivityChart> {
-  String _metric = 'duration';
-
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
@@ -323,15 +321,7 @@ class _ActivityChartState extends State<_ActivityChart> {
         widget.points.length > 16
             ? widget.points.sublist(widget.points.length - 16)
             : widget.points;
-    final values =
-        recent
-            .map(
-              (point) =>
-                  _metric == 'duration'
-                      ? point.durationSeconds / 60
-                      : point.reps.toDouble(),
-            )
-            .toList();
+    final values = recent.map((point) => point.volumeKg).toList();
     final maxValue =
         values.isEmpty
             ? 1.0
@@ -345,20 +335,32 @@ class _ActivityChartState extends State<_ActivityChart> {
       ),
       child: Column(
         children: [
-          CupertinoSlidingSegmentedControl<String>(
-            groupValue: _metric,
-            children: const {
-              'duration': Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8),
-                child: Text('Duration'),
+          Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: c.accent.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  CupertinoIcons.chart_bar_fill,
+                  size: 17,
+                  color: c.accent,
+                ),
               ),
-              'reps': Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8),
-                child: Text('Reps'),
+              const SizedBox(width: 10),
+              Text(
+                'Working volume',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: c.textPrimary,
+                  fontFamily: 'Rubik',
+                ),
               ),
-            },
-            onValueChanged:
-                (value) => setState(() => _metric = value ?? 'duration'),
+            ],
           ),
           const SizedBox(height: 18),
           SizedBox(
@@ -399,9 +401,7 @@ class _ActivityChartState extends State<_ActivityChart> {
           ),
           const SizedBox(height: 8),
           Text(
-            _metric == 'duration'
-                ? 'Minutes per training day'
-                : 'Working reps per training day',
+            'Weight × reps per training day · warmups excluded',
             style: TextStyle(
               fontSize: 11,
               color: c.textSecondary,
