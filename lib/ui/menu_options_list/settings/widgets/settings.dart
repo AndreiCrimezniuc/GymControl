@@ -34,6 +34,12 @@ class _SettingsState extends State<Settings> {
   void initState() {
     super.initState();
     _ranking = RankingRepository(client: context.read<AuthenticatedClient>());
+    // A previous startup request may have failed while the backend was being
+    // deployed. Always refresh when Settings opens so a transient outage does
+    // not leave the development Pro control disabled for the whole session.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<ProController>().load(force: true);
+    });
     _loadProfile();
     _loadDiagnosticsPreference();
   }
