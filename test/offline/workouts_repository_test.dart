@@ -38,17 +38,26 @@ void main() {
       });
       await store.putListIds('workouts:owned', ['w1']);
 
+      var requests = 0;
       final client = AuthenticatedClient(
         storage: TokenStorage(),
         authService: AuthService(),
-        inner: MockClient((_) async => throw const SocketException('offline')),
+        inner: MockClient((_) async {
+          requests++;
+          throw const SocketException('offline');
+        }),
       );
       addTearDown(client.dispose);
 
-      final workouts = await WorkoutsRepository(client: client).listOwned();
+      final workouts =
+          await WorkoutsRepository(
+            client: client,
+            isOnline: () async => false,
+          ).listOwned();
 
       expect(workouts, hasLength(1));
       expect(workouts.single.name, 'Offline push');
+      expect(requests, 0, reason: 'known-offline reads must not wait for HTTP');
     },
   );
 
@@ -67,7 +76,11 @@ void main() {
     );
     addTearDown(client.dispose);
 
-    final folders = await WorkoutsRepository(client: client).listFolders();
+    final folders =
+        await WorkoutsRepository(
+          client: client,
+          isOnline: () async => false,
+        ).listFolders();
 
     expect(folders, hasLength(1));
     expect(folders.single.name, 'Strength');

@@ -11,6 +11,7 @@ class ExerciseCatalogItem {
   final String instructions;
   final String exerciseType;
   final List<String> secondaryMuscles;
+  final List<String> aliases;
 
   const ExerciseCatalogItem({
     required this.id,
@@ -25,6 +26,7 @@ class ExerciseCatalogItem {
     required this.instructions,
     this.exerciseType = 'weight_reps',
     this.secondaryMuscles = const [],
+    this.aliases = const [],
   });
 
   factory ExerciseCatalogItem.fromJson(Map<String, dynamic> j) =>
@@ -44,7 +46,20 @@ class ExerciseCatalogItem {
             ((j['secondary_muscles'] as List?) ?? const [])
                 .whereType<String>()
                 .toList(),
+        aliases:
+            ((j['aliases'] as List?) ?? const []).whereType<String>().toList(),
       );
+
+  bool matchesSearch(String query) {
+    final normalized = query.trim().toLowerCase();
+    if (normalized.isEmpty) return true;
+    return <String>[
+      name,
+      muscleGroup,
+      equipment,
+      ...aliases,
+    ].any((value) => value.toLowerCase().contains(normalized));
+  }
 }
 
 class ExerciseProgressionPoint {

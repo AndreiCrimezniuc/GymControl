@@ -8,7 +8,6 @@ import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
 import 'package:gymboss/ui/core/ui/widgets/net_image.dart';
-import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
 import 'package:gymboss/ui/core/ui/widgets/skeleton.dart';
 import 'package:gymboss/ui/core/units/units_controller.dart';
 import 'package:gymboss/ui/menu_options_list/exercises/widgets/muscle_illustration.dart';
@@ -82,9 +81,7 @@ class _ExercisesState extends State<Exercises> {
   List<ExerciseCatalogItem> get _filtered =>
       _all.where((e) {
         final mg = _group == 'All' || e.muscleGroup == _group;
-        final q =
-            _query.isEmpty ||
-            e.name.toLowerCase().contains(_query.toLowerCase());
+        final q = _query.isEmpty || e.matchesSearch(_query);
         return mg && q;
       }).toList();
 
@@ -368,139 +365,89 @@ class ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     }
   }
 
-  void _logSet() {
-    showCupertinoModalPopup<void>(
-      context: context,
-      builder:
-          (_) => _LogSetSheet(
-            repo: widget.repo,
-            exerciseId: widget.entry.id,
-            onLogged: _loadStats,
-          ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     final e = widget.entry;
     return AppPage(
       title: e.name,
-      body: Column(
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
         children: [
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-              children: [
-                AspectRatio(
-                  aspectRatio: 4 / 3,
-                  child: ExerciseVisual(
-                    name: e.name,
-                    muscleGroup: e.muscleGroup,
-                    equipment: e.equipment,
-                    category: e.category,
-                    imageUrl: e.imageUrl,
-                    imageUrl2: e.imageUrl2,
-                    animate: true,
-                    radius: 16,
-                    figurePadding: 20,
-                  ),
-                ),
-                if (e.imageUrl.contains('everkinetic')) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    'Illustration © Everkinetic · CC BY-SA 3.0',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: c.textSecondary,
-                      fontFamily: 'Rubik',
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 14),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    if (e.muscleGroup.isNotEmpty)
-                      _Chip(e.muscleGroup, accent: true),
-                    if (e.equipment.isNotEmpty) _Chip(e.equipment),
-                    if (e.level.isNotEmpty) _Chip(e.level),
-                    if (e.force.isNotEmpty) _Chip(e.force),
-                    if (e.exerciseType.isNotEmpty)
-                      _Chip(_exerciseTypeLabel(e.exerciseType)),
-                    for (final muscle in e.secondaryMuscles)
-                      _Chip('Secondary: $muscle'),
-                  ],
-                ),
-                if (e.instructions.isNotEmpty) ...[
-                  const SizedBox(height: 18),
-                  _SectionLabel('How to'),
-                  const SizedBox(height: 8),
-                  Text(
-                    e.instructions,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: c.textSecondary,
-                      height: 1.5,
-                      fontFamily: 'Rubik',
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 20),
-                _SectionLabel('Your Stats'),
-                const SizedBox(height: 12),
-                if (_loadingStats)
-                  const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(20),
-                      child: CupertinoActivityIndicator(),
-                    ),
-                  )
-                else
-                  _StatsBlock(stats: _stats),
-                if (_history.isNotEmpty) ...[
-                  const SizedBox(height: 22),
-                  _SectionLabel('Complete History'),
-                  const SizedBox(height: 10),
-                  _ExerciseHistory(items: _history),
-                ],
-                const SizedBox(height: 12),
-              ],
+          AspectRatio(
+            aspectRatio: 4 / 3,
+            child: ExerciseVisual(
+              name: e.name,
+              muscleGroup: e.muscleGroup,
+              equipment: e.equipment,
+              category: e.category,
+              imageUrl: e.imageUrl,
+              imageUrl2: e.imageUrl2,
+              animate: true,
+              radius: 16,
+              figurePadding: 20,
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 6, 20, 16),
-            child: Pressable(
-              onTap: _logSet,
-              child: Container(
-                height: 54,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: c.accent,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(CupertinoIcons.plus, size: 18, color: c.textOnAccent),
-                    const SizedBox(width: 8),
-                    Text(
-                      'LOG A SET',
-                      style: TextStyle(
-                        fontFamily: 'Rubik',
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.5,
-                        color: c.textOnAccent,
-                      ),
-                    ),
-                  ],
-                ),
+          if (e.imageUrl.contains('everkinetic')) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Illustration © Everkinetic · CC BY-SA 3.0',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 10,
+                color: c.textSecondary,
+                fontFamily: 'Rubik',
               ),
             ),
+          ],
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              if (e.muscleGroup.isNotEmpty) _Chip(e.muscleGroup, accent: true),
+              if (e.equipment.isNotEmpty) _Chip(e.equipment),
+              if (e.level.isNotEmpty) _Chip(e.level),
+              if (e.force.isNotEmpty) _Chip(e.force),
+              if (e.exerciseType.isNotEmpty)
+                _Chip(_exerciseTypeLabel(e.exerciseType)),
+              for (final muscle in e.secondaryMuscles)
+                _Chip('Secondary: $muscle'),
+            ],
           ),
+          if (e.instructions.isNotEmpty) ...[
+            const SizedBox(height: 18),
+            _SectionLabel('How to'),
+            const SizedBox(height: 8),
+            Text(
+              e.instructions,
+              style: TextStyle(
+                fontSize: 13,
+                color: c.textSecondary,
+                height: 1.5,
+                fontFamily: 'Rubik',
+              ),
+            ),
+          ],
+          const SizedBox(height: 20),
+          _SectionLabel('Your Stats'),
+          const SizedBox(height: 12),
+          if (_loadingStats)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(20),
+                child: CupertinoActivityIndicator(),
+              ),
+            )
+          else
+            _StatsBlock(stats: _stats),
+          if (_history.isNotEmpty) ...[
+            const SizedBox(height: 22),
+            _SectionLabel('Complete History'),
+            const SizedBox(height: 10),
+            _ExerciseHistory(items: _history),
+          ],
+          const SizedBox(height: 12),
         ],
       ),
     );
@@ -1028,165 +975,6 @@ class _ErrorView extends StatelessWidget {
   }
 }
 
-// ── Log set sheet ─────────────────────────────────────────────────────────────
-
-class _LogSetSheet extends StatefulWidget {
-  final ExercisesRepository repo;
-  final int exerciseId;
-  final VoidCallback onLogged;
-  const _LogSetSheet({
-    required this.repo,
-    required this.exerciseId,
-    required this.onLogged,
-  });
-
-  @override
-  State<_LogSetSheet> createState() => _LogSetSheetState();
-}
-
-class _LogSetSheetState extends State<_LogSetSheet> {
-  final _weightCtrl = TextEditingController();
-  final _repsCtrl = TextEditingController(text: '10');
-  bool _saving = false;
-  String? _error;
-
-  Future<void> _save() async {
-    final units = context.unitsController;
-    final w = double.tryParse(_weightCtrl.text) ?? 0;
-    final r = int.tryParse(_repsCtrl.text) ?? 0;
-    if (r <= 0) {
-      setState(() => _error = 'Enter reps');
-      return;
-    }
-    setState(() {
-      _saving = true;
-      _error = null;
-    });
-    try {
-      await widget.repo.logSet(
-        widget.exerciseId,
-        weightKg: units.toKg(w),
-        reps: r,
-      );
-      if (mounted) {
-        Navigator.pop(context);
-        widget.onLogged();
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = e.toString();
-          _saving = false;
-        });
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return Container(
-      decoration: BoxDecoration(
-        color: c.card,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 20,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: c.border,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Log a set',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: c.textPrimary,
-              fontFamily: 'Rubik',
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _Field(
-                  controller: _weightCtrl,
-                  label: 'Weight (${context.units.label})',
-                  placeholder: '60',
-                  decimal: true,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _Field(
-                  controller: _repsCtrl,
-                  label: 'Reps',
-                  placeholder: '10',
-                ),
-              ),
-            ],
-          ),
-          if (_error != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              _error!,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFFEF4444),
-                fontFamily: 'Rubik',
-              ),
-            ),
-          ],
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: CupertinoButton(
-              padding: EdgeInsets.zero,
-              onPressed: _saving ? null : _save,
-              child: Container(
-                height: 48,
-                decoration: BoxDecoration(
-                  color: _saving ? c.iconBg : c.accent,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Center(
-                  child:
-                      _saving
-                          ? const CupertinoActivityIndicator()
-                          : Text(
-                            'Save',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: c.textOnAccent,
-                              fontFamily: 'Rubik',
-                            ),
-                          ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 // ── Create custom exercise sheet ──────────────────────────────────────────────
 
 const _muscleGroups = [
@@ -1549,14 +1337,12 @@ class _Field extends StatelessWidget {
   final TextEditingController controller;
   final String label;
   final String placeholder;
-  final bool decimal;
   final int maxLines;
   final ValueChanged<String>? onChanged;
   const _Field({
     required this.controller,
     required this.label,
     required this.placeholder,
-    this.decimal = false,
     this.maxLines = 1,
     this.onChanged,
   });
@@ -1564,7 +1350,6 @@ class _Field extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final numeric = label.contains('kg') || label == 'Reps' || decimal;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1583,10 +1368,7 @@ class _Field extends StatelessWidget {
           placeholder: placeholder,
           maxLines: maxLines,
           onChanged: onChanged,
-          keyboardType:
-              numeric
-                  ? TextInputType.numberWithOptions(decimal: decimal)
-                  : TextInputType.text,
+          keyboardType: TextInputType.text,
           style: TextStyle(
             color: c.textPrimary,
             fontSize: 15,

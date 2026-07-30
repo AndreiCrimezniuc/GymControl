@@ -19,15 +19,22 @@ class ExercisesRepository {
   static bool _handlersRegistered = false;
 
   final AuthenticatedClient _client;
+  final Future<bool> Function() _isOnline;
   final LocalStore _store = LocalStore.instance;
   final String _base = '${ApiConfig.apiBaseUrl}/api/v1/exercises';
 
-  ExercisesRepository({required AuthenticatedClient client})
-    : _client = client {
+  ExercisesRepository({
+    required AuthenticatedClient client,
+    Future<bool> Function()? isOnline,
+  }) : _client = client,
+       _isOnline = isOnline ?? ConnectivityService.instance.isOnline {
     _registerHandlers();
   }
 
   Future<List<ExerciseCatalogItem>> getCatalog() async {
+    if (!await _isOnline() && _store.hasList(_catalogKey)) {
+      return _cachedCatalog();
+    }
     try {
       final resp = await _client
           .get(Uri.parse(_base))
@@ -46,16 +53,23 @@ class ExercisesRepository {
       return raw.map(ExerciseCatalogItem.fromJson).toList();
     } on Object catch (error) {
       if (isTransientNetworkFailure(error) && _store.hasList(_catalogKey)) {
-        return _store
-            .getListDocs(_catalogCollection, _catalogKey)
-            .map(ExerciseCatalogItem.fromJson)
-            .toList();
+        return _cachedCatalog();
       }
       rethrow;
     }
   }
 
+  List<ExerciseCatalogItem> _cachedCatalog() =>
+      _store
+          .getListDocs(_catalogCollection, _catalogKey)
+          .map(ExerciseCatalogItem.fromJson)
+          .toList();
+
   Future<ExerciseStats> getStats(int id) async {
+    final cached = _store.getDoc('exercise_stats', '$id');
+    if (!await _isOnline() && cached != null) {
+      return ExerciseStats.fromJson(cached);
+    }
     try {
       final resp = await _client
           .get(Uri.parse('$_base/$id/stats'))
@@ -67,7 +81,6 @@ class ExercisesRepository {
       await _store.putDoc('exercise_stats', '$id', doc);
       return ExerciseStats.fromJson(doc);
     } on Object catch (error) {
-      final cached = _store.getDoc('exercise_stats', '$id');
       if (isTransientNetworkFailure(error) && cached != null) {
         return ExerciseStats.fromJson(cached);
       }
@@ -76,6 +89,10 @@ class ExercisesRepository {
   }
 
   Future<List<ExerciseHistorySession>> getHistory(int id) async {
+    final cached = _store.getDoc('exercise_history', '$id');
+    if (!await _isOnline() && cached != null) {
+      return _historyFromCache(cached);
+    }
     try {
       final response = await _client
           .get(Uri.parse('$_base/$id/history'))
@@ -90,18 +107,20 @@ class ExercisesRepository {
       await _store.putDoc('exercise_history', '$id', {'items': raw});
       return raw.map(ExerciseHistorySession.fromJson).toList();
     } on Object catch (error) {
-      final cached = _store.getDoc('exercise_history', '$id');
       if (isTransientNetworkFailure(error) && cached != null) {
-        return ((cached['items'] as List?) ?? const [])
-            .map(
-              (item) =>
-                  ExerciseHistorySession.fromJson(item as Map<String, dynamic>),
-            )
-            .toList();
+        return _historyFromCache(cached);
       }
       rethrow;
     }
   }
+
+  List<ExerciseHistorySession> _historyFromCache(Map<String, dynamic> cached) =>
+      ((cached['items'] as List?) ?? const [])
+          .map(
+            (item) =>
+                ExerciseHistorySession.fromJson(item as Map<String, dynamic>),
+          )
+          .toList();
 
   Future<void> logSet(
     int id, {
@@ -122,7 +141,7 @@ class ExercisesRepository {
       'operation_id': operationId,
       'session_id': sessionId,
     };
-    if (await ConnectivityService.instance.isOnline()) {
+    if (await _isOnline()) {
       try {
         final resp = await _postLog(_client, args);
         if (resp.statusCode == 204 || resp.statusCode == 200) {

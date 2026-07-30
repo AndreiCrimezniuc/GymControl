@@ -49,9 +49,25 @@ void main() {
     });
     await store.putListIds('exercises:catalog', ['42']);
 
-    final catalog = await repository.getCatalog();
+    var requests = 0;
+    final offlineClient = AuthenticatedClient(
+      storage: TokenStorage(),
+      authService: AuthService(),
+      inner: MockClient((_) async {
+        requests++;
+        throw const SocketException('offline');
+      }),
+    );
+    addTearDown(offlineClient.dispose);
+    final offlineRepository = ExercisesRepository(
+      client: offlineClient,
+      isOnline: () async => false,
+    );
+
+    final catalog = await offlineRepository.getCatalog();
 
     expect(catalog.single.name, 'Bench Press');
+    expect(requests, 0, reason: 'known-offline reads must not wait for HTTP');
   });
 
   test('performed set is kept in the outbox when the network fails', () async {

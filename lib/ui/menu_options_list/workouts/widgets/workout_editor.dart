@@ -144,207 +144,224 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
     return AppPage(
       title: widget.existing != null ? 'Edit workout' : 'New workout',
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-              children: [
-                if (widget.existing == null)
-                  CupertinoSlidingSegmentedControl<String>(
-                    groupValue: _type,
-                    backgroundColor: c.iconBg,
-                    thumbColor: c.accent,
-                    onValueChanged: (v) {
-                      HapticFeedback.selectionClick();
-                      setState(() {
-                        _type = v ?? 'gym';
-                        if (_type == 'aerobic') {
-                          for (final exercise in _exercises) {
-                            exercise.dispose();
-                          }
-                          _exercises.clear();
-                        }
-                      });
-                    },
-                    children: {
-                      for (final t in const ['gym', 'aerobic'])
-                        t: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 7),
-                          child: Text(
-                            t == 'gym' ? 'Gym' : 'Aerobic',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color:
-                                  _type == t ? c.textOnAccent : c.textSecondary,
-                              fontFamily: 'Rubik',
+      body: AnimatedPadding(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        padding: EdgeInsets.only(bottom: keyboardInset),
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+          child: Column(
+            children: [
+              Expanded(
+                child: ListView(
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                  children: [
+                    if (widget.existing == null)
+                      CupertinoSlidingSegmentedControl<String>(
+                        groupValue: _type,
+                        backgroundColor: c.iconBg,
+                        thumbColor: c.accent,
+                        onValueChanged: (v) {
+                          HapticFeedback.selectionClick();
+                          setState(() {
+                            _type = v ?? 'gym';
+                            if (_type == 'aerobic') {
+                              for (final exercise in _exercises) {
+                                exercise.dispose();
+                              }
+                              _exercises.clear();
+                            }
+                          });
+                        },
+                        children: {
+                          for (final t in const ['gym', 'aerobic'])
+                            t: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 7),
+                              child: Text(
+                                t == 'gym' ? 'Gym' : 'Aerobic',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color:
+                                      _type == t
+                                          ? c.textOnAccent
+                                          : c.textSecondary,
+                                  fontFamily: 'Rubik',
+                                ),
+                              ),
+                            ),
+                        },
+                      ),
+                    if (widget.existing == null) const SizedBox(height: 14),
+                    _field(c, _nameCtrl, 'NAME', 'Push Day'),
+                    const SizedBox(height: 12),
+                    _field(
+                      c,
+                      _commentCtrl,
+                      'COMMENT',
+                      'Optional notes',
+                      maxLines: 2,
+                    ),
+                    const SizedBox(height: 12),
+                    if (_type != 'aerobic') ...[
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Expanded(
+                            child: _field(c, _deloadCtrl, 'DELOAD %', '70'),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 2,
+                            child: Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Text(
+                                'Deload (разгрузочная) runs at this % of the Normal '
+                                'weight. Reps stay the same.',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: c.textSecondary,
+                                  fontFamily: 'Rubik',
+                                  height: 1.3,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                    },
-                  ),
-                if (widget.existing == null) const SizedBox(height: 14),
-                _field(c, _nameCtrl, 'NAME', 'Push Day'),
-                const SizedBox(height: 12),
-                _field(
-                  c,
-                  _commentCtrl,
-                  'COMMENT',
-                  'Optional notes',
-                  maxLines: 2,
-                ),
-                const SizedBox(height: 12),
-                if (_type != 'aerobic') ...[
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Expanded(child: _field(c, _deloadCtrl, 'DELOAD %', '70')),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        flex: 2,
-                        child: Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Text(
-                            'Deload (разгрузочная) runs at this % of the Normal '
-                            'weight. Reps stay the same.',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: c.textSecondary,
-                              fontFamily: 'Rubik',
-                              height: 1.3,
-                            ),
-                          ),
+                        ],
+                      ),
+                    ] else ...[
+                      Text(
+                        'Aerobic workouts are timed: a stopwatch with laps. '
+                        'Exercises below are optional.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: c.textSecondary,
+                          fontFamily: 'Rubik',
+                          height: 1.3,
                         ),
                       ),
                     ],
-                  ),
-                ] else ...[
-                  Text(
-                    'Aerobic workouts are timed: a stopwatch with laps. '
-                    'Exercises below are optional.',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: c.textSecondary,
-                      fontFamily: 'Rubik',
-                      height: 1.3,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Text(
-                      'EXERCISES',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1,
-                        color: c.textSecondary,
-                        fontFamily: 'Rubik',
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      '${_exercises.length}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: c.textSecondary,
-                        fontFamily: 'Rubik',
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                ..._exercises.asMap().entries.map(
-                  (e) => _ExerciseEditor(
-                    key: ValueKey(e.value),
-                    index: e.key,
-                    last: e.key == _exercises.length - 1,
-                    model: e.value,
-                    onRemove: () => setState(() => _exercises.removeAt(e.key)),
-                    onUp: () => _move(e.key, -1),
-                    onDown: () => _move(e.key, 1),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: _addExercise,
-                  child: Container(
-                    height: 48,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: c.accent.withValues(alpha: 0.5),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    const SizedBox(height: 20),
+                    Row(
                       children: [
-                        Icon(CupertinoIcons.add, size: 18, color: c.accent),
-                        const SizedBox(width: 6),
                         Text(
-                          'Add exercise',
+                          'EXERCISES',
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: c.accent,
+                            letterSpacing: 1,
+                            color: c.textSecondary,
+                            fontFamily: 'Rubik',
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          '${_exercises.length}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: c.textSecondary,
                             fontFamily: 'Rubik',
                           ),
                         ),
                       ],
                     ),
-                  ),
-                ),
-                if (_error != null) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    _error!,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFFEF4444),
-                      fontFamily: 'Rubik',
+                    const SizedBox(height: 10),
+                    ..._exercises.asMap().entries.map(
+                      (e) => _ExerciseEditor(
+                        key: ValueKey(e.value),
+                        index: e.key,
+                        last: e.key == _exercises.length - 1,
+                        model: e.value,
+                        onRemove:
+                            () => setState(() => _exercises.removeAt(e.key)),
+                        onUp: () => _move(e.key, -1),
+                        onDown: () => _move(e.key, 1),
+                      ),
                     ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 6, 20, 16),
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: _saving ? null : _save,
-              child: Container(
-                height: 54,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: _saving ? c.iconBg : c.accent,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child:
-                    _saving
-                        ? const CupertinoActivityIndicator()
-                        : Text(
-                          widget.existing != null
-                              ? 'SAVE CHANGES'
-                              : 'CREATE WORKOUT',
-                          style: TextStyle(
-                            fontFamily: 'Rubik',
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 1.2,
-                            color: c.textOnAccent,
+                    const SizedBox(height: 6),
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: _addExercise,
+                      child: Container(
+                        height: 48,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: c.accent.withValues(alpha: 0.5),
                           ),
                         ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(CupertinoIcons.add, size: 18, color: c.accent),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Add exercise',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: c.accent,
+                                fontFamily: 'Rubik',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (_error != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        _error!,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFFEF4444),
+                          fontFamily: 'Rubik',
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ),
-            ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 6, 20, 16),
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: _saving ? null : _save,
+                  child: Container(
+                    height: 54,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: _saving ? c.iconBg : c.accent,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child:
+                        _saving
+                            ? const CupertinoActivityIndicator()
+                            : Text(
+                              widget.existing != null
+                                  ? 'SAVE CHANGES'
+                                  : 'CREATE WORKOUT',
+                              style: TextStyle(
+                                fontFamily: 'Rubik',
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 1.2,
+                                color: c.textOnAccent,
+                              ),
+                            ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -372,6 +389,7 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
         controller: ctrl,
         placeholder: placeholder,
         maxLines: maxLines,
+        scrollPadding: const EdgeInsets.only(bottom: 140),
         style: TextStyle(
           color: c.textPrimary,
           fontSize: 15,
@@ -610,6 +628,7 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
           CupertinoTextField(
             controller: widget.model.commentCtrl,
             placeholder: 'Note for this exercise (optional)',
+            scrollPadding: const EdgeInsets.only(bottom: 140),
             style: TextStyle(
               color: c.textPrimary,
               fontSize: 13,
@@ -676,6 +695,7 @@ class _MiniField extends StatelessWidget {
     final field = CupertinoTextField(
       controller: controller,
       placeholder: label,
+      scrollPadding: const EdgeInsets.only(bottom: 140),
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       inputFormatters: [
         NumericLimitFormatter(allowDecimal: label != 'Sets' && label != 'reps'),
