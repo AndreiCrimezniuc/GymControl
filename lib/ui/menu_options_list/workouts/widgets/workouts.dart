@@ -486,7 +486,7 @@ class _WorkoutCard extends StatelessWidget {
         onTap: onTap,
         onLongPress: onLongPress,
         child: Container(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.fromLTRB(14, 11, 12, 11),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors:
@@ -497,18 +497,18 @@ class _WorkoutCard extends StatelessWidget {
                         Color(0xFF121214),
                       ]
                       : const [
-                        Color(0xFFFFFFFF),
-                        Color(0xFFF5F1EF),
-                        Color(0xFFECE6E3),
+                        Color(0xFFFFFDFC),
+                        Color(0xFFFFF5F1),
+                        Color(0xFFF5DEDA),
                       ],
               stops: const [0, 0.48, 1],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(15),
             border: Border.all(
               color:
-                  c.isDark ? const Color(0xFF343239) : const Color(0xFFE1D7D3),
+                  c.isDark ? const Color(0xFF343239) : const Color(0xFFE6C6BF),
             ),
             boxShadow: c.cardShadow,
           ),
@@ -523,7 +523,7 @@ class _WorkoutCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 15,
                         fontWeight: FontWeight.w800,
                         color: c.textPrimary,
                         fontFamily: 'Rubik',
@@ -592,7 +592,7 @@ class _WorkoutCard extends StatelessWidget {
                   ),
                 ),
               ],
-              const SizedBox(height: 10),
+              const SizedBox(height: 7),
               Row(
                 children: [
                   Icon(CupertinoIcons.flame, size: 13, color: c.textSecondary),

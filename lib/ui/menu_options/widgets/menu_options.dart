@@ -58,21 +58,24 @@ class _MenuOptionsState extends State<MenuOptions> {
       final data = await _sessions.getStreakData();
       if (mounted) {
         setState(
-          () => _streak = data.currentStreakWeeks > 0
-              ? data
-              : StreakData(
-                  currentStreakWeeks: 1,
-                  activeWeeks: data.activeWeeks,
-                ),
+          () =>
+              _streak =
+                  data.currentStreakWeeks > 0
+                      ? data
+                      : StreakData(
+                        currentStreakWeeks: 1,
+                        activeWeeks: data.activeWeeks,
+                      ),
         );
       }
     } catch (_) {
       if (mounted) {
         setState(
-          () => _streak = const StreakData(
-            currentStreakWeeks: 1,
-            activeWeeks: [],
-          ),
+          () =>
+              _streak = const StreakData(
+                currentStreakWeeks: 1,
+                activeWeeks: [],
+              ),
         );
       }
     }
@@ -111,17 +114,18 @@ class _MenuOptionsState extends State<MenuOptions> {
   void _showMonthlyWeightPopup(RankProfile profile) {
     showCupertinoDialog<void>(
       context: context,
-      builder: (_) => _MonthlyWeightDialog(
-        ranking: _ranking,
-        profile: profile,
-        onDismiss: () async {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setInt(
-            'weight_last_asked',
-            DateTime.now().millisecondsSinceEpoch,
-          );
-        },
-      ),
+      builder:
+          (_) => _MonthlyWeightDialog(
+            ranking: _ranking,
+            profile: profile,
+            onDismiss: () async {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setInt(
+                'weight_last_asked',
+                DateTime.now().millisecondsSinceEpoch,
+              );
+            },
+          ),
     );
   }
 
@@ -363,9 +367,10 @@ class _MenuRow extends StatelessWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: accentTile
-                        ? c.accent.withValues(alpha: 0.12)
-                        : c.iconBg,
+                    color:
+                        accentTile
+                            ? c.accent.withValues(alpha: 0.12)
+                            : c.iconBg,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
@@ -429,7 +434,14 @@ class _StartButton extends StatelessWidget {
       child: Container(
         height: 58,
         alignment: Alignment.center,
-        color: c.invBg,
+        margin: const EdgeInsets.symmetric(horizontal: 20),
+        decoration: ShapeDecoration(
+          color: c.invBg,
+          shape: ContinuousRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
+          ),
+          shadows: c.cardShadow,
+        ),
         child: Text(
           'START WORKOUT',
           style: TextStyle(
@@ -578,16 +590,17 @@ class _FirstTimeWeightSheetState extends State<_FirstTimeWeightSheet> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Center(
-                      child: _saving
-                          ? const CupertinoActivityIndicator()
-                          : Text(
-                              'Save',
-                              style: TextStyle(
-                                color: c.textOnAccent,
-                                fontWeight: FontWeight.w600,
-                                fontFamily: 'Rubik',
+                      child:
+                          _saving
+                              ? const CupertinoActivityIndicator()
+                              : Text(
+                                'Save',
+                                style: TextStyle(
+                                  color: c.textOnAccent,
+                                  fontWeight: FontWeight.w600,
+                                  fontFamily: 'Rubik',
+                                ),
                               ),
-                            ),
                     ),
                   ),
                 ),
@@ -786,17 +799,18 @@ class _MonthlyWeightDialogState extends State<_MonthlyWeightDialog> {
                       color: c.accent,
                       borderRadius: BorderRadius.circular(13),
                     ),
-                    child: _saving
-                        ? const CupertinoActivityIndicator()
-                        : Text(
-                            'Update',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: c.textOnAccent,
-                              fontFamily: 'Rubik',
+                    child:
+                        _saving
+                            ? const CupertinoActivityIndicator()
+                            : Text(
+                              'Update',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: c.textOnAccent,
+                                fontFamily: 'Rubik',
+                              ),
                             ),
-                          ),
                   ),
                 ),
                 const SizedBox(height: 8),

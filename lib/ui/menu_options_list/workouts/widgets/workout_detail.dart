@@ -680,29 +680,73 @@ class _ExerciseBlock extends StatelessWidget {
             ),
             if (sets.isNotEmpty) ...[
               const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
+              Column(
                 children:
-                    sets.asMap().entries.map((e) {
-                      final s = e.value;
+                    sets.asMap().entries.map((entry) {
+                      final set = entry.value;
                       return Container(
+                        margin: const EdgeInsets.only(bottom: 6),
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
+                          horizontal: 11,
+                          vertical: 9,
                         ),
                         decoration: BoxDecoration(
                           color: c.iconBg,
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: c.border),
                         ),
-                        child: Text(
-                          '${units.format(s.weightKg * deloadScale)}${units.label} × ${s.reps}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: c.textPrimary,
-                            fontFamily: 'Rubik',
-                          ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 24,
+                              height: 24,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: c.accent.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                '${entry.key + 1}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  color: c.accent,
+                                  fontFamily: 'Rubik',
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            if (set.weightKg > 0)
+                              Text(
+                                '${units.format(set.weightKg * deloadScale)} ${units.label}',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: c.textPrimary,
+                                  fontFamily: 'Rubik',
+                                ),
+                              )
+                            else
+                              Text(
+                                'Bodyweight',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: c.textSecondary,
+                                  fontFamily: 'Rubik',
+                                ),
+                              ),
+                            const Spacer(),
+                            Text(
+                              '${set.reps} reps',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: c.textPrimary,
+                                fontFamily: 'Rubik',
+                              ),
+                            ),
+                          ],
                         ),
                       );
                     }).toList(),

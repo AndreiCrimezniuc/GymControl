@@ -421,24 +421,33 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     return Pressable(
       onTap: onTap,
       child: Container(
-        height: 46,
+        height: 48,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: const Color(0xFFFFFFFF),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFE5E5EA)),
+          color: c.invBg,
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(
+            color: c.isDark ? const Color(0xFFEDEDEF) : const Color(0xFF121212),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF000000).withValues(alpha: 0.10),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 17, color: const Color(0xFF111111)),
+            Icon(icon, size: 17, color: c.invText),
             const SizedBox(width: 6),
             Text(
               label,
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color: const Color(0xFF111111),
+                color: c.invText,
                 fontFamily: 'Rubik',
               ),
             ),
@@ -508,20 +517,26 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
         color: c.card,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: c.border),
         boxShadow: c.cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
+          Container(
             padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: c.accent.withValues(alpha: c.isDark ? 0.07 : 0.05),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(19),
+              ),
+            ),
             child: Row(
               children: [
                 SizedBox(
-                  width: 52,
-                  height: 52,
+                  width: 48,
+                  height: 48,
                   child: ExerciseVisual(
                     name: g.name,
                     muscleGroup: g.muscleGroup,
@@ -538,7 +553,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '$index. ${g.name}',
+                        g.name,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -559,6 +574,25 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                         ),
                       ),
                     ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  width: 28,
+                  height: 28,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: c.accent.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(9),
+                  ),
+                  child: Text(
+                    '$index',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: c.accent,
+                      fontFamily: 'Rubik',
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),

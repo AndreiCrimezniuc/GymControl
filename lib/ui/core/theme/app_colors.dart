@@ -65,14 +65,14 @@ class AppColors {
   static const light = AppColors(
     isDark: false,
     bg: Color(0xFFFCFAF8),
-    bgTop: Color(0xFFFCFAF8),
-    bgBottom: Color(0xFFFCFAF8),
-    card: Color(0xFFF4EFEC),
-    iconBg: Color(0xFFF0E7E4),
+    bgTop: Color(0xFFFFFDFC),
+    bgBottom: Color(0xFFF7F0ED),
+    card: Color(0xFFFFFBF9),
+    iconBg: Color(0xFFF4E9E5),
     // Borders tinted toward the accent so surfaces read as defined contours in
     // the light theme instead of washing out against the warm background.
-    border: Color(0xFFEBD5D0),
-    pillBorder: Color(0xFFE4C7C1),
+    border: Color(0xFFE7D1CB),
+    pillBorder: Color(0xFFDDBEB6),
     textPrimary: Color(0xFF141312),
     // Darkened from #8B8480 (~3.5:1) to meet WCAG AA 4.5:1 for small text on bg/card.
     textSecondary: Color(0xFF736C67),
