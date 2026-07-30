@@ -14,8 +14,8 @@ SessionSet _set({String type = 'working', bool done = false}) => SessionSet(
 
 void main() {
   group('set type selection', () {
-    test('setTypes lists the three explicit options in order', () {
-      expect(setTypes, ['warmup', 'working', 'failure']);
+    test('setTypes lists the explicit options in order', () {
+      expect(setTypes, ['warmup', 'working', 'failure', 'dropset']);
     });
 
     test('setSetType applies a valid explicit choice', () {
@@ -52,13 +52,15 @@ void main() {
       expect(notifications, 1);
     });
 
-    test('cycleSetType walks warmup -> working -> failure -> warmup', () {
+    test('cycleSetType walks through every supported type', () {
       final c = WorkoutSessionController();
       final s = _set(type: 'warmup');
       c.cycleSetType(s);
       expect(s.type, 'working');
       c.cycleSetType(s);
       expect(s.type, 'failure');
+      c.cycleSetType(s);
+      expect(s.type, 'dropset');
       c.cycleSetType(s);
       expect(s.type, 'warmup');
     });

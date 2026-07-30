@@ -4,31 +4,40 @@ class WorkoutSet {
   final String difficulty; // easy | medium | hard
   final double weightKg;
   final int reps;
+  final String setType; // warmup | working | failure | dropset
 
   const WorkoutSet({
     required this.difficulty,
     required this.weightKg,
     required this.reps,
+    this.setType = 'working',
   });
 
   factory WorkoutSet.fromJson(Map<String, dynamic> j) => WorkoutSet(
     difficulty: (j['difficulty'] as String?) ?? 'medium',
     weightKg: (j['weight_kg'] as num?)?.toDouble() ?? 0,
     reps: (j['reps'] as num?)?.toInt() ?? 0,
+    setType: (j['set_type'] as String?) ?? 'working',
   );
 
   Map<String, dynamic> toJson() => {
     'difficulty': difficulty,
     'weight_kg': weightKg,
     'reps': reps,
+    'set_type': setType,
   };
 
-  WorkoutSet copyWith({String? difficulty, double? weightKg, int? reps}) =>
-      WorkoutSet(
-        difficulty: difficulty ?? this.difficulty,
-        weightKg: weightKg ?? this.weightKg,
-        reps: reps ?? this.reps,
-      );
+  WorkoutSet copyWith({
+    String? difficulty,
+    double? weightKg,
+    int? reps,
+    String? setType,
+  }) => WorkoutSet(
+    difficulty: difficulty ?? this.difficulty,
+    weightKg: weightKg ?? this.weightKg,
+    reps: reps ?? this.reps,
+    setType: setType ?? this.setType,
+  );
 }
 
 class WorkoutExercise {
@@ -60,9 +69,10 @@ class WorkoutExercise {
     muscleGroup: (j['muscle_group'] as String?) ?? '',
     restSeconds: (j['rest_seconds'] as num?)?.toInt() ?? 90,
     comment: (j['comment'] as String?) ?? '',
-    sets: ((j['sets'] as List?) ?? [])
-        .map((e) => WorkoutSet.fromJson(e as Map<String, dynamic>))
-        .toList(),
+    sets:
+        ((j['sets'] as List?) ?? [])
+            .map((e) => WorkoutSet.fromJson(e as Map<String, dynamic>))
+            .toList(),
   );
 
   Map<String, dynamic> toJson() => {
@@ -137,9 +147,10 @@ class Workout {
     timesPerformed: (j['times_performed'] as num?)?.toInt() ?? 0,
     loveCoefficient: (j['love_coefficient'] as num?)?.toDouble() ?? 0,
     deloadFactor: (j['deload_factor'] as num?)?.toDouble() ?? 0.70,
-    exercises: ((j['exercises'] as List?) ?? [])
-        .map((e) => WorkoutExercise.fromJson(e as Map<String, dynamic>))
-        .toList(),
+    exercises:
+        ((j['exercises'] as List?) ?? [])
+            .map((e) => WorkoutExercise.fromJson(e as Map<String, dynamic>))
+            .toList(),
     folderId: j['folder_id'] as String?,
   );
 
@@ -223,9 +234,10 @@ class PerformedExerciseLog {
         exerciseId: (j['exercise_id'] as num?)?.toInt() ?? 0,
         name: (j['name'] as String?) ?? '',
         muscleGroup: (j['muscle_group'] as String?) ?? '',
-        sets: ((j['sets'] as List?) ?? [])
-            .map((e) => PerformedSetLog.fromJson(e as Map<String, dynamic>))
-            .toList(),
+        sets:
+            ((j['sets'] as List?) ?? [])
+                .map((e) => PerformedSetLog.fromJson(e as Map<String, dynamic>))
+                .toList(),
       );
 
   double get volumeKg => sets
@@ -241,6 +253,27 @@ class MonthlyCount {
   factory MonthlyCount.fromJson(Map<String, dynamic> j) => MonthlyCount(
     month: (j['month'] as String?) ?? '',
     count: (j['count'] as num?)?.toInt() ?? 0,
+  );
+}
+
+class ActivityPoint {
+  final String date;
+  final int durationSeconds;
+  final int reps;
+  final int workouts;
+
+  const ActivityPoint({
+    required this.date,
+    required this.durationSeconds,
+    required this.reps,
+    required this.workouts,
+  });
+
+  factory ActivityPoint.fromJson(Map<String, dynamic> json) => ActivityPoint(
+    date: json['date'] as String? ?? '',
+    durationSeconds: (json['duration_seconds'] as num?)?.toInt() ?? 0,
+    reps: (json['reps'] as num?)?.toInt() ?? 0,
+    workouts: (json['workouts'] as num?)?.toInt() ?? 0,
   );
 }
 
@@ -273,9 +306,10 @@ class StatsSummary {
     longestWorkoutSeconds: (j['longest_workout_seconds'] as num?)?.toInt() ?? 0,
     favoriteExercise: (j['favorite_exercise'] as String?) ?? '',
     strongestExercise: (j['strongest_exercise'] as String?) ?? '',
-    workoutsPerMonth: ((j['workouts_per_month'] as List?) ?? [])
-        .map((e) => MonthlyCount.fromJson(e as Map<String, dynamic>))
-        .toList(),
+    workoutsPerMonth:
+        ((j['workouts_per_month'] as List?) ?? [])
+            .map((e) => MonthlyCount.fromJson(e as Map<String, dynamic>))
+            .toList(),
   );
 }
 
@@ -306,9 +340,10 @@ class WorkoutStats {
         'medium': (pv['medium'] as num?)?.toDouble() ?? 0,
         'hard': (pv['hard'] as num?)?.toDouble() ?? 0,
       },
-      history: ((j['history'] as List?) ?? [])
-          .map((e) => WorkoutRunPoint.fromJson(e as Map<String, dynamic>))
-          .toList(),
+      history:
+          ((j['history'] as List?) ?? [])
+              .map((e) => WorkoutRunPoint.fromJson(e as Map<String, dynamic>))
+              .toList(),
       averageDurationSeconds:
           (j['average_duration_seconds'] as num?)?.toInt() ?? 0,
     );

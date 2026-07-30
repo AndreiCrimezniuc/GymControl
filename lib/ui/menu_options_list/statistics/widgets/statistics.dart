@@ -28,6 +28,7 @@ class _StatisticsState extends State<Statistics> {
   UserRanks _ranks = UserRanks.empty;
   int _workouts = 0;
   StatsSummary _summary = StatsSummary.empty;
+  List<ActivityPoint> _activity = const [];
   String _period = 'all';
 
   @override
@@ -47,6 +48,7 @@ class _StatisticsState extends State<Statistics> {
         _ranking.getUserRanks(),
         _workoutsRepo.listOwned(),
         _workoutsRepo.statsSummary(period: _period),
+        _workoutsRepo.activity(period: _period),
       ]);
       if (!mounted) return;
       setState(() {
@@ -54,6 +56,7 @@ class _StatisticsState extends State<Statistics> {
         _ranks = results[1] as UserRanks;
         _workouts = (results[2] as List).length;
         _summary = results[3] as StatsSummary;
+        _activity = results[4] as List<ActivityPoint>;
         _loading = false;
       });
     } catch (_) {
@@ -65,8 +68,16 @@ class _StatisticsState extends State<Statistics> {
     if (period == _period) return;
     setState(() => _period = period);
     try {
-      final summary = await _workoutsRepo.statsSummary(period: period);
-      if (mounted) setState(() => _summary = summary);
+      final results = await Future.wait([
+        _workoutsRepo.statsSummary(period: period),
+        _workoutsRepo.activity(period: period),
+      ]);
+      if (mounted) {
+        setState(() {
+          _summary = results[0] as StatsSummary;
+          _activity = results[1] as List<ActivityPoint>;
+        });
+      }
     } catch (_) {}
   }
 
@@ -75,67 +86,330 @@ class _StatisticsState extends State<Statistics> {
     final ranks = _ranks.exerciseRanks;
     return AppPage(
       title: 'Statistics',
-      body: _loading
-          ? const SkeletonList()
-          : CustomScrollView(
-              slivers: [
-                CupertinoSliverRefreshControl(onRefresh: _load),
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                  sliver: SliverList(
-                    delegate: SliverChildListDelegate([
-                      Row(
-                        children: [
-                          _StatTile(
-                            value: '${_streak.currentStreakWeeks}',
-                            unit: _streak.currentStreakWeeks == 1
-                                ? 'week'
-                                : 'weeks',
-                            title: 'Streak',
-                            icon: CupertinoIcons.flame_fill,
-                          ),
-                          const SizedBox(width: 10),
-                          _StatTile(
-                            value: '$_workouts',
-                            unit: 'routines',
-                            title: 'Workouts',
-                            icon: CupertinoIcons.calendar,
-                          ),
-                          const SizedBox(width: 10),
-                          _StatTile(
-                            value: '${ranks.length}',
-                            unit: 'lifts',
-                            title: 'Ranked',
-                            icon: CupertinoIcons.chart_bar_fill,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      _MetricsBlock(summary: _summary),
-                      const SizedBox(height: 24),
-                      _MonthlyChart(
-                        summary: _summary,
-                        period: _period,
-                        onPeriod: _setPeriod,
-                      ),
-                      const SizedBox(height: 24),
-                      if (ranks.isEmpty)
-                        const _EmptyState()
-                      else ...[
-                        const _SectionLabel('Estimated 1RM'),
-                        const SizedBox(height: 12),
-                        _OneRmChart(ranks: ranks),
+      body:
+          _loading
+              ? const SkeletonList()
+              : CustomScrollView(
+                slivers: [
+                  CupertinoSliverRefreshControl(onRefresh: _load),
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                    sliver: SliverList(
+                      delegate: SliverChildListDelegate([
+                        Row(
+                          children: [
+                            _StatTile(
+                              value: '${_streak.currentStreakWeeks}',
+                              unit:
+                                  _streak.currentStreakWeeks == 1
+                                      ? 'week'
+                                      : 'weeks',
+                              title: 'Streak',
+                              icon: CupertinoIcons.flame_fill,
+                            ),
+                            const SizedBox(width: 10),
+                            _StatTile(
+                              value: '$_workouts',
+                              unit: 'routines',
+                              title: 'Workouts',
+                              icon: CupertinoIcons.calendar,
+                            ),
+                            const SizedBox(width: 10),
+                            _StatTile(
+                              value: '${ranks.length}',
+                              unit: 'lifts',
+                              title: 'Ranked',
+                              icon: CupertinoIcons.chart_bar_fill,
+                            ),
+                          ],
+                        ),
                         const SizedBox(height: 24),
-                        const _SectionLabel('Personal Records'),
+                        _MetricsBlock(summary: _summary),
+                        const SizedBox(height: 24),
+                        const _SectionLabel('Workout Calendar'),
                         const SizedBox(height: 12),
-                        _RecordsList(ranks: ranks),
-                      ],
-                      const SizedBox(height: 16),
-                    ]),
+                        _ActivityCalendar(points: _activity),
+                        const SizedBox(height: 24),
+                        const _SectionLabel('Training Trends'),
+                        const SizedBox(height: 12),
+                        _ActivityChart(points: _activity),
+                        const SizedBox(height: 24),
+                        _MonthlyChart(
+                          summary: _summary,
+                          period: _period,
+                          onPeriod: _setPeriod,
+                        ),
+                        const SizedBox(height: 24),
+                        if (ranks.isEmpty)
+                          const _EmptyState()
+                        else ...[
+                          const _SectionLabel('Estimated 1RM'),
+                          const SizedBox(height: 12),
+                          _OneRmChart(ranks: ranks),
+                          const SizedBox(height: 24),
+                          const _SectionLabel('Personal Records'),
+                          const SizedBox(height: 12),
+                          _RecordsList(ranks: ranks),
+                        ],
+                        const SizedBox(height: 16),
+                      ]),
+                    ),
+                  ),
+                ],
+              ),
+    );
+  }
+}
+
+class _ActivityCalendar extends StatefulWidget {
+  final List<ActivityPoint> points;
+  const _ActivityCalendar({required this.points});
+
+  @override
+  State<_ActivityCalendar> createState() => _ActivityCalendarState();
+}
+
+class _ActivityCalendarState extends State<_ActivityCalendar> {
+  late DateTime _month;
+
+  @override
+  void initState() {
+    super.initState();
+    final latest =
+        widget.points.isEmpty
+            ? DateTime.now()
+            : DateTime.tryParse(widget.points.last.date) ?? DateTime.now();
+    _month = DateTime(latest.year, latest.month);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final byDate = {for (final point in widget.points) point.date: point};
+    final first = DateTime(_month.year, _month.month);
+    final days = DateTime(_month.year, _month.month + 1, 0).day;
+    final leading = first.weekday - 1;
+    final monthNames = const [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: c.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: c.border),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              CupertinoButton(
+                padding: EdgeInsets.zero,
+                minimumSize: const Size.square(32),
+                onPressed:
+                    () => setState(() {
+                      _month = DateTime(_month.year, _month.month - 1);
+                    }),
+                child: const Icon(CupertinoIcons.chevron_left, size: 17),
+              ),
+              Expanded(
+                child: Text(
+                  '${monthNames[_month.month - 1]} ${_month.year}',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: c.textPrimary,
+                    fontFamily: 'Rubik',
                   ),
                 ),
-              ],
+              ),
+              CupertinoButton(
+                padding: EdgeInsets.zero,
+                minimumSize: const Size.square(32),
+                onPressed:
+                    () => setState(() {
+                      _month = DateTime(_month.year, _month.month + 1);
+                    }),
+                child: const Icon(CupertinoIcons.chevron_right, size: 17),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children:
+                const ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+                    .map(
+                      (day) => Expanded(
+                        child: Text(
+                          day,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 10),
+                        ),
+                      ),
+                    )
+                    .toList(),
+          ),
+          const SizedBox(height: 5),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 7,
+              mainAxisSpacing: 5,
+              crossAxisSpacing: 5,
             ),
+            itemCount: ((leading + days + 6) ~/ 7) * 7,
+            itemBuilder: (_, index) {
+              final day = index - leading + 1;
+              if (day < 1 || day > days) return const SizedBox.shrink();
+              final key =
+                  '${_month.year.toString().padLeft(4, '0')}-'
+                  '${_month.month.toString().padLeft(2, '0')}-'
+                  '${day.toString().padLeft(2, '0')}';
+              final point = byDate[key];
+              final active = point != null && point.workouts > 0;
+              return Container(
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: active ? c.accent : c.iconBg,
+                  borderRadius: BorderRadius.circular(9),
+                  border: Border.all(color: active ? c.accent : c.border),
+                ),
+                child: Text(
+                  '$day',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: active ? FontWeight.w800 : FontWeight.w500,
+                    color: active ? c.textOnAccent : c.textSecondary,
+                    fontFamily: 'Rubik',
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActivityChart extends StatefulWidget {
+  final List<ActivityPoint> points;
+  const _ActivityChart({required this.points});
+
+  @override
+  State<_ActivityChart> createState() => _ActivityChartState();
+}
+
+class _ActivityChartState extends State<_ActivityChart> {
+  String _metric = 'duration';
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final recent =
+        widget.points.length > 16
+            ? widget.points.sublist(widget.points.length - 16)
+            : widget.points;
+    final values =
+        recent
+            .map(
+              (point) =>
+                  _metric == 'duration'
+                      ? point.durationSeconds / 60
+                      : point.reps.toDouble(),
+            )
+            .toList();
+    final maxValue =
+        values.isEmpty
+            ? 1.0
+            : values.fold<double>(1, (max, value) => value > max ? value : max);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: c.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: c.border),
+      ),
+      child: Column(
+        children: [
+          CupertinoSlidingSegmentedControl<String>(
+            groupValue: _metric,
+            children: const {
+              'duration': Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8),
+                child: Text('Duration'),
+              ),
+              'reps': Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8),
+                child: Text('Reps'),
+              ),
+            },
+            onValueChanged:
+                (value) => setState(() => _metric = value ?? 'duration'),
+          ),
+          const SizedBox(height: 18),
+          SizedBox(
+            height: 130,
+            child:
+                values.isEmpty
+                    ? Center(
+                      child: Text(
+                        'Finish a workout to see trends',
+                        style: TextStyle(color: c.textSecondary),
+                      ),
+                    )
+                    : Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children:
+                          values
+                              .map(
+                                (value) => Expanded(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 2,
+                                    ),
+                                    child: Container(
+                                      height: (value / maxValue * 110).clamp(
+                                        4.0,
+                                        110.0,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: c.accent,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                    ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _metric == 'duration'
+                ? 'Minutes per training day'
+                : 'Working reps per training day',
+            style: TextStyle(
+              fontSize: 11,
+              color: c.textSecondary,
+              fontFamily: 'Rubik',
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -287,57 +561,59 @@ class _OneRmChart extends StatelessWidget {
             height: 110,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
-              children: ranks.map((r) {
-                final barH = (r.oneRmKg / maxOrm * 80).clamp(6.0, 80.0);
-                return Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          r.oneRmKg.toStringAsFixed(0),
-                          style: TextStyle(
-                            fontSize: 9,
-                            color: c.textSecondary,
-                            fontFamily: 'Rubik',
-                          ),
+              children:
+                  ranks.map((r) {
+                    final barH = (r.oneRmKg / maxOrm * 80).clamp(6.0, 80.0);
+                    return Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              r.oneRmKg.toStringAsFixed(0),
+                              style: TextStyle(
+                                fontSize: 9,
+                                color: c.textSecondary,
+                                fontFamily: 'Rubik',
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Container(
+                              height: barH,
+                              decoration: BoxDecoration(
+                                color: c.accent,
+                                borderRadius: BorderRadius.circular(5),
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 3),
-                        Container(
-                          height: barH,
-                          decoration: BoxDecoration(
-                            color: c.accent,
-                            borderRadius: BorderRadius.circular(5),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }).toList(),
+                      ),
+                    );
+                  }).toList(),
             ),
           ),
           const SizedBox(height: 8),
           Row(
-            children: ranks
-                .map(
-                  (r) => Expanded(
-                    child: Center(
-                      child: Text(
-                        _short(r.exerciseName),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 9,
-                          color: c.textSecondary,
-                          fontFamily: 'Rubik',
+            children:
+                ranks
+                    .map(
+                      (r) => Expanded(
+                        child: Center(
+                          child: Text(
+                            _short(r.exerciseName),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 9,
+                              color: c.textSecondary,
+                              fontFamily: 'Rubik',
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                )
-                .toList(),
+                    )
+                    .toList(),
           ),
         ],
       ),
@@ -368,11 +644,12 @@ class _RecordsList extends StatelessWidget {
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: ranks.length,
-        separatorBuilder: (_, __) => Container(
-          height: 1,
-          margin: const EdgeInsets.symmetric(horizontal: 16),
-          color: c.border,
-        ),
+        separatorBuilder:
+            (_, __) => Container(
+              height: 1,
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              color: c.border,
+            ),
         itemBuilder: (_, i) {
           final r = ranks[i];
           return Padding(
@@ -452,16 +729,16 @@ class _MetricsBlock extends StatelessWidget {
         _MetricRow(
           icon: CupertinoIcons.heart_fill,
           title: 'Favorite exercise',
-          value: summary.favoriteExercise.isEmpty
-              ? '—'
-              : summary.favoriteExercise,
+          value:
+              summary.favoriteExercise.isEmpty ? '—' : summary.favoriteExercise,
         ),
         _MetricRow(
           icon: CupertinoIcons.bolt_fill,
           title: 'Strongest (vs bodyweight)',
-          value: summary.strongestExercise.isEmpty
-              ? '—'
-              : summary.strongestExercise,
+          value:
+              summary.strongestExercise.isEmpty
+                  ? '—'
+                  : summary.strongestExercise,
         ),
       ],
     );
@@ -559,58 +836,61 @@ class _MonthlyChart extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: c.border),
           ),
-          child: data.isEmpty
-              ? Center(
-                  child: Text(
-                    'No sessions yet',
-                    style: TextStyle(
-                      color: c.textSecondary,
-                      fontFamily: 'Rubik',
-                    ),
-                  ),
-                )
-              : Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    for (final m in data)
-                      Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            Text(
-                              '${m.count}',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                color: c.textSecondary,
-                                fontFamily: 'Rubik',
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Container(
-                              margin: const EdgeInsets.symmetric(horizontal: 3),
-                              height: 90 * (m.count / maxCount),
-                              decoration: BoxDecoration(
-                                color: c.accent,
-                                borderRadius: BorderRadius.circular(5),
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              m.month.length >= 7
-                                  ? m.month.substring(5)
-                                  : m.month,
-                              style: TextStyle(
-                                fontSize: 9,
-                                color: c.textSecondary,
-                                fontFamily: 'Rubik',
-                              ),
-                            ),
-                          ],
-                        ),
+          child:
+              data.isEmpty
+                  ? Center(
+                    child: Text(
+                      'No sessions yet',
+                      style: TextStyle(
+                        color: c.textSecondary,
+                        fontFamily: 'Rubik',
                       ),
-                  ],
-                ),
+                    ),
+                  )
+                  : Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      for (final m in data)
+                        Expanded(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              Text(
+                                '${m.count}',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: c.textSecondary,
+                                  fontFamily: 'Rubik',
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Container(
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 3,
+                                ),
+                                height: 90 * (m.count / maxCount),
+                                decoration: BoxDecoration(
+                                  color: c.accent,
+                                  borderRadius: BorderRadius.circular(5),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                m.month.length >= 7
+                                    ? m.month.substring(5)
+                                    : m.month,
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  color: c.textSecondary,
+                                  fontFamily: 'Rubik',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
         ),
       ],
     );

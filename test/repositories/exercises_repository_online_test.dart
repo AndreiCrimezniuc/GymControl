@@ -63,6 +63,25 @@ void main() {
     expect(stats.totalSets, 20);
   });
 
+  test('getHistory parses complete exercise sessions', () async {
+    final body = jsonEncode([
+      {
+        'date': '2026-07-30',
+        'workout_id': 'w1',
+        'workout_name': 'Push',
+        'sets': [
+          {'weight_kg': 100, 'reps': 5, 'set_type': 'working'},
+        ],
+      },
+    ]);
+    final c = client((req) => http.Response(body, 200));
+    addTearDown(c.dispose);
+
+    final history = await ExercisesRepository(client: c).getHistory(1);
+    expect(history.single.workoutName, 'Push');
+    expect(history.single.sets.single.weightKg, 100);
+  });
+
   test('logSet posts a set (online branch)', () async {
     var posted = false;
     final c = client((req) {

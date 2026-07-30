@@ -9,6 +9,8 @@ class ExerciseCatalogItem {
   final String imageUrl;
   final String imageUrl2;
   final String instructions;
+  final String exerciseType;
+  final List<String> secondaryMuscles;
 
   const ExerciseCatalogItem({
     required this.id,
@@ -21,6 +23,8 @@ class ExerciseCatalogItem {
     required this.imageUrl,
     required this.imageUrl2,
     required this.instructions,
+    this.exerciseType = 'weight_reps',
+    this.secondaryMuscles = const [],
   });
 
   factory ExerciseCatalogItem.fromJson(Map<String, dynamic> j) =>
@@ -35,6 +39,11 @@ class ExerciseCatalogItem {
         imageUrl: (j['image_url'] as String?) ?? '',
         imageUrl2: (j['image_url2'] as String?) ?? '',
         instructions: (j['instructions'] as String?) ?? '',
+        exerciseType: (j['exercise_type'] as String?) ?? 'weight_reps',
+        secondaryMuscles:
+            ((j['secondary_muscles'] as List?) ?? const [])
+                .whereType<String>()
+                .toList(),
       );
 }
 
@@ -67,9 +76,12 @@ class ExerciseStats {
   final double avgSetsPerWorkout;
   final double maxWeightKg;
   final double maxVolumeKg;
+  final double estimatedOneRmKg;
+  final double maxSetVolumeKg;
   final double loveCoefficient; // 0..1
   final String? rank;
   final List<ExerciseProgressionPoint> progression;
+  final List<ExerciseRecord> records;
 
   const ExerciseStats({
     required this.exerciseId,
@@ -79,9 +91,12 @@ class ExerciseStats {
     required this.avgSetsPerWorkout,
     required this.maxWeightKg,
     required this.maxVolumeKg,
+    this.estimatedOneRmKg = 0,
+    this.maxSetVolumeKg = 0,
     required this.loveCoefficient,
     required this.rank,
     required this.progression,
+    this.records = const [],
   });
 
   factory ExerciseStats.fromJson(Map<String, dynamic> j) => ExerciseStats(
@@ -92,15 +107,99 @@ class ExerciseStats {
     avgSetsPerWorkout: (j['avg_sets_per_workout'] as num?)?.toDouble() ?? 0,
     maxWeightKg: (j['max_weight_kg'] as num?)?.toDouble() ?? 0,
     maxVolumeKg: (j['max_volume_kg'] as num?)?.toDouble() ?? 0,
+    estimatedOneRmKg: (j['estimated_one_rm_kg'] as num?)?.toDouble() ?? 0,
+    maxSetVolumeKg: (j['max_set_volume_kg'] as num?)?.toDouble() ?? 0,
     loveCoefficient: (j['love_coefficient'] as num?)?.toDouble() ?? 0,
     rank: j['rank'] as String?,
-    progression: ((j['progression'] as List?) ?? [])
-        .map(
-          (e) => ExerciseProgressionPoint.fromJson(e as Map<String, dynamic>),
-        )
-        .toList(),
+    progression:
+        ((j['progression'] as List?) ?? [])
+            .map(
+              (e) =>
+                  ExerciseProgressionPoint.fromJson(e as Map<String, dynamic>),
+            )
+            .toList(),
+    records:
+        ((j['records'] as List?) ?? const [])
+            .map((e) => ExerciseRecord.fromJson(e as Map<String, dynamic>))
+            .toList(),
   );
 
   bool get hasData => totalSets > 0;
   int get loveScore => (loveCoefficient * 10).round().clamp(0, 10); // 0..10
+}
+
+class ExerciseRecord {
+  final String type;
+  final String date;
+  final double weightKg;
+  final int reps;
+  final double value;
+
+  const ExerciseRecord({
+    required this.type,
+    required this.date,
+    required this.weightKg,
+    required this.reps,
+    required this.value,
+  });
+
+  factory ExerciseRecord.fromJson(Map<String, dynamic> json) => ExerciseRecord(
+    type: json['type'] as String? ?? '',
+    date: json['date'] as String? ?? '',
+    weightKg: (json['weight_kg'] as num?)?.toDouble() ?? 0,
+    reps: (json['reps'] as num?)?.toInt() ?? 0,
+    value: (json['value'] as num?)?.toDouble() ?? 0,
+  );
+}
+
+class ExerciseHistorySet {
+  final double weightKg;
+  final int reps;
+  final String setType;
+  final String progression;
+
+  const ExerciseHistorySet({
+    required this.weightKg,
+    required this.reps,
+    required this.setType,
+    required this.progression,
+  });
+
+  factory ExerciseHistorySet.fromJson(Map<String, dynamic> json) =>
+      ExerciseHistorySet(
+        weightKg: (json['weight_kg'] as num?)?.toDouble() ?? 0,
+        reps: (json['reps'] as num?)?.toInt() ?? 0,
+        setType: json['set_type'] as String? ?? 'working',
+        progression: json['progression'] as String? ?? '',
+      );
+}
+
+class ExerciseHistorySession {
+  final String date;
+  final String workoutId;
+  final String workoutName;
+  final String sessionId;
+  final List<ExerciseHistorySet> sets;
+
+  const ExerciseHistorySession({
+    required this.date,
+    required this.workoutId,
+    required this.workoutName,
+    this.sessionId = '',
+    required this.sets,
+  });
+
+  factory ExerciseHistorySession.fromJson(Map<String, dynamic> json) =>
+      ExerciseHistorySession(
+        date: json['date'] as String? ?? '',
+        workoutId: json['workout_id'] as String? ?? '',
+        workoutName: json['workout_name'] as String? ?? '',
+        sessionId: json['session_id'] as String? ?? '',
+        sets:
+            ((json['sets'] as List?) ?? const [])
+                .map(
+                  (e) => ExerciseHistorySet.fromJson(e as Map<String, dynamic>),
+                )
+                .toList(),
+      );
 }

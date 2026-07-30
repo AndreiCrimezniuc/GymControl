@@ -73,12 +73,14 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
   }
 
   Future<void> _addExercise() async {
-    final picked = await Navigator.of(context, rootNavigator: true)
-        .push<ExerciseCatalogItem>(
-          CupertinoPageRoute(
-            builder: (_) => ExercisePicker(repo: widget.exercises),
-          ),
-        );
+    final picked = await Navigator.of(
+      context,
+      rootNavigator: true,
+    ).push<ExerciseCatalogItem>(
+      CupertinoPageRoute(
+        builder: (_) => ExercisePicker(repo: widget.exercises),
+      ),
+    );
     if (picked != null) {
       setState(() => _exercises.add(_EditExercise.blank(picked)));
     }
@@ -176,9 +178,8 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
-                              color: _type == t
-                                  ? c.textOnAccent
-                                  : c.textSecondary,
+                              color:
+                                  _type == t ? c.textOnAccent : c.textSecondary,
                               fontFamily: 'Rubik',
                             ),
                           ),
@@ -325,20 +326,21 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
                   color: _saving ? c.iconBg : c.accent,
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: _saving
-                    ? const CupertinoActivityIndicator()
-                    : Text(
-                        widget.existing != null
-                            ? 'SAVE CHANGES'
-                            : 'CREATE WORKOUT',
-                        style: TextStyle(
-                          fontFamily: 'Rubik',
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1.2,
-                          color: c.textOnAccent,
+                child:
+                    _saving
+                        ? const CupertinoActivityIndicator()
+                        : Text(
+                          widget.existing != null
+                              ? 'SAVE CHANGES'
+                              : 'CREATE WORKOUT',
+                          style: TextStyle(
+                            fontFamily: 'Rubik',
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.2,
+                            color: c.textOnAccent,
+                          ),
                         ),
-                      ),
               ),
             ),
           ),
@@ -389,7 +391,7 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
 
 // ── Per-exercise editor ─────────────────────────────────────────────────────
 
-class _ExerciseEditor extends StatelessWidget {
+class _ExerciseEditor extends StatefulWidget {
   final int index;
   final bool last;
   final _EditExercise model;
@@ -406,6 +408,11 @@ class _ExerciseEditor extends StatelessWidget {
     required this.onDown,
   });
 
+  @override
+  State<_ExerciseEditor> createState() => _ExerciseEditorState();
+}
+
+class _ExerciseEditorState extends State<_ExerciseEditor> {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
@@ -425,7 +432,7 @@ class _ExerciseEditor extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  '${index + 1}. ${model.name}',
+                  '${widget.index + 1}. ${widget.model.name}',
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -436,48 +443,172 @@ class _ExerciseEditor extends StatelessWidget {
                   ),
                 ),
               ),
-              _iconBtn(c, CupertinoIcons.chevron_up, index == 0 ? null : onUp),
-              _iconBtn(c, CupertinoIcons.chevron_down, last ? null : onDown),
-              _iconBtn(c, CupertinoIcons.delete, onRemove, danger: true),
+              _iconBtn(
+                c,
+                CupertinoIcons.chevron_up,
+                widget.index == 0 ? null : widget.onUp,
+              ),
+              _iconBtn(
+                c,
+                CupertinoIcons.chevron_down,
+                widget.last ? null : widget.onDown,
+              ),
+              _iconBtn(c, CupertinoIcons.delete, widget.onRemove, danger: true),
             ],
           ),
           const SizedBox(height: 10),
           Row(
             children: [
-              _MiniField(label: 'Sets', controller: model.setsCtrl, width: 60),
-              const SizedBox(width: 10),
               _MiniField(
                 label: 'Rest (s)',
-                controller: model.restCtrl,
+                controller: widget.model.restCtrl,
                 width: 78,
+              ),
+              const Spacer(),
+              Text(
+                '${widget.model.sets.length} sets',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: c.textSecondary,
+                  fontFamily: 'Rubik',
+                ),
               ),
             ],
           ),
           const SizedBox(height: 10),
-          // Single "Normal" plan; the Deload variant scales this by the
-          // workout's deload factor at run time.
           Row(
             children: [
-              Expanded(
-                child: _MiniField(
-                  label: unit,
-                  controller: model.weightCtrl,
-                  dense: true,
+              SizedBox(
+                width: 34,
+                child: Text(
+                  '#',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: c.textSecondary,
+                    fontFamily: 'Rubik',
+                  ),
                 ),
               ),
+              Expanded(child: _setHeader(c, unit.toUpperCase())),
               const SizedBox(width: 8),
-              Expanded(
-                child: _MiniField(
-                  label: 'reps',
-                  controller: model.repsCtrl,
-                  dense: true,
-                ),
-              ),
+              Expanded(child: _setHeader(c, 'REPS')),
+              const SizedBox(width: 8),
+              SizedBox(width: 82, child: _setHeader(c, 'TYPE')),
+              const SizedBox(width: 28),
             ],
+          ),
+          const SizedBox(height: 6),
+          ...widget.model.sets.asMap().entries.map((entry) {
+            final set = entry.value;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 7),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 34,
+                    child: Text(
+                      '${entry.key + 1}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: c.textSecondary,
+                        fontFamily: 'Rubik',
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: _MiniField(
+                      label: unit,
+                      controller: set.weightCtrl,
+                      dense: true,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _MiniField(
+                      label: 'reps',
+                      controller: set.repsCtrl,
+                      dense: true,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 82,
+                    child: CupertinoButton(
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size.square(34),
+                      onPressed: () => setState(() => set.cycleType()),
+                      child: Container(
+                        height: 34,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: c.iconBg,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: c.border),
+                        ),
+                        child: Text(
+                          set.shortType,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color:
+                                set.type == 'working'
+                                    ? c.textPrimary
+                                    : c.accent,
+                            fontFamily: 'Rubik',
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: 28,
+                    child:
+                        widget.model.sets.length == 1
+                            ? const SizedBox.shrink()
+                            : GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap:
+                                  () => setState(() {
+                                    widget.model.removeSet(entry.key);
+                                  }),
+                              child: Icon(
+                                CupertinoIcons.minus_circle,
+                                size: 18,
+                                color: c.textSecondary,
+                              ),
+                            ),
+                  ),
+                ],
+              ),
+            );
+          }),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => setState(widget.model.addSet),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 7),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(CupertinoIcons.add_circled, size: 17, color: c.accent),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Add set',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: c.accent,
+                      fontFamily: 'Rubik',
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
           const SizedBox(height: 4),
           CupertinoTextField(
-            controller: model.commentCtrl,
+            controller: widget.model.commentCtrl,
             placeholder: 'Note for this exercise (optional)',
             style: TextStyle(
               color: c.textPrimary,
@@ -495,6 +626,18 @@ class _ExerciseEditor extends StatelessWidget {
       ),
     );
   }
+
+  Widget _setHeader(AppColors colors, String label) => Text(
+    label,
+    textAlign: TextAlign.center,
+    style: TextStyle(
+      fontSize: 9,
+      fontWeight: FontWeight.w700,
+      letterSpacing: 0.4,
+      color: colors.textSecondary,
+      fontFamily: 'Rubik',
+    ),
+  );
 
   Widget _iconBtn(
     AppColors c,
@@ -575,19 +718,17 @@ class _EditExercise {
   final String name;
   final String imageUrl;
   final String muscleGroup;
-  final setsCtrl = TextEditingController(text: '3');
   final restCtrl = TextEditingController(text: '90');
   final commentCtrl = TextEditingController();
-  // One Normal plan per exercise; the Deload variant is derived at run time.
-  final weightCtrl = TextEditingController();
-  final repsCtrl = TextEditingController();
+  final List<_PlannedSetDraft> sets;
 
   _EditExercise({
     required this.exerciseId,
     required this.name,
     required this.imageUrl,
     required this.muscleGroup,
-  });
+    List<_PlannedSetDraft>? sets,
+  }) : sets = sets ?? List.generate(3, (_) => _PlannedSetDraft());
 
   factory _EditExercise.blank(ExerciseCatalogItem item) => _EditExercise(
     exerciseId: item.id,
@@ -611,24 +752,22 @@ class _EditExercise {
     // The Normal plan is stored under the legacy 'medium' grade.
     final sets = ex.setsFor('medium');
     final plan = sets.isNotEmpty ? sets : ex.sets;
-    if (plan.isNotEmpty) {
-      final w = units.fromKg(plan.first.weightKg);
-      m.weightCtrl.text = w == 0 ? '' : w.toStringAsFixed(w % 1 == 0 ? 0 : 1);
-      m.repsCtrl.text = plan.first.reps == 0 ? '' : '${plan.first.reps}';
+    for (final set in m.sets) {
+      set.dispose();
     }
-    m.setsCtrl.text = '${plan.isEmpty ? 3 : plan.length}';
+    m.sets
+      ..clear()
+      ..addAll(
+        (plan.isEmpty
+                ? const [WorkoutSet(difficulty: 'medium', weightKg: 0, reps: 0)]
+                : plan)
+            .map((set) => _PlannedSetDraft.fromSet(set, units)),
+      );
     return m;
   }
 
   WorkoutExercise toDomain(UnitsController units) {
-    final n = clampWorkoutInteger(setsCtrl.text, minimum: 1);
     final rest = clampWorkoutInteger(restCtrl.text);
-    final w = units.toKg(clampWorkoutDecimal(weightCtrl.text));
-    final r = clampWorkoutInteger(repsCtrl.text);
-    final sets = <WorkoutSet>[
-      for (var i = 0; i < n; i++)
-        WorkoutSet(difficulty: 'medium', weightKg: w, reps: r),
-    ];
     return WorkoutExercise(
       exerciseId: exerciseId,
       name: name,
@@ -636,14 +775,77 @@ class _EditExercise {
       muscleGroup: muscleGroup,
       restSeconds: rest,
       comment: commentCtrl.text.trim(),
-      sets: sets,
+      sets: sets.map((set) => set.toDomain(units)).toList(),
     );
   }
 
+  void addSet() {
+    final previous = sets.isEmpty ? null : sets.last;
+    sets.add(_PlannedSetDraft.copy(previous));
+  }
+
+  void removeSet(int index) {
+    final removed = sets.removeAt(index);
+    removed.dispose();
+  }
+
   void dispose() {
-    setsCtrl.dispose();
     restCtrl.dispose();
     commentCtrl.dispose();
+    for (final set in sets) {
+      set.dispose();
+    }
+  }
+}
+
+class _PlannedSetDraft {
+  static const _types = ['warmup', 'working', 'failure', 'dropset'];
+  final TextEditingController weightCtrl;
+  final TextEditingController repsCtrl;
+  String type;
+
+  _PlannedSetDraft({
+    String weight = '',
+    String reps = '',
+    this.type = 'working',
+  }) : weightCtrl = TextEditingController(text: weight),
+       repsCtrl = TextEditingController(text: reps);
+
+  factory _PlannedSetDraft.fromSet(WorkoutSet set, UnitsController units) {
+    final weight = units.fromKg(set.weightKg);
+    return _PlannedSetDraft(
+      weight:
+          weight == 0 ? '' : weight.toStringAsFixed(weight % 1 == 0 ? 0 : 1),
+      reps: set.reps == 0 ? '' : '${set.reps}',
+      type: set.setType,
+    );
+  }
+
+  factory _PlannedSetDraft.copy(_PlannedSetDraft? other) => _PlannedSetDraft(
+    weight: other?.weightCtrl.text ?? '',
+    reps: other?.repsCtrl.text ?? '',
+    type: other?.type ?? 'working',
+  );
+
+  String get shortType => switch (type) {
+    'warmup' => 'WARM',
+    'failure' => 'FAIL',
+    'dropset' => 'DROP',
+    _ => 'WORK',
+  };
+
+  void cycleType() {
+    type = _types[(_types.indexOf(type) + 1) % _types.length];
+  }
+
+  WorkoutSet toDomain(UnitsController units) => WorkoutSet(
+    difficulty: 'medium',
+    weightKg: units.toKg(clampWorkoutDecimal(weightCtrl.text)),
+    reps: clampWorkoutInteger(repsCtrl.text),
+    setType: type,
+  );
+
+  void dispose() {
     weightCtrl.dispose();
     repsCtrl.dispose();
   }

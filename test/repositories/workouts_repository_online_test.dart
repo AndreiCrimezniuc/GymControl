@@ -89,6 +89,27 @@ void main() {
     expect(s.workoutsPerMonth.single.count, 9);
   });
 
+  test('activity parses global duration and reps points', () async {
+    final body = jsonEncode([
+      {
+        'date': '2026-07-30',
+        'duration_seconds': 3600,
+        'reps': 140,
+        'workouts': 1,
+      },
+    ]);
+    final client = clientReturning(
+      () => {'/api/v1/stats/activity': http.Response(body, 200)},
+    );
+    addTearDown(client.dispose);
+
+    final points = await WorkoutsRepository(
+      client: client,
+    ).activity(period: 'year');
+    expect(points.single.durationSeconds, 3600);
+    expect(points.single.reps, 140);
+  });
+
   test('stats parses potential volume + history and caches', () async {
     final body = jsonEncode({
       'times_performed': 3,

@@ -75,6 +75,34 @@ class ExercisesRepository {
     }
   }
 
+  Future<List<ExerciseHistorySession>> getHistory(int id) async {
+    try {
+      final response = await _client
+          .get(Uri.parse('$_base/$id/history'))
+          .timeout(const Duration(seconds: 15));
+      if (response.statusCode != 200) {
+        throw Exception(
+          'GET /exercises/$id/history HTTP ${response.statusCode}',
+        );
+      }
+      final raw =
+          (jsonDecode(response.body) as List).cast<Map<String, dynamic>>();
+      await _store.putDoc('exercise_history', '$id', {'items': raw});
+      return raw.map(ExerciseHistorySession.fromJson).toList();
+    } on Object catch (error) {
+      final cached = _store.getDoc('exercise_history', '$id');
+      if (isTransientNetworkFailure(error) && cached != null) {
+        return ((cached['items'] as List?) ?? const [])
+            .map(
+              (item) =>
+                  ExerciseHistorySession.fromJson(item as Map<String, dynamic>),
+            )
+            .toList();
+      }
+      rethrow;
+    }
+  }
+
   Future<void> logSet(
     int id, {
     required double weightKg,
@@ -82,6 +110,7 @@ class ExercisesRepository {
     String setType = 'working',
     String progression = '',
     String? operationId,
+    String? sessionId,
   }) async {
     operationId ??= _uuid.v4();
     final args = {
@@ -91,6 +120,7 @@ class ExercisesRepository {
       'set_type': setType,
       'progression': progression,
       'operation_id': operationId,
+      'session_id': sessionId,
     };
     if (await ConnectivityService.instance.isOnline()) {
       try {
@@ -123,6 +153,9 @@ class ExercisesRepository {
     String description = '',
     String imageUrl = '',
     String muscleGroup = '',
+    String equipment = '',
+    String exerciseType = 'weight_reps',
+    List<String> secondaryMuscles = const [],
   }) async {
     final resp = await _client
         .post(
@@ -132,6 +165,9 @@ class ExercisesRepository {
             'description': description,
             'image_url': imageUrl,
             'muscle_group': muscleGroup,
+            'equipment': equipment,
+            'exercise_type': exerciseType,
+            'secondary_muscles': secondaryMuscles,
           }),
         )
         .timeout(const Duration(seconds: 15));
@@ -189,6 +225,7 @@ class ExercisesRepository {
           'set_type': args['set_type'],
           'progression': args['progression'] ?? '',
           'operation_id': args['operation_id'],
+          'session_id': args['session_id'],
         }),
       )
       .timeout(const Duration(seconds: 15));

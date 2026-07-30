@@ -36,7 +36,7 @@ class SessionSet {
   }) : operationId = operationId ?? const Uuid().v4();
 }
 
-const setTypes = ['warmup', 'working', 'failure'];
+const setTypes = ['warmup', 'working', 'failure', 'dropset'];
 
 /// Ways a set can progress beyond simply adding load. Empty = none.
 const progressionTypes = [
@@ -83,6 +83,7 @@ class WorkoutSessionController extends ChangeNotifier {
   int _loggedSets = 0;
   double _loggedVolumeKg = 0;
   DateTime? _startedAt;
+  String? _sessionId;
 
   bool _resting = false;
   int _restLeft = 0;
@@ -153,6 +154,7 @@ class WorkoutSessionController extends ChangeNotifier {
     _minimized = false;
     _active = true;
     _startedAt = DateTime.now();
+    _sessionId = const Uuid().v4();
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (_active && !_finished) notifyListeners();
     });
@@ -188,9 +190,8 @@ class WorkoutSessionController extends ChangeNotifier {
     for (final ex in w.exercises) {
       // The plan is stored under the legacy 'medium' grade; fall back to any
       // sets so older data still loads.
-      final planned = ex.setsFor('medium').isNotEmpty
-          ? ex.setsFor('medium')
-          : ex.sets;
+      final planned =
+          ex.setsFor('medium').isNotEmpty ? ex.setsFor('medium') : ex.sets;
       if (planned.isEmpty) continue;
       out.add(
         SessionExercise(
@@ -211,6 +212,7 @@ class WorkoutSessionController extends ChangeNotifier {
                   plannedReps: s.reps,
                   weight: w0 == 0 ? '' : _fmt(units.fromKg(w0)),
                   reps: s.reps == 0 ? '' : '${s.reps}',
+                  type: s.setType,
                 );
               }(),
           ],
@@ -413,9 +415,10 @@ class WorkoutSessionController extends ChangeNotifier {
       clear();
       return;
     }
-    final durationSeconds = _startedAt == null
-        ? 0
-        : DateTime.now().difference(_startedAt!).inSeconds;
+    final durationSeconds =
+        _startedAt == null
+            ? 0
+            : DateTime.now().difference(_startedAt!).inSeconds;
     for (final group in _groups) {
       for (final set in group.sets.where((set) => set.done)) {
         await _exercises.logSet(
@@ -425,6 +428,7 @@ class WorkoutSessionController extends ChangeNotifier {
           setType: set.type,
           progression: set.progression,
           operationId: set.operationId,
+          sessionId: _sessionId,
         );
       }
     }
@@ -432,6 +436,7 @@ class WorkoutSessionController extends ChangeNotifier {
       _workout!.id,
       _difficulty,
       durationSeconds: durationSeconds,
+      sessionId: _sessionId,
     );
     HapticFeedback.heavyImpact();
     _finished = true;
@@ -446,6 +451,7 @@ class WorkoutSessionController extends ChangeNotifier {
     _minimized = false;
     _finished = false;
     _workout = null;
+    _sessionId = null;
     _groups.clear();
     _prKg.clear();
     _loggedSets = 0;

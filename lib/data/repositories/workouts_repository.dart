@@ -51,8 +51,8 @@ class WorkoutsRepository {
       if (response.statusCode != 200) {
         throw Exception(_err(response.body, response.statusCode));
       }
-      final raw = (jsonDecode(response.body) as List)
-          .cast<Map<String, dynamic>>();
+      final raw =
+          (jsonDecode(response.body) as List).cast<Map<String, dynamic>>();
       for (final folder in raw) {
         await _store.putDoc(_folderCollection, folder['id'] as String, folder);
       }
@@ -195,6 +195,33 @@ class WorkoutsRepository {
       final cached = _store.getDoc('stats_summary', cacheKey);
       if (isTransientNetworkFailure(e) && cached != null) {
         return StatsSummary.fromJson(cached);
+      }
+      rethrow;
+    }
+  }
+
+  Future<List<ActivityPoint>> activity({String period = 'all'}) async {
+    final cacheKey = 'activity_$period';
+    final uri = Uri.parse(
+      '${ApiConfig.apiBaseUrl}/api/v1/stats/activity?period=$period',
+    );
+    try {
+      final response = await _client
+          .get(uri)
+          .timeout(const Duration(seconds: 15));
+      if (response.statusCode != 200) {
+        throw Exception('GET stats/activity HTTP ${response.statusCode}');
+      }
+      final raw =
+          (jsonDecode(response.body) as List).cast<Map<String, dynamic>>();
+      await _store.putDoc('stats_activity', cacheKey, {'items': raw});
+      return raw.map(ActivityPoint.fromJson).toList();
+    } on Object catch (error) {
+      final cached = _store.getDoc('stats_activity', cacheKey);
+      if (isTransientNetworkFailure(error) && cached != null) {
+        return ((cached['items'] as List?) ?? const [])
+            .map((item) => ActivityPoint.fromJson(item as Map<String, dynamic>))
+            .toList();
       }
       rethrow;
     }
@@ -377,6 +404,7 @@ class WorkoutsRepository {
     String id,
     String difficulty, {
     int durationSeconds = 0,
+    String? sessionId,
   }) async {
     final operationId = _uuid.v4();
     if (!id.startsWith('local:') &&
@@ -389,6 +417,7 @@ class WorkoutsRepository {
                 'difficulty': difficulty,
                 'duration_seconds': durationSeconds,
                 'operation_id': operationId,
+                'session_id': sessionId,
               }),
             )
             .timeout(const Duration(seconds: 15));
@@ -407,6 +436,7 @@ class WorkoutsRepository {
       'difficulty': difficulty,
       'duration_seconds': durationSeconds,
       'operation_id': operationId,
+      'session_id': sessionId,
     });
   }
 
@@ -579,6 +609,7 @@ class WorkoutsRepository {
                 'difficulty': m.args['difficulty'],
                 'duration_seconds': m.args['duration_seconds'] ?? 0,
                 'operation_id': m.args['operation_id'],
+                'session_id': m.args['session_id'],
               }),
             )
             .timeout(const Duration(seconds: 15)),
@@ -639,20 +670,21 @@ class WorkoutsRepository {
     'times_performed': base?['times_performed'] ?? 0,
     'love_coefficient': base?['love_coefficient'] ?? 0,
     'folder_id': base?['folder_id'],
-    'exercises': exercises
-        .map(
-          (e) => {
-            'exercise_id': e.exerciseId,
-            'name': e.name,
-            'image_url': e.imageUrl,
-            'image_url2': e.imageUrl2,
-            'muscle_group': e.muscleGroup,
-            'rest_seconds': e.restSeconds,
-            'comment': e.comment,
-            'sets': e.sets.map((s) => s.toJson()).toList(),
-          },
-        )
-        .toList(),
+    'exercises':
+        exercises
+            .map(
+              (e) => {
+                'exercise_id': e.exerciseId,
+                'name': e.name,
+                'image_url': e.imageUrl,
+                'image_url2': e.imageUrl2,
+                'muscle_group': e.muscleGroup,
+                'rest_seconds': e.restSeconds,
+                'comment': e.comment,
+                'sets': e.sets.map((s) => s.toJson()).toList(),
+              },
+            )
+            .toList(),
   };
 
   static String _encode(

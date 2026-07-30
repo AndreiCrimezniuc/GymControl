@@ -79,18 +79,20 @@ class _ExercisesState extends State<Exercises> {
     return ['All', ...s];
   }
 
-  List<ExerciseCatalogItem> get _filtered => _all.where((e) {
-    final mg = _group == 'All' || e.muscleGroup == _group;
-    final q =
-        _query.isEmpty || e.name.toLowerCase().contains(_query.toLowerCase());
-    return mg && q;
-  }).toList();
+  List<ExerciseCatalogItem> get _filtered =>
+      _all.where((e) {
+        final mg = _group == 'All' || e.muscleGroup == _group;
+        final q =
+            _query.isEmpty ||
+            e.name.toLowerCase().contains(_query.toLowerCase());
+        return mg && q;
+      }).toList();
 
   void _openCreate() {
     showCupertinoModalPopup<void>(
       context: context,
-      builder: (_) =>
-          _CreateExerciseSheet(repo: _repo, onCreated: (_) => _load()),
+      builder:
+          (_) => _CreateExerciseSheet(repo: _repo, onCreated: (_) => _load()),
     );
   }
 
@@ -106,11 +108,12 @@ class _ExercisesState extends State<Exercises> {
           child: Icon(CupertinoIcons.add_circled, size: 24, color: c.accent),
         ),
       ],
-      body: _loading
-          ? const SkeletonList()
-          : _error != null
-          ? _ErrorView(error: _error!, onRetry: _load)
-          : _buildList(c),
+      body:
+          _loading
+              ? const SkeletonList()
+              : _error != null
+              ? _ErrorView(error: _error!, onRetry: _load)
+              : _buildList(c),
     );
   }
 
@@ -194,8 +197,9 @@ class _ExercisesState extends State<Exercises> {
                   sliver: SliverList.separated(
                     itemCount: filtered.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder: (_, i) =>
-                        _ExerciseTile(entry: filtered[i], repo: _repo),
+                    itemBuilder:
+                        (_, i) =>
+                            _ExerciseTile(entry: filtered[i], repo: _repo),
                   ),
                 ),
             ],
@@ -215,11 +219,12 @@ class _ExerciseTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return GestureDetector(
-      onTap: () => Navigator.of(context, rootNavigator: true).push(
-        CupertinoPageRoute(
-          builder: (_) => ExerciseDetailScreen(entry: entry, repo: repo),
-        ),
-      ),
+      onTap:
+          () => Navigator.of(context, rootNavigator: true).push(
+            CupertinoPageRoute(
+              builder: (_) => ExerciseDetailScreen(entry: entry, repo: repo),
+            ),
+          ),
       child: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
@@ -299,19 +304,21 @@ class _Thumb extends StatelessWidget {
         width: size,
         height: size,
         color: c.iconBg,
-        child: url.isEmpty
-            ? Icon(CupertinoIcons.photo, color: c.textSecondary, size: 20)
-            : NetImage(
-                url: url,
-                fit: BoxFit.cover,
-                width: size,
-                height: size,
-                fallback: (_) => Icon(
-                  CupertinoIcons.photo,
-                  color: c.textSecondary,
-                  size: 20,
+        child:
+            url.isEmpty
+                ? Icon(CupertinoIcons.photo, color: c.textSecondary, size: 20)
+                : NetImage(
+                  url: url,
+                  fit: BoxFit.cover,
+                  width: size,
+                  height: size,
+                  fallback:
+                      (_) => Icon(
+                        CupertinoIcons.photo,
+                        color: c.textSecondary,
+                        size: 20,
+                      ),
                 ),
-              ),
       ),
     );
   }
@@ -334,6 +341,7 @@ class ExerciseDetailScreen extends StatefulWidget {
 
 class ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
   ExerciseStats? _stats;
+  List<ExerciseHistorySession> _history = const [];
   bool _loadingStats = true;
 
   @override
@@ -344,10 +352,14 @@ class ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
 
   Future<void> _loadStats() async {
     try {
-      final s = await widget.repo.getStats(widget.entry.id);
+      final results = await Future.wait([
+        widget.repo.getStats(widget.entry.id),
+        widget.repo.getHistory(widget.entry.id),
+      ]);
       if (mounted) {
         setState(() {
-          _stats = s;
+          _stats = results[0] as ExerciseStats;
+          _history = results[1] as List<ExerciseHistorySession>;
           _loadingStats = false;
         });
       }
@@ -359,11 +371,12 @@ class ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
   void _logSet() {
     showCupertinoModalPopup<void>(
       context: context,
-      builder: (_) => _LogSetSheet(
-        repo: widget.repo,
-        exerciseId: widget.entry.id,
-        onLogged: _loadStats,
-      ),
+      builder:
+          (_) => _LogSetSheet(
+            repo: widget.repo,
+            exerciseId: widget.entry.id,
+            onLogged: _loadStats,
+          ),
     );
   }
 
@@ -415,6 +428,10 @@ class ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                     if (e.equipment.isNotEmpty) _Chip(e.equipment),
                     if (e.level.isNotEmpty) _Chip(e.level),
                     if (e.force.isNotEmpty) _Chip(e.force),
+                    if (e.exerciseType.isNotEmpty)
+                      _Chip(_exerciseTypeLabel(e.exerciseType)),
+                    for (final muscle in e.secondaryMuscles)
+                      _Chip('Secondary: $muscle'),
                   ],
                 ),
                 if (e.instructions.isNotEmpty) ...[
@@ -443,6 +460,12 @@ class ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                   )
                 else
                   _StatsBlock(stats: _stats),
+                if (_history.isNotEmpty) ...[
+                  const SizedBox(height: 22),
+                  _SectionLabel('Complete History'),
+                  const SizedBox(height: 10),
+                  _ExerciseHistory(items: _history),
+                ],
                 const SizedBox(height: 12),
               ],
             ),
@@ -483,6 +506,14 @@ class ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     );
   }
 }
+
+String _exerciseTypeLabel(String value) => switch (value) {
+  'bodyweight_reps' => 'Bodyweight · reps',
+  'reps_only' => 'Reps only',
+  'duration' => 'Duration',
+  'distance_duration' => 'Distance · duration',
+  _ => 'Weight · reps',
+};
 
 class _StatsBlock extends StatelessWidget {
   final ExerciseStats? stats;
@@ -558,6 +589,26 @@ class _StatsBlock extends StatelessWidget {
             _StatCard(value: s.rank ?? '—', label: 'RANK'),
           ],
         ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            _StatCard(
+              value: '${units.format(s.estimatedOneRmKg)} ${units.label}',
+              label: 'EST. 1RM',
+            ),
+            const SizedBox(width: 10),
+            _StatCard(
+              value: units.formatVolume(s.maxSetVolumeKg),
+              label: 'BEST SET VOLUME',
+            ),
+          ],
+        ),
+        if (s.records.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          _SectionLabel('Personal Records'),
+          const SizedBox(height: 10),
+          _RecordsGrid(records: s.records),
+        ],
         if (s.progression.length >= 2) ...[
           const SizedBox(height: 16),
           _SectionLabel('Progression'),
@@ -565,6 +616,146 @@ class _StatsBlock extends StatelessWidget {
           _ProgressionChart(points: s.progression),
         ],
       ],
+    );
+  }
+}
+
+class _RecordsGrid extends StatelessWidget {
+  final List<ExerciseRecord> records;
+  const _RecordsGrid({required this.records});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final units = context.units;
+    String label(ExerciseRecord record) => switch (record.type) {
+      'weight' => 'Heaviest',
+      'reps' => 'Most reps',
+      'set_volume' => 'Set volume',
+      _ => 'Estimated 1RM',
+    };
+    String value(ExerciseRecord record) => switch (record.type) {
+      'reps' => '${record.reps} reps',
+      'set_volume' => units.formatVolume(record.value),
+      _ => '${units.format(record.value)} ${units.label}',
+    };
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children:
+          records
+              .map(
+                (record) => Container(
+                  width: (MediaQuery.sizeOf(context).width - 48) / 2,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: c.card,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: c.border),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(CupertinoIcons.rosette, size: 18, color: c.accent),
+                      const SizedBox(height: 7),
+                      Text(
+                        value(record),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: c.textPrimary,
+                          fontFamily: 'Rubik',
+                        ),
+                      ),
+                      Text(
+                        '${label(record)} · ${record.date}',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: c.textSecondary,
+                          fontFamily: 'Rubik',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+              .toList(),
+    );
+  }
+}
+
+class _ExerciseHistory extends StatelessWidget {
+  final List<ExerciseHistorySession> items;
+  const _ExerciseHistory({required this.items});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final units = context.units;
+    return Column(
+      children:
+          items
+              .map(
+                (session) => Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(13),
+                  decoration: BoxDecoration(
+                    color: c.card,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: c.border),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            session.date,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                              color: c.textPrimary,
+                              fontFamily: 'Rubik',
+                            ),
+                          ),
+                          const Spacer(),
+                          if (session.workoutName.isNotEmpty)
+                            Flexible(
+                              child: Text(
+                                session.workoutName,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: c.textSecondary,
+                                  fontFamily: 'Rubik',
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      ...session.sets.asMap().entries.map(
+                        (entry) => Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text(
+                            '${entry.key + 1}. '
+                            '${units.format(entry.value.weightKg)} ${units.label} × '
+                            '${entry.value.reps} · ${entry.value.setType}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: c.textSecondary,
+                              fontFamily: 'Rubik',
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+              .toList(),
     );
   }
 }
@@ -636,20 +827,22 @@ class _ProgressionChartState extends State<_ProgressionChart> {
       '1y' => 366,
       _ => null,
     };
-    final data = widget.points.where((point) {
-      if (days == null) return true;
-      final date = DateTime.tryParse(point.date);
-      return date != null && now.difference(date).inDays <= days;
-    }).toList();
-    final values = data
-        .map(
-          (point) => switch (_metric) {
-            'volume' => point.volumeKg,
-            'reps' => point.topReps.toDouble(),
-            _ => point.topWeightKg,
-          },
-        )
-        .toList();
+    final data =
+        widget.points.where((point) {
+          if (days == null) return true;
+          final date = DateTime.tryParse(point.date);
+          return date != null && now.difference(date).inDays <= days;
+        }).toList();
+    final values =
+        data
+            .map(
+              (point) => switch (_metric) {
+                'volume' => point.volumeKg,
+                'reps' => point.topReps.toDouble(),
+                _ => point.topWeightKg,
+              },
+            )
+            .toList();
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
       decoration: BoxDecoration(
@@ -669,27 +862,28 @@ class _ProgressionChartState extends State<_ProgressionChart> {
               'volume': Text('Volume'),
               'reps': Text('Reps'),
             },
-            onValueChanged: (value) =>
-                setState(() => _metric = value ?? 'weight'),
+            onValueChanged:
+                (value) => setState(() => _metric = value ?? 'weight'),
           ),
           const SizedBox(height: 16),
           SizedBox(
             height: 130,
             width: double.infinity,
-            child: values.length < 2
-                ? Center(
-                    child: Text(
-                      'Not enough data for this period',
-                      style: TextStyle(color: c.textSecondary),
+            child:
+                values.length < 2
+                    ? Center(
+                      child: Text(
+                        'Not enough data for this period',
+                        style: TextStyle(color: c.textSecondary),
+                      ),
+                    )
+                    : CustomPaint(
+                      painter: _LineChartPainter(
+                        values: values,
+                        lineColor: c.accent,
+                        gridColor: c.border,
+                      ),
                     ),
-                  )
-                : CustomPaint(
-                    painter: _LineChartPainter(
-                      values: values,
-                      lineColor: c.accent,
-                      gridColor: c.border,
-                    ),
-                  ),
           ),
           const SizedBox(height: 10),
           CupertinoSlidingSegmentedControl<String>(
@@ -721,18 +915,18 @@ class _LineChartPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final grid = Paint()
-      ..color = gridColor
-      ..strokeWidth = 1;
+    final grid =
+        Paint()
+          ..color = gridColor
+          ..strokeWidth = 1;
     for (var i = 0; i <= 3; i++) {
       final y = size.height * i / 3;
       canvas.drawLine(Offset(0, y), Offset(size.width, y), grid);
     }
     final minValue = values.reduce((a, b) => a < b ? a : b);
     final maxValue = values.reduce((a, b) => a > b ? a : b);
-    final range = (maxValue - minValue).abs() < 0.001
-        ? 1.0
-        : maxValue - minValue;
+    final range =
+        (maxValue - minValue).abs() < 0.001 ? 1.0 : maxValue - minValue;
     final path = Path();
     for (var i = 0; i < values.length; i++) {
       final x = size.width * i / (values.length - 1);
@@ -744,12 +938,13 @@ class _LineChartPainter extends CustomPainter {
         path.lineTo(x, y);
       }
     }
-    final paint = Paint()
-      ..color = lineColor
-      ..strokeWidth = 3
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
+    final paint =
+        Paint()
+          ..color = lineColor
+          ..strokeWidth = 3
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round;
     canvas.drawPath(path, paint);
     for (var i = 0; i < values.length; i++) {
       final x = size.width * i / (values.length - 1);
@@ -970,17 +1165,18 @@ class _LogSetSheetState extends State<_LogSetSheet> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
-                  child: _saving
-                      ? const CupertinoActivityIndicator()
-                      : Text(
-                          'Save',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: c.textOnAccent,
-                            fontFamily: 'Rubik',
+                  child:
+                      _saving
+                          ? const CupertinoActivityIndicator()
+                          : Text(
+                            'Save',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: c.textOnAccent,
+                              fontFamily: 'Rubik',
+                            ),
                           ),
-                        ),
                 ),
               ),
             ),
@@ -995,13 +1191,43 @@ class _LogSetSheetState extends State<_LogSetSheet> {
 
 const _muscleGroups = [
   'Chest',
-  'Back',
-  'Legs',
-  'Shoulders',
-  'Arms',
-  'Core',
+  'Lats',
+  'Upper Back',
+  'Lower Back',
+  'Front Delts',
+  'Side Delts',
+  'Rear Delts',
+  'Biceps',
+  'Triceps',
+  'Forearms',
+  'Quadriceps',
+  'Hamstrings',
+  'Glutes',
+  'Calves',
+  'Abs',
+  'Obliques',
   'Other',
 ];
+
+const _equipmentOptions = [
+  'Barbell',
+  'Dumbbell',
+  'Machine',
+  'Cable',
+  'Smith Machine',
+  'Kettlebell',
+  'Resistance Band',
+  'Bodyweight',
+  'Other',
+];
+
+const _exerciseTypes = {
+  'weight_reps': 'Weight · reps',
+  'bodyweight_reps': 'Bodyweight · reps',
+  'reps_only': 'Reps only',
+  'duration': 'Duration',
+  'distance_duration': 'Distance · duration',
+};
 
 class _CreateExerciseSheet extends StatefulWidget {
   final ExercisesRepository repo;
@@ -1017,6 +1243,9 @@ class _CreateExerciseSheetState extends State<_CreateExerciseSheet> {
   final _imageCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
   String _group = 'Chest';
+  final Set<String> _secondary = {};
+  String _equipment = 'Barbell';
+  String _exerciseType = 'weight_reps';
   bool _saving = false;
   String? _error;
 
@@ -1036,6 +1265,9 @@ class _CreateExerciseSheetState extends State<_CreateExerciseSheet> {
         description: _descCtrl.text.trim(),
         imageUrl: _imageCtrl.text.trim(),
         muscleGroup: _group,
+        equipment: _equipment,
+        exerciseType: _exerciseType,
+        secondaryMuscles: _secondary.toList(),
       );
       if (mounted) {
         Navigator.pop(context);
@@ -1066,134 +1298,248 @@ class _CreateExerciseSheetState extends State<_CreateExerciseSheet> {
         top: 20,
         bottom: MediaQuery.of(context).viewInsets.bottom + 24,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: c.border,
-                borderRadius: BorderRadius.circular(2),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: c.border,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'New exercise',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: c.textPrimary,
-              fontFamily: 'Rubik',
-            ),
-          ),
-          const SizedBox(height: 16),
-          _Field(
-            controller: _nameCtrl,
-            label: 'Name',
-            placeholder: 'My Cable Crossover',
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'MUSCLE GROUP',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: c.textSecondary,
-              fontFamily: 'Rubik',
-            ),
-          ),
-          const SizedBox(height: 6),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _muscleGroups.map((g) {
-              final active = g == _group;
-              return GestureDetector(
-                onTap: () => setState(() => _group = g),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 7,
-                  ),
-                  decoration: BoxDecoration(
-                    color: active ? c.accent : c.iconBg,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    g,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: active ? c.textOnAccent : c.textSecondary,
-                      fontFamily: 'Rubik',
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 12),
-          _Field(
-            controller: _imageCtrl,
-            label: 'Image URL',
-            placeholder: 'https://…/photo.jpg',
-            onChanged: (_) => setState(() {}),
-          ),
-          if (img.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Center(child: _Thumb(url: img, size: 90)),
-          ],
-          const SizedBox(height: 12),
-          _Field(
-            controller: _descCtrl,
-            label: 'Description',
-            placeholder: 'How to perform it…',
-            maxLines: 3,
-          ),
-          if (_error != null) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
             Text(
-              _error!,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFFEF4444),
+              'New exercise',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: c.textPrimary,
                 fontFamily: 'Rubik',
               ),
             ),
-          ],
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: CupertinoButton(
-              padding: EdgeInsets.zero,
-              onPressed: _saving ? null : _save,
-              child: Container(
-                height: 48,
-                decoration: BoxDecoration(
-                  color: _saving ? c.iconBg : c.accent,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Center(
-                  child: _saving
-                      ? const CupertinoActivityIndicator()
-                      : Text(
-                          'Create',
+            const SizedBox(height: 16),
+            _Field(
+              controller: _nameCtrl,
+              label: 'Name',
+              placeholder: 'My Cable Crossover',
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'MUSCLE GROUP',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: c.textSecondary,
+                fontFamily: 'Rubik',
+              ),
+            ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children:
+                  _muscleGroups.map((g) {
+                    final active = g == _group;
+                    return GestureDetector(
+                      onTap: () => setState(() => _group = g),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 7,
+                        ),
+                        decoration: BoxDecoration(
+                          color: active ? c.accent : c.iconBg,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          g,
                           style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: c.textOnAccent,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: active ? c.textOnAccent : c.textSecondary,
                             fontFamily: 'Rubik',
                           ),
                         ),
+                      ),
+                    );
+                  }).toList(),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'SECONDARY MUSCLES',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: c.textSecondary,
+                fontFamily: 'Rubik',
+              ),
+            ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 7,
+              runSpacing: 7,
+              children:
+                  _muscleGroups.where((group) => group != _group).map((group) {
+                    final selected = _secondary.contains(group);
+                    return GestureDetector(
+                      onTap:
+                          () => setState(() {
+                            selected
+                                ? _secondary.remove(group)
+                                : _secondary.add(group);
+                          }),
+                      child: _ChoiceChip(label: group, selected: selected),
+                    );
+                  }).toList(),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'EQUIPMENT',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: c.textSecondary,
+                fontFamily: 'Rubik',
+              ),
+            ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 7,
+              runSpacing: 7,
+              children:
+                  _equipmentOptions
+                      .map(
+                        (equipment) => GestureDetector(
+                          onTap: () => setState(() => _equipment = equipment),
+                          child: _ChoiceChip(
+                            label: equipment,
+                            selected: equipment == _equipment,
+                          ),
+                        ),
+                      )
+                      .toList(),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'TRACKING TYPE',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: c.textSecondary,
+                fontFamily: 'Rubik',
+              ),
+            ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 7,
+              runSpacing: 7,
+              children:
+                  _exerciseTypes.entries
+                      .map(
+                        (entry) => GestureDetector(
+                          onTap:
+                              () => setState(() => _exerciseType = entry.key),
+                          child: _ChoiceChip(
+                            label: entry.value,
+                            selected: entry.key == _exerciseType,
+                          ),
+                        ),
+                      )
+                      .toList(),
+            ),
+            const SizedBox(height: 12),
+            _Field(
+              controller: _imageCtrl,
+              label: 'Image URL',
+              placeholder: 'https://…/photo.jpg',
+              onChanged: (_) => setState(() {}),
+            ),
+            if (img.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Center(child: _Thumb(url: img, size: 90)),
+            ],
+            const SizedBox(height: 12),
+            _Field(
+              controller: _descCtrl,
+              label: 'Description',
+              placeholder: 'How to perform it…',
+              maxLines: 3,
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                _error!,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFFEF4444),
+                  fontFamily: 'Rubik',
+                ),
+              ),
+            ],
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: CupertinoButton(
+                padding: EdgeInsets.zero,
+                onPressed: _saving ? null : _save,
+                child: Container(
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: _saving ? c.iconBg : c.accent,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child:
+                        _saving
+                            ? const CupertinoActivityIndicator()
+                            : Text(
+                              'Create',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: c.textOnAccent,
+                                fontFamily: 'Rubik',
+                              ),
+                            ),
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ChoiceChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  const _ChoiceChip({required this.label, required this.selected});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: selected ? c.accent : c.iconBg,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: selected ? c.textOnAccent : c.textSecondary,
+          fontFamily: 'Rubik',
+        ),
       ),
     );
   }
@@ -1237,9 +1583,10 @@ class _Field extends StatelessWidget {
           placeholder: placeholder,
           maxLines: maxLines,
           onChanged: onChanged,
-          keyboardType: numeric
-              ? TextInputType.numberWithOptions(decimal: decimal)
-              : TextInputType.text,
+          keyboardType:
+              numeric
+                  ? TextInputType.numberWithOptions(decimal: decimal)
+                  : TextInputType.text,
           style: TextStyle(
             color: c.textPrimary,
             fontSize: 15,

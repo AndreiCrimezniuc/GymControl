@@ -16,6 +16,7 @@ import 'package:gymboss/ui/core/ui/widgets/app_dialog.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
 import 'package:gymboss/ui/core/subscription/pro_controller.dart';
 import 'package:gymboss/ui/subscription/paywall_screen.dart';
+import 'package:gymboss/ui/menu_options_list/settings/widgets/body_measurements_screen.dart';
 
 class Settings extends StatefulWidget {
   const Settings({super.key});
@@ -57,14 +58,15 @@ class _SettingsState extends State<Settings> {
   }
 
   void _openBodyMetrics() {
-    showCupertinoModalPopup<void>(
-      context: context,
-      builder:
-          (_) => _BodyMetricsSheet(
-            ranking: _ranking,
-            profile: _profile,
-            onSaved: (p) => setState(() => _profile = p),
-          ),
+    Navigator.of(context, rootNavigator: true).push(
+      CupertinoPageRoute(
+        builder:
+            (_) => BodyMeasurementsScreen(
+              ranking: _ranking,
+              profile: _profile,
+              onProfileSaved: (profile) => setState(() => _profile = profile),
+            ),
+      ),
     );
   }
 
@@ -696,7 +698,7 @@ class _BodyMetricsSheet extends StatefulWidget {
   final void Function(RankProfile) onSaved;
   const _BodyMetricsSheet({
     required this.ranking,
-    this.profile,
+    required this.profile,
     required this.onSaved,
   });
 
