@@ -9,7 +9,7 @@ class PaywallScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     return AppPage(
-      title: 'GymBoss Pro',
+      title: 'GymControl Pro',
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [

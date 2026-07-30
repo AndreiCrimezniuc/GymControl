@@ -1,6 +1,6 @@
 {
-    "name": "mailcanvas",
-    "short_name": "mailcanvas",
+    "name": "GymControl",
+    "short_name": "GymControl",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

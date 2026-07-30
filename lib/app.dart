@@ -22,14 +22,14 @@ import 'package:gymboss/ui/menu_options_list/workouts/session/resume_bar.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/session/workout_session_controller.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/workout_runner.dart';
 
-class GymBossApp extends StatefulWidget {
-  const GymBossApp({super.key});
+class GymControlApp extends StatefulWidget {
+  const GymControlApp({super.key});
 
   @override
-  State<GymBossApp> createState() => _GymBossAppState();
+  State<GymControlApp> createState() => _GymControlAppState();
 }
 
-class _GymBossAppState extends State<GymBossApp> {
+class _GymControlAppState extends State<GymControlApp> {
   final _storage = TokenStorage();
   final _authService = AuthService();
   final _navKey = GlobalKey<NavigatorState>();

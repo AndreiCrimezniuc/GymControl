@@ -39,7 +39,7 @@ void main() async {
   };
   unawaited(DiagnosticService.instance.record('app.started'));
   if (kDebugMode) {
-    debugPrint('GymBoss starting — ${ApiConfig.summary}');
+    debugPrint('GymControl starting — ${ApiConfig.summary}');
   }
-  runApp(const GymBossApp());
+  runApp(const GymControlApp());
 }

@@ -48,7 +48,7 @@ if [[ "$(git branch --show-current)" != "main" ]]; then
   exit 1
 fi
 
-echo "Fetching the latest GymBoss main..."
+echo "Fetching the latest GymControl main..."
 git fetch origin main
 
 # Fast-forward only: this never overwrites local commits. Git will also stop

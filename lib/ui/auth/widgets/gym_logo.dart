@@ -20,7 +20,7 @@ class GymLogo extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             child: Image.asset(
-              'assets/branding/gymboss-logo.png',
+              'assets/branding/gymcontrol-logo.png',
               fit: BoxFit.contain,
             ),
           ),
@@ -43,13 +43,13 @@ class GymLogo extends StatelessWidget {
             ),
             const SizedBox(width: 4),
             Text(
-              'BOSS',
+              'CONTROL',
               style: TextStyle(
-                fontSize: 32,
+                fontSize: 28,
                 fontWeight: FontWeight.w900,
                 color: c.accent,
                 fontFamily: 'Rubik',
-                letterSpacing: 2,
+                letterSpacing: 1.2,
               ),
             ),
           ],

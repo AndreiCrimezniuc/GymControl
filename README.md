@@ -1,6 +1,6 @@
-# GymBoss mobile
+# GymControl mobile
 
-Flutter client for GymBoss.
+Flutter client for GymControl.
 
 Canonical documentation is maintained in the
 [platform repository](https://github.com/Control-Labs-Holding/backend-api/tree/main/docs):

@@ -117,7 +117,7 @@ class _SettingsState extends State<Settings> {
       context,
       title: 'Send diagnostics?',
       message:
-          'This sends $count technical event${count == 1 ? '' : 's'} to GymBoss support. '
+          'This sends $count technical event${count == 1 ? '' : 's'} to GymControl support. '
           'Tokens, email, workout contents, comments and stack traces are not included.',
       actions: [
         AppDialogAction(
@@ -223,7 +223,7 @@ class _SettingsState extends State<Settings> {
           ),
           const SizedBox(height: 20),
           _Section(
-            title: 'GymBoss Pro · Development',
+            title: 'GymControl Pro · Development',
             children: [
               _SwitchTile(
                 icon: CupertinoIcons.bolt_fill,
