@@ -10,18 +10,18 @@ class GymLogo extends StatelessWidget {
     return Column(
       children: [
         Container(
-          width: 72,
-          height: 72,
+          width: 112,
+          height: 76,
           decoration: BoxDecoration(
-            color: c.card,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: c.border, width: 1.5),
+            color: const Color(0xFF111113),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: c.border),
           ),
-          child: Center(
-            child: SizedBox(
-              width: 46,
-              height: 46,
-              child: CustomPaint(painter: _GymBossLogoPainter(c.accent)),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            child: Image.asset(
+              'assets/branding/gymboss-logo.png',
+              fit: BoxFit.contain,
             ),
           ),
         ),
@@ -67,50 +67,4 @@ class GymLogo extends StatelessWidget {
       ],
     );
   }
-}
-
-class _GymBossLogoPainter extends CustomPainter {
-  final Color color;
-  const _GymBossLogoPainter(this.color);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final s = size.width;
-    final center = Offset(s / 2, s / 2);
-
-    final strokePaint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = s * 0.055;
-
-    final fillPaint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-
-    canvas.drawCircle(center, s * 0.43, strokePaint);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(s * 0.13, s * 0.38, s * 0.16, s * 0.24),
-        Radius.circular(s * 0.04),
-      ),
-      fillPaint,
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(s * 0.29, s * 0.455, s * 0.42, s * 0.09),
-        Radius.circular(s * 0.02),
-      ),
-      fillPaint,
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(s * 0.71, s * 0.38, s * 0.16, s * 0.24),
-        Radius.circular(s * 0.04),
-      ),
-      fillPaint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_GymBossLogoPainter old) => old.color != color;
 }
