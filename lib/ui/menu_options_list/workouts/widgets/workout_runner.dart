@@ -410,8 +410,8 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     );
   }
 
-  // A dashed, full-width "add" affordance used for both add-set and
-  // add-exercise so the two read as the same gesture.
+  // A high-contrast, full-width add affordance. It intentionally stays white
+  // in both themes: this separates editing actions from red completion actions.
   Widget _addRowButton(
     AppColors c,
     IconData icon,
@@ -424,10 +424,10 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
         height: 48,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: c.invBg,
+          color: const Color(0xFFFFFFFF),
           borderRadius: BorderRadius.circular(15),
           border: Border.all(
-            color: c.isDark ? const Color(0xFFEDEDEF) : const Color(0xFF121212),
+            color: c.isDark ? const Color(0xFF3A3A40) : const Color(0xFFD8D2CE),
           ),
           boxShadow: [
             BoxShadow(
@@ -440,14 +440,14 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 17, color: c.invText),
+            Icon(icon, size: 17, color: const Color(0xFF111113)),
             const SizedBox(width: 6),
             Text(
               label,
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color: c.invText,
+                color: const Color(0xFF111113),
                 fontFamily: 'Rubik',
               ),
             ),
@@ -636,6 +636,32 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
             padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
             child: Column(
               children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 0, 54, 3),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 73,
+                        child: Text('SET', style: _columnLabelStyle(c)),
+                      ),
+                      Expanded(
+                        child: Text(
+                          units.label.toUpperCase(),
+                          textAlign: TextAlign.center,
+                          style: _columnLabelStyle(c),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'REPS',
+                          textAlign: TextAlign.center,
+                          style: _columnLabelStyle(c),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 for (var i = 0; i < g.sets.length; i++)
                   _setRow(c, session, units, g, i + 1, g.sets[i]),
                 const SizedBox(height: 4),
@@ -757,6 +783,14 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
       ),
     );
   }
+
+  TextStyle _columnLabelStyle(AppColors c) => TextStyle(
+    fontSize: 9,
+    fontWeight: FontWeight.w800,
+    letterSpacing: 0.8,
+    color: c.textSecondary,
+    fontFamily: 'Rubik',
+  );
 
   // Compact tag on a set row indicating a non-weight progression.
   Widget _progressionBadge(AppColors c, String progression) {

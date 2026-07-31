@@ -354,6 +354,22 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                 _potentialVolumeLine(c),
                 const SizedBox(height: 16),
               ],
+              Row(
+                children: [
+                  const _SectionLabel('Exercises'),
+                  const Spacer(),
+                  Text(
+                    '${w.exercises.length} exercise${w.exercises.length == 1 ? '' : 's'}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: c.textSecondary,
+                      fontFamily: 'Rubik',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
               ...w.exercises.asMap().entries.map(
                 (e) => _ExerciseBlock(
                   index: e.key + 1,
@@ -653,16 +669,42 @@ class _ExerciseBlock extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        '$index. ${exercise.name}',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: c.textPrimary,
-                          fontFamily: 'Rubik',
-                        ),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 25,
+                            height: 25,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: c.accent.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              '$index',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                color: c.accent,
+                                fontFamily: 'Rubik',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              exercise.name,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: c.textPrimary,
+                                fontFamily: 'Rubik',
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 2),
                       Text(

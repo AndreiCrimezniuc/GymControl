@@ -36,6 +36,7 @@ class _WorkoutsState extends State<Workouts> {
   List<Workout> _public = [];
   List<WorkoutFolder> _folders = [];
   String? _folderId;
+  String _query = '';
 
   @override
   void initState() {
@@ -345,12 +346,26 @@ class _WorkoutsState extends State<Workouts> {
   }
 
   Widget _buildBody(AppColors c) {
-    final list =
+    final source =
         _tab == 0
             ? !_foldersReady
                 ? _mine
                 : _mine.where((w) => w.folderId == _folderId).toList()
             : _public;
+    final query = _query.trim().toLowerCase();
+    final list =
+        query.isEmpty
+            ? source
+            : source
+                .where(
+                  (workout) =>
+                      workout.name.toLowerCase().contains(query) ||
+                      workout.comment.toLowerCase().contains(query) ||
+                      workout.muscleGroups.any(
+                        (muscle) => muscle.toLowerCase().contains(query),
+                      ),
+                )
+                .toList();
     return Column(
       children: [
         Padding(
@@ -397,6 +412,19 @@ class _WorkoutsState extends State<Workouts> {
               ],
             ),
           ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+          child: CupertinoSearchTextField(
+            placeholder: 'Search workouts or muscles',
+            backgroundColor: c.card,
+            style: TextStyle(color: c.textPrimary, fontFamily: 'Rubik'),
+            placeholderStyle: TextStyle(
+              color: c.textSecondary,
+              fontFamily: 'Rubik',
+            ),
+            onChanged: (value) => setState(() => _query = value),
+          ),
+        ),
         Expanded(
           child:
               _tab == 1 && _loadingLibrary
@@ -418,7 +446,13 @@ class _WorkoutsState extends State<Workouts> {
                       if (list.isEmpty)
                         SliverFillRemaining(
                           hasScrollBody: false,
-                          child: _EmptyView(mine: _tab == 0, onCreate: _create),
+                          child:
+                              query.isNotEmpty
+                                  ? _SearchEmpty(query: _query)
+                                  : _EmptyView(
+                                    mine: _tab == 0,
+                                    onCreate: _create,
+                                  ),
                         )
                       else
                         SliverPadding(
@@ -486,7 +520,7 @@ class _WorkoutCard extends StatelessWidget {
         onTap: onTap,
         onLongPress: onLongPress,
         child: Container(
-          padding: const EdgeInsets.fromLTRB(14, 11, 12, 11),
+          padding: const EdgeInsets.fromLTRB(16, 14, 12, 13),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors:
@@ -505,7 +539,7 @@ class _WorkoutCard extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            borderRadius: BorderRadius.circular(15),
+            borderRadius: BorderRadius.circular(18),
             border: Border.all(
               color:
                   c.isDark ? const Color(0xFF343239) : const Color(0xFFE6C6BF),
@@ -566,17 +600,24 @@ class _WorkoutCard extends StatelessWidget {
                   ],
                 ],
               ),
-              const SizedBox(height: 6),
-              Text(
-                '${w.exerciseCount} exercise${w.exerciseCount == 1 ? '' : 's'}'
-                '${w.muscleGroups.isNotEmpty ? '  ·  ${w.muscleGroups.take(3).join(', ')}' : ''}',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: c.textSecondary,
-                  fontFamily: 'Rubik',
-                ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  _CardTag(
+                    icon:
+                        w.type == 'aerobic'
+                            ? CupertinoIcons.stopwatch
+                            : CupertinoIcons.square_stack_3d_up_fill,
+                    label:
+                        w.type == 'aerobic'
+                            ? 'Aerobic'
+                            : '${w.exerciseCount} exercise${w.exerciseCount == 1 ? '' : 's'}',
+                  ),
+                  for (final muscle in w.muscleGroups.take(2))
+                    _CardTag(label: muscle),
+                ],
               ),
               if (w.comment.isNotEmpty) ...[
                 const SizedBox(height: 4),
@@ -592,13 +633,15 @@ class _WorkoutCard extends StatelessWidget {
                   ),
                 ),
               ],
-              const SizedBox(height: 7),
+              const SizedBox(height: 10),
               Row(
                 children: [
                   Icon(CupertinoIcons.flame, size: 13, color: c.textSecondary),
                   const SizedBox(width: 4),
                   Text(
-                    '${w.timesPerformed}x',
+                    w.timesPerformed == 0
+                        ? 'Not completed yet'
+                        : '${w.timesPerformed} session${w.timesPerformed == 1 ? '' : 's'}',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -616,6 +659,87 @@ class _WorkoutCard extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CardTag extends StatelessWidget {
+  final String label;
+  final IconData? icon;
+
+  const _CardTag({required this.label, this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: c.iconBg.withValues(alpha: c.isDark ? 0.9 : 0.72),
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(color: c.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 12, color: c.accent),
+            const SizedBox(width: 4),
+          ],
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: c.textSecondary,
+              fontFamily: 'Rubik',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SearchEmpty extends StatelessWidget {
+  final String query;
+
+  const _SearchEmpty({required this.query});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(CupertinoIcons.search, size: 34, color: c.textSecondary),
+            const SizedBox(height: 12),
+            Text(
+              'No workouts found',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+                color: c.textPrimary,
+                fontFamily: 'Rubik',
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Nothing matches “${query.trim()}”. Try a workout name or muscle group.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.4,
+                color: c.textSecondary,
+                fontFamily: 'Rubik',
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -155,80 +155,161 @@ class _ExercisePickerState extends State<ExercisePicker> {
                         ],
                       ),
                     ),
-                  Expanded(
-                    child: ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-                      itemCount: filtered.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
-                      itemBuilder: (_, i) {
-                        final e = filtered[i];
-                        return GestureDetector(
-                          onTap: () => Navigator.of(context).pop(e),
-                          child: Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: c.card,
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: c.border),
-                            ),
-                            child: Row(
-                              children: [
-                                SizedBox(
-                                  width: 44,
-                                  height: 44,
-                                  child: ExerciseVisual(
-                                    name: e.name,
-                                    muscleGroup: e.muscleGroup,
-                                    equipment: e.equipment,
-                                    category: e.category,
-                                    imageUrl: e.imageUrl,
-                                    imageUrl2: e.imageUrl2,
-                                    radius: 10,
-                                    figurePadding: 5,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        e.name,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w700,
-                                          color: c.textPrimary,
-                                          fontFamily: 'Rubik',
-                                        ),
-                                      ),
-                                      Text(
-                                        e.muscleGroup,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: c.textSecondary,
-                                          fontFamily: 'Rubik',
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Icon(
-                                  CupertinoIcons.add_circled,
-                                  size: 20,
-                                  color: c.accent,
-                                ),
-                              ],
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                    child: Row(
+                      children: [
+                        Text(
+                          '${filtered.length} result${filtered.length == 1 ? '' : 's'}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: c.textSecondary,
+                            fontFamily: 'Rubik',
+                          ),
+                        ),
+                        if (_muscleGroup != null) ...[
+                          const Spacer(),
+                          Text(
+                            _muscleGroup!,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: c.accent,
+                              fontFamily: 'Rubik',
                             ),
                           ),
-                        );
-                      },
+                        ],
+                      ],
                     ),
+                  ),
+                  Expanded(
+                    child:
+                        filtered.isEmpty
+                            ? _PickerEmpty(query: _query)
+                            : ListView.separated(
+                              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                              itemCount: filtered.length,
+                              separatorBuilder:
+                                  (_, __) => const SizedBox(height: 8),
+                              itemBuilder: (_, i) {
+                                final e = filtered[i];
+                                return GestureDetector(
+                                  onTap: () => Navigator.of(context).pop(e),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: c.card,
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(color: c.border),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        SizedBox(
+                                          width: 44,
+                                          height: 44,
+                                          child: ExerciseVisual(
+                                            name: e.name,
+                                            muscleGroup: e.muscleGroup,
+                                            equipment: e.equipment,
+                                            category: e.category,
+                                            imageUrl: e.imageUrl,
+                                            imageUrl2: e.imageUrl2,
+                                            radius: 10,
+                                            figurePadding: 5,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                e.name,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: c.textPrimary,
+                                                  fontFamily: 'Rubik',
+                                                ),
+                                              ),
+                                              Text(
+                                                [e.muscleGroup, e.equipment]
+                                                    .where(
+                                                      (value) =>
+                                                          value.isNotEmpty,
+                                                    )
+                                                    .join(' · '),
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: c.textSecondary,
+                                                  fontFamily: 'Rubik',
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Icon(
+                                          CupertinoIcons.add_circled,
+                                          size: 20,
+                                          color: c.accent,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
                   ),
                 ],
               ),
+    );
+  }
+}
+
+class _PickerEmpty extends StatelessWidget {
+  final String query;
+
+  const _PickerEmpty({required this.query});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(CupertinoIcons.search, size: 34, color: c.textSecondary),
+            const SizedBox(height: 12),
+            Text(
+              'No exercises found',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+                color: c.textPrimary,
+                fontFamily: 'Rubik',
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              query.trim().isEmpty
+                  ? 'Try another muscle filter.'
+                  : 'Try a shorter name or another muscle filter.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: c.textSecondary,
+                fontFamily: 'Rubik',
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
