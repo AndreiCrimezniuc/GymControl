@@ -78,7 +78,12 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
       rootNavigator: true,
     ).push<ExerciseCatalogItem>(
       CupertinoPageRoute(
-        builder: (_) => ExercisePicker(repo: widget.exercises),
+        builder:
+            (_) => ExercisePicker(
+              repo: widget.exercises,
+              excludedIds:
+                  _exercises.map((exercise) => exercise.exerciseId).toSet(),
+            ),
       ),
     );
     if (picked != null) {

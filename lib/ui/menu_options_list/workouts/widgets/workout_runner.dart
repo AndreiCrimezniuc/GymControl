@@ -85,7 +85,15 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
       rootNavigator: true,
     ).push<ExerciseCatalogItem>(
       CupertinoPageRoute(
-        builder: (_) => ExercisePicker(repo: session.exercisesRepo),
+        builder:
+            (_) => ExercisePicker(
+              repo: session.exercisesRepo,
+              excludedIds:
+                  session.groups
+                      .expand((group) => group.sets)
+                      .map((set) => set.exerciseId)
+                      .toSet(),
+            ),
       ),
     );
     if (picked == null) return;

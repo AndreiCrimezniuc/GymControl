@@ -37,6 +37,7 @@ class _WorkoutsState extends State<Workouts> {
   List<WorkoutFolder> _folders = [];
   String? _folderId;
   String _query = '';
+  String _sort = 'updated';
 
   @override
   void initState() {
@@ -323,6 +324,33 @@ class _WorkoutsState extends State<Workouts> {
     actions: [AppDialogAction('OK', onPressed: () => Navigator.pop(context))],
   );
 
+  Future<void> _pickSort() async {
+    final selected = await showCupertinoModalPopup<String>(
+      context: context,
+      builder:
+          (sheetContext) => CupertinoActionSheet(
+            title: const Text('Sort workouts'),
+            actions: [
+              for (final option in const [
+                ('updated', 'Recently updated'),
+                ('performed', 'Most performed'),
+                ('name', 'Name'),
+              ])
+                CupertinoActionSheetAction(
+                  isDefaultAction: _sort == option.$1,
+                  onPressed: () => Navigator.pop(sheetContext, option.$1),
+                  child: Text(option.$2),
+                ),
+            ],
+            cancelButton: CupertinoActionSheetAction(
+              onPressed: () => Navigator.pop(sheetContext),
+              child: const Text('Cancel'),
+            ),
+          ),
+    );
+    if (selected != null && mounted) setState(() => _sort = selected);
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
@@ -346,16 +374,16 @@ class _WorkoutsState extends State<Workouts> {
   }
 
   Widget _buildBody(AppColors c) {
+    final query = _query.trim().toLowerCase();
     final source =
         _tab == 0
-            ? !_foldersReady
+            ? query.isNotEmpty || !_foldersReady
                 ? _mine
                 : _mine.where((w) => w.folderId == _folderId).toList()
             : _public;
-    final query = _query.trim().toLowerCase();
     final list =
         query.isEmpty
-            ? source
+            ? List<Workout>.of(source)
             : source
                 .where(
                   (workout) =>
@@ -366,6 +394,11 @@ class _WorkoutsState extends State<Workouts> {
                       ),
                 )
                 .toList();
+    if (_sort == 'performed') {
+      list.sort((a, b) => b.timesPerformed.compareTo(a.timesPerformed));
+    } else if (_sort == 'name') {
+      list.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    }
     return Column(
       children: [
         Padding(
@@ -414,17 +447,50 @@ class _WorkoutsState extends State<Workouts> {
           ),
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-          child: CupertinoSearchTextField(
-            placeholder: 'Search workouts or muscles',
-            backgroundColor: c.card,
-            style: TextStyle(color: c.textPrimary, fontFamily: 'Rubik'),
-            placeholderStyle: TextStyle(
-              color: c.textSecondary,
-              fontFamily: 'Rubik',
-            ),
-            onChanged: (value) => setState(() => _query = value),
+          child: Row(
+            children: [
+              Expanded(
+                child: CupertinoSearchTextField(
+                  placeholder: 'Search all workouts',
+                  backgroundColor: c.card,
+                  style: TextStyle(color: c.textPrimary, fontFamily: 'Rubik'),
+                  placeholderStyle: TextStyle(
+                    color: c.textSecondary,
+                    fontFamily: 'Rubik',
+                  ),
+                  onChanged: (value) => setState(() => _query = value),
+                ),
+              ),
+              const SizedBox(width: 8),
+              CupertinoButton(
+                padding: EdgeInsets.zero,
+                minimumSize: const Size(44, 44),
+                color: c.card,
+                onPressed: _pickSort,
+                child: Icon(
+                  CupertinoIcons.arrow_up_arrow_down,
+                  size: 18,
+                  color: _sort == 'updated' ? c.textSecondary : c.accent,
+                ),
+              ),
+            ],
           ),
         ),
+        if (_tab == 0 && query.isNotEmpty && _folderId != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Searching across all folders',
+                style: TextStyle(
+                  color: c.textSecondary,
+                  fontFamily: 'Rubik',
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ),
         Expanded(
           child:
               _tab == 1 && _loadingLibrary

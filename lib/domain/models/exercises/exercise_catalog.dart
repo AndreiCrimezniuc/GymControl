@@ -57,6 +57,9 @@ class ExerciseCatalogItem {
       name,
       muscleGroup,
       equipment,
+      category,
+      level,
+      ...secondaryMuscles,
       ...aliases,
     ].any((value) => value.toLowerCase().contains(normalized));
   }

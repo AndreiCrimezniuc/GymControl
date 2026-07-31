@@ -22,4 +22,11 @@ void main() {
     expect(dips.matchesSearch('БРУСЬЯ'), isTrue);
     expect(dips.matchesSearch('bench press'), isFalse);
   });
+
+  test('exercise search covers discovery metadata', () {
+    expect(dips.matchesSearch('arms'), isTrue);
+    expect(dips.matchesSearch('bodyweight'), isTrue);
+    expect(dips.matchesSearch('strength'), isTrue);
+    expect(dips.matchesSearch('beginner'), isTrue);
+  });
 }

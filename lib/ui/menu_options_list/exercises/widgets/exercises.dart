@@ -28,6 +28,10 @@ class _ExercisesState extends State<Exercises> {
   List<ExerciseCatalogItem> _all = [];
   String _group = 'All';
   String _query = '';
+  String _equipment = 'All';
+  String _source = 'all';
+  String _sort = 'name';
+  bool _filtersOpen = false;
 
   @override
   void initState() {
@@ -78,12 +82,46 @@ class _ExercisesState extends State<Exercises> {
     return ['All', ...s];
   }
 
-  List<ExerciseCatalogItem> get _filtered =>
-      _all.where((e) {
-        final mg = _group == 'All' || e.muscleGroup == _group;
-        final q = _query.isEmpty || e.matchesSearch(_query);
-        return mg && q;
-      }).toList();
+  List<String> get _equipmentFilters {
+    final values =
+        _all
+            .map((exercise) => exercise.equipment)
+            .where((equipment) => equipment.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
+    return ['All', ...values];
+  }
+
+  List<ExerciseCatalogItem> get _filtered {
+    final items =
+        _all.where((e) {
+          final mg = _group == 'All' || e.muscleGroup == _group;
+          final equipment = _equipment == 'All' || e.equipment == _equipment;
+          final custom = e.category.toLowerCase() == 'custom';
+          final source =
+              _source == 'all' || (_source == 'custom' ? custom : !custom);
+          final q = _query.isEmpty || e.matchesSearch(_query);
+          return mg && equipment && source && q;
+        }).toList();
+    switch (_sort) {
+      case 'muscle':
+        items.sort(
+          (a, b) => '${a.muscleGroup}\u0000${a.name}'.compareTo(
+            '${b.muscleGroup}\u0000${b.name}',
+          ),
+        );
+      case 'equipment':
+        items.sort(
+          (a, b) => '${a.equipment}\u0000${a.name}'.compareTo(
+            '${b.equipment}\u0000${b.name}',
+          ),
+        );
+      default:
+        items.sort((a, b) => a.name.compareTo(b.name));
+    }
+    return items;
+  }
 
   void _openCreate() {
     showCupertinoModalPopup<void>(
@@ -93,12 +131,52 @@ class _ExercisesState extends State<Exercises> {
     );
   }
 
+  Future<void> _pickSort() async {
+    final selected = await showCupertinoModalPopup<String>(
+      context: context,
+      builder:
+          (sheetContext) => CupertinoActionSheet(
+            title: const Text('Sort exercises'),
+            actions: [
+              for (final option in const [
+                ('name', 'Name'),
+                ('muscle', 'Muscle group'),
+                ('equipment', 'Equipment'),
+              ])
+                CupertinoActionSheetAction(
+                  isDefaultAction: _sort == option.$1,
+                  onPressed: () => Navigator.pop(sheetContext, option.$1),
+                  child: Text(option.$2),
+                ),
+            ],
+            cancelButton: CupertinoActionSheetAction(
+              onPressed: () => Navigator.pop(sheetContext),
+              child: const Text('Cancel'),
+            ),
+          ),
+    );
+    if (selected != null && mounted) setState(() => _sort = selected);
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     return AppPage(
       title: 'Exercises',
       actions: [
+        CupertinoButton(
+          padding: EdgeInsets.zero,
+          minimumSize: const Size(44, 44),
+          onPressed: () => setState(() => _filtersOpen = !_filtersOpen),
+          child: Icon(
+            CupertinoIcons.slider_horizontal_3,
+            size: 22,
+            color:
+                _filtersOpen || _equipment != 'All' || _source != 'all'
+                    ? c.accent
+                    : c.textSecondary,
+          ),
+        ),
         GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: _openCreate,
@@ -168,7 +246,98 @@ class _ExercisesState extends State<Exercises> {
             },
           ),
         ),
+        if (_filtersOpen) ...[
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 36,
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              scrollDirection: Axis.horizontal,
+              itemCount: _equipmentFilters.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (_, index) {
+                final value = _equipmentFilters[index];
+                return _DiscoveryChip(
+                  label: value == 'All' ? 'All equipment' : value,
+                  selected: value == _equipment,
+                  onTap: () => setState(() => _equipment = value),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 10),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                Expanded(
+                  child: CupertinoSlidingSegmentedControl<String>(
+                    groupValue: _source,
+                    backgroundColor: c.iconBg,
+                    thumbColor: c.card,
+                    children: const {
+                      'all': Padding(
+                        padding: EdgeInsets.symmetric(vertical: 6),
+                        child: Text('All'),
+                      ),
+                      'catalog': Padding(
+                        padding: EdgeInsets.symmetric(vertical: 6),
+                        child: Text('Catalog'),
+                      ),
+                      'custom': Padding(
+                        padding: EdgeInsets.symmetric(vertical: 6),
+                        child: Text('My exercises'),
+                      ),
+                    },
+                    onValueChanged:
+                        (value) => setState(() => _source = value ?? 'all'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                CupertinoButton(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  minimumSize: const Size(44, 36),
+                  color: c.card,
+                  onPressed: _pickSort,
+                  child: Row(
+                    children: [
+                      Icon(
+                        CupertinoIcons.arrow_up_arrow_down,
+                        size: 15,
+                        color: c.textPrimary,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Sort',
+                        style: TextStyle(
+                          color: c.textPrimary,
+                          fontFamily: 'Rubik',
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
         const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              '${filtered.length} result${filtered.length == 1 ? '' : 's'}',
+              style: TextStyle(
+                color: c.textSecondary,
+                fontFamily: 'Rubik',
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
         Expanded(
           child: CustomScrollView(
             slivers: [
@@ -203,6 +372,44 @@ class _ExercisesState extends State<Exercises> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _DiscoveryChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _DiscoveryChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        decoration: BoxDecoration(
+          color: selected ? c.accent : c.card,
+          borderRadius: BorderRadius.circular(12),
+          border: selected ? null : Border.all(color: c.border),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? c.textOnAccent : c.textSecondary,
+            fontFamily: 'Rubik',
+            fontWeight: FontWeight.w600,
+            fontSize: 12,
+          ),
+        ),
+      ),
     );
   }
 }
