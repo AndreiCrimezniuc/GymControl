@@ -3,9 +3,9 @@ import 'package:flutter/widgets.dart';
 /// Full colour palette for one theme (light or dark). Read it from context via
 /// `context.colors` (see theme_controller.dart). Tuned to the "design 5" look:
 /// near-white / pure-black backgrounds, a bright red accent, and a high-contrast
-/// inverse surface for the primary action button. The light palette is a warm,
-/// premium neutral system; the dark palette intentionally keeps its cooler,
-/// instrument-like character.
+/// inverse surface for the primary action button. The light palette is a cool,
+/// athletic system; the dark palette intentionally keeps its instrument-like
+/// character.
 class AppColors {
   final bool isDark;
 
@@ -58,34 +58,30 @@ class AppColors {
   /// A soft, background-tinted card shadow for gentle depth.
   List<BoxShadow> get cardShadow => [
     BoxShadow(
-      color: isDark ? const Color(0x66000000) : const Color(0x123A2F29),
-      blurRadius: isDark ? 24 : 18,
+      color: isDark ? const Color(0x66000000) : const Color(0x12203B49),
+      blurRadius: isDark ? 24 : 16,
       offset: Offset(0, isDark ? 8 : 7),
     ),
   ];
 
   static const light = AppColors(
     isDark: false,
-    // Warm paper rather than pure white reduces glare and gives the app a
-    // quieter, more premium character without sacrificing contrast.
-    bg: Color(0xFFF7F4EF),
-    bgTop: Color(0xFFFBF8F3),
-    bgBottom: Color(0xFFF7F4EF),
-    card: Color(0xFFFFFCF8),
-    // Soft accent surface used for fields, icon wells and inactive controls.
-    iconBg: Color(0xFFF3DDD8),
-    border: Color(0xFFE4DDD4),
-    pillBorder: Color(0xFFD6CCC0),
-    textPrimary: Color(0xFF1B1A18),
-    textSecondary: Color(0xFF706B64),
+    bg: Color(0xFFF3F6F8),
+    bgTop: Color(0xFFF8FAFB),
+    bgBottom: Color(0xFFF3F6F8),
+    card: Color(0xFFFFFFFF),
+    // Pale cyan surface used for fields, icon wells and inactive controls.
+    iconBg: Color(0xFFDCEFF1),
+    border: Color(0xFFD9E1E6),
+    pillBorder: Color(0xFFC7D5DC),
+    textPrimary: Color(0xFF172026),
+    textSecondary: Color(0xFF64737D),
     textOnAccent: Color(0xFFFFFFFF),
-    // Muted brick red: energetic enough for workout actions, sophisticated
-    // enough to use across large surfaces and metrics.
-    accent: Color(0xFFB64038),
-    accentPressed: Color(0xFF94342E),
-    ringTrack: Color(0xFFE7DED4),
-    navInactive: Color(0xFFA89F96),
-    invBg: Color(0xFF1B1A18),
+    accent: Color(0xFF087E8B),
+    accentPressed: Color(0xFF05636E),
+    ringTrack: Color(0xFFDDE7EB),
+    navInactive: Color(0xFF91A0A9),
+    invBg: Color(0xFF172026),
     invText: Color(0xFFFFFFFF),
   );
 

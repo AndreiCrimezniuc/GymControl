@@ -597,9 +597,9 @@ class _WorkoutCard extends StatelessWidget {
                         Color(0xFF121214),
                       ]
                       : const [
-                        Color(0xFFFFFCF8),
-                        Color(0xFFFAF2EC),
-                        Color(0xFFF3DDD8),
+                        Color(0xFFFFFFFF),
+                        Color(0xFFF1F8F9),
+                        Color(0xFFDCEFF1),
                       ],
               stops: const [0, 0.48, 1],
               begin: Alignment.topLeft,
@@ -608,7 +608,7 @@ class _WorkoutCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
               color:
-                  c.isDark ? const Color(0xFF343239) : const Color(0xFFE1D2C8),
+                  c.isDark ? const Color(0xFF343239) : const Color(0xFFC7DCE1),
             ),
             boxShadow: c.cardShadow,
           ),
