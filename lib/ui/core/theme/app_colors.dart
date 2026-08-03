@@ -3,7 +3,9 @@ import 'package:flutter/widgets.dart';
 /// Full colour palette for one theme (light or dark). Read it from context via
 /// `context.colors` (see theme_controller.dart). Tuned to the "design 5" look:
 /// near-white / pure-black backgrounds, a bright red accent, and a high-contrast
-/// inverse surface for the primary action button.
+/// inverse surface for the primary action button. The light palette is a warm,
+/// premium neutral system; the dark palette intentionally keeps its cooler,
+/// instrument-like character.
 class AppColors {
   final bool isDark;
 
@@ -56,34 +58,34 @@ class AppColors {
   /// A soft, background-tinted card shadow for gentle depth.
   List<BoxShadow> get cardShadow => [
     BoxShadow(
-      color: isDark ? const Color(0x66000000) : const Color(0x14442622),
-      blurRadius: isDark ? 24 : 16,
-      offset: const Offset(0, 8),
+      color: isDark ? const Color(0x66000000) : const Color(0x123A2F29),
+      blurRadius: isDark ? 24 : 18,
+      offset: Offset(0, isDark ? 8 : 7),
     ),
   ];
 
   static const light = AppColors(
     isDark: false,
-    bg: Color(0xFFFCFAF8),
-    bgTop: Color(0xFFFFFDFC),
-    bgBottom: Color(0xFFF7F0ED),
-    card: Color(0xFFFFFBF9),
-    iconBg: Color(0xFFF4E9E5),
-    // Borders tinted toward the accent so surfaces read as defined contours in
-    // the light theme instead of washing out against the warm background.
-    border: Color(0xFFE7D1CB),
-    pillBorder: Color(0xFFDDBEB6),
-    textPrimary: Color(0xFF141312),
-    // Darkened from #8B8480 (~3.5:1) to meet WCAG AA 4.5:1 for small text on bg/card.
-    textSecondary: Color(0xFF736C67),
+    // Warm paper rather than pure white reduces glare and gives the app a
+    // quieter, more premium character without sacrificing contrast.
+    bg: Color(0xFFF7F4EF),
+    bgTop: Color(0xFFFBF8F3),
+    bgBottom: Color(0xFFF7F4EF),
+    card: Color(0xFFFFFCF8),
+    // Soft accent surface used for fields, icon wells and inactive controls.
+    iconBg: Color(0xFFF3DDD8),
+    border: Color(0xFFE4DDD4),
+    pillBorder: Color(0xFFD6CCC0),
+    textPrimary: Color(0xFF1B1A18),
+    textSecondary: Color(0xFF706B64),
     textOnAccent: Color(0xFFFFFFFF),
-    // Deepened from #DE3B34 to a more restrained, editorial red so the brand
-    // reads as a serious training tool rather than a consumer app.
-    accent: Color(0xFFC8322B),
-    accentPressed: Color(0xFFA82A24),
-    ringTrack: Color(0xFFEAE0DB),
-    navInactive: Color(0xFFB0A6A2),
-    invBg: Color(0xFF121212),
+    // Muted brick red: energetic enough for workout actions, sophisticated
+    // enough to use across large surfaces and metrics.
+    accent: Color(0xFFB64038),
+    accentPressed: Color(0xFF94342E),
+    ringTrack: Color(0xFFE7DED4),
+    navInactive: Color(0xFFA89F96),
+    invBg: Color(0xFF1B1A18),
     invText: Color(0xFFFFFFFF),
   );
 
