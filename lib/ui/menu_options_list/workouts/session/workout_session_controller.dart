@@ -74,20 +74,26 @@ class SessionExercise {
   final int exerciseId;
   final String name;
   final String muscleGroup;
+  final String exerciseType;
   final String imageUrl;
   final String imageUrl2;
   final int restSeconds;
   final List<SessionSet> sets;
   String note;
+  String? trainingGroupId;
+  String trainingGroupType;
   SessionExercise({
     required this.exerciseId,
     required this.name,
     required this.muscleGroup,
+    this.exerciseType = 'weight_reps',
     this.imageUrl = '',
     this.imageUrl2 = '',
     required this.restSeconds,
     required this.sets,
     this.note = '',
+    this.trainingGroupId,
+    this.trainingGroupType = '',
   });
 }
 
@@ -247,6 +253,7 @@ class WorkoutSessionController extends ChangeNotifier {
           exerciseId: ex.exerciseId,
           name: ex.name,
           muscleGroup: ex.muscleGroup,
+          exerciseType: ex.exerciseType,
           imageUrl: ex.imageUrl,
           imageUrl2: ex.imageUrl2,
           restSeconds: ex.restSeconds,
@@ -294,14 +301,36 @@ class WorkoutSessionController extends ChangeNotifier {
     final w = _units.toKg(clampWorkoutDecimal(s.weight));
     final r = clampWorkoutInteger(s.reps);
     if (r <= 0) return;
+    final exercise = _groups.firstWhere((group) => group.sets.contains(s));
     HapticFeedback.mediumImpact();
     s.done = true;
     _loggedSets++;
-    if (s.type != 'warmup') {
+    if (s.type != 'warmup' && _countsVolume(exercise.exerciseType)) {
       _loggedVolumeKg += w * r; // warmup excluded from working volume
     }
     notifyListeners();
-    _startRest(s.restSeconds);
+    if (_shouldStartRest(s)) _startRest(s.restSeconds);
+  }
+
+  bool _countsVolume(String exerciseType) =>
+      exerciseType == 'weight_reps' || exerciseType == 'bodyweight_reps';
+
+  bool _shouldStartRest(SessionSet set) {
+    final exercise = _groups.cast<SessionExercise?>().firstWhere(
+      (group) => group!.sets.contains(set),
+      orElse: () => null,
+    );
+    if (exercise?.trainingGroupId == null) return true;
+    final setIndex = exercise!.sets.indexOf(set);
+    final group = _groups.where(
+      (item) => item.trainingGroupId == exercise.trainingGroupId,
+    );
+    return !group.any(
+      (item) =>
+          item != exercise &&
+          setIndex < item.sets.length &&
+          !item.sets[setIndex].done,
+    );
   }
 
   /// Cycle a set's type (warmup → working → failure). No-op once logged.
@@ -350,6 +379,40 @@ class WorkoutSessionController extends ChangeNotifier {
 
   void setExerciseNote(SessionExercise exercise, String note) {
     exercise.note = note.trim();
+    _routineChanged = true;
+    notifyListeners();
+  }
+
+  bool canGroupWithNext(SessionExercise exercise) {
+    final index = _groups.indexOf(exercise);
+    return index >= 0 && index < _groups.length - 1;
+  }
+
+  void groupWithNext(SessionExercise exercise, String type) {
+    if (!const {'superset', 'circuit', 'interval'}.contains(type)) return;
+    final index = _groups.indexOf(exercise);
+    if (index < 0 || index >= _groups.length - 1) return;
+    final next = _groups[index + 1];
+    final id =
+        exercise.trainingGroupId ?? next.trainingGroupId ?? const Uuid().v4();
+    exercise
+      ..trainingGroupId = id
+      ..trainingGroupType = type;
+    next
+      ..trainingGroupId = id
+      ..trainingGroupType = type;
+    _routineChanged = true;
+    notifyListeners();
+  }
+
+  void ungroup(SessionExercise exercise) {
+    final id = exercise.trainingGroupId;
+    if (id == null) return;
+    for (final item in _groups.where((item) => item.trainingGroupId == id)) {
+      item
+        ..trainingGroupId = null
+        ..trainingGroupType = '';
+    }
     _routineChanged = true;
     notifyListeners();
   }
@@ -408,6 +471,7 @@ class WorkoutSessionController extends ChangeNotifier {
     required int exerciseId,
     required String name,
     required String muscleGroup,
+    String exerciseType = 'weight_reps',
     String imageUrl = '',
     String imageUrl2 = '',
     int restSeconds = 90,
@@ -417,6 +481,7 @@ class WorkoutSessionController extends ChangeNotifier {
         exerciseId: exerciseId,
         name: name,
         muscleGroup: muscleGroup,
+        exerciseType: exerciseType,
         imageUrl: imageUrl,
         imageUrl2: imageUrl2,
         restSeconds: restSeconds,
@@ -470,6 +535,7 @@ class WorkoutSessionController extends ChangeNotifier {
           imageUrl: group.imageUrl,
           imageUrl2: group.imageUrl2,
           muscleGroup: group.muscleGroup,
+          exerciseType: group.exerciseType,
           restSeconds: group.restSeconds,
           comment: group.note,
           sets: [
@@ -499,7 +565,13 @@ class WorkoutSessionController extends ChangeNotifier {
   void _uncount(SessionSet s) {
     if (!s.done) return;
     _loggedSets = (_loggedSets - 1).clamp(0, 1 << 30);
-    if (s.type != 'warmup') {
+    final exercise = _groups.cast<SessionExercise?>().firstWhere(
+      (group) => group!.sets.contains(s),
+      orElse: () => null,
+    );
+    if (s.type != 'warmup' &&
+        exercise != null &&
+        _countsVolume(exercise.exerciseType)) {
       final w = _units.toKg(double.tryParse(s.weight.trim()) ?? 0);
       final r = int.tryParse(s.reps.trim()) ?? 0;
       _loggedVolumeKg = (_loggedVolumeKg - w * r).clamp(0, double.infinity);

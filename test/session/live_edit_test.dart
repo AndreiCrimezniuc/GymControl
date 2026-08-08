@@ -96,5 +96,33 @@ void main() {
       c.setExerciseNote(exercise, '  Keep shoulder blades retracted  ');
       expect(exercise.note, 'Keep shoulder blades retracted');
     });
+
+    test('adjacent exercises can form and leave a circuit', () {
+      final c = WorkoutSessionController();
+      c.addExercise(exerciseId: 1, name: 'Bench', muscleGroup: 'chest');
+      c.addExercise(exerciseId: 2, name: 'Row', muscleGroup: 'back');
+
+      c.groupWithNext(c.groups.first, 'circuit');
+      expect(c.groups.first.trainingGroupId, isNotNull);
+      expect(c.groups.last.trainingGroupId, c.groups.first.trainingGroupId);
+      expect(c.groups.first.trainingGroupType, 'circuit');
+
+      c.ungroup(c.groups.last);
+      expect(
+        c.groups.every((exercise) => exercise.trainingGroupId == null),
+        isTrue,
+      );
+    });
+
+    test('exercise input type is preserved for live additions', () {
+      final c = WorkoutSessionController();
+      c.addExercise(
+        exerciseId: 7,
+        name: 'Run',
+        muscleGroup: 'cardio',
+        exerciseType: 'distance_duration',
+      );
+      expect(c.groups.single.exerciseType, 'distance_duration');
+    });
   });
 }

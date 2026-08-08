@@ -102,6 +102,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
       exerciseId: picked.id,
       name: picked.name,
       muscleGroup: picked.muscleGroup,
+      exerciseType: picked.exerciseType,
       imageUrl: picked.imageUrl,
       imageUrl2: picked.imageUrl2,
     );
@@ -151,6 +152,27 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                 },
                 child: const Text('Plate calculator'),
               ),
+              if (session.canGroupWithNext(g))
+                CupertinoActionSheetAction(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    _pickTrainingGroup(session, g);
+                  },
+                  child: Text(
+                    g.trainingGroupId == null
+                        ? 'Group with next…'
+                        : 'Extend group to next…',
+                  ),
+                ),
+              if (g.trainingGroupId != null)
+                CupertinoActionSheetAction(
+                  isDestructiveAction: true,
+                  onPressed: () {
+                    session.ungroup(g);
+                    Navigator.of(ctx).pop();
+                  },
+                  child: const Text('Remove exercise group'),
+                ),
               if (canUp)
                 CupertinoActionSheetAction(
                   onPressed: () {
@@ -186,6 +208,38 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
             ),
           ),
     );
+  }
+
+  Future<void> _pickTrainingGroup(
+    WorkoutSessionController session,
+    SessionExercise exercise,
+  ) async {
+    final type = await showCupertinoModalPopup<String>(
+      context: context,
+      builder:
+          (ctx) => CupertinoActionSheet(
+            title: const Text('Training group'),
+            message: const Text(
+              'Grouped exercises advance without starting the rest timer until the round is complete.',
+            ),
+            actions: [
+              for (final item in const [
+                ('superset', 'Superset'),
+                ('circuit', 'Circuit'),
+                ('interval', 'Interval block'),
+              ])
+                CupertinoActionSheetAction(
+                  onPressed: () => Navigator.pop(ctx, item.$1),
+                  child: Text(item.$2),
+                ),
+            ],
+            cancelButton: CupertinoActionSheetAction(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+          ),
+    );
+    if (type != null) session.groupWithNext(exercise, type);
   }
 
   Future<void> _editExerciseNote(
@@ -607,13 +661,34 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (g.trainingGroupId != null)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+              decoration: BoxDecoration(
+                color: c.accent,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(19),
+                ),
+              ),
+              child: Text(
+                g.trainingGroupType.toUpperCase(),
+                style: TextStyle(
+                  color: c.textOnAccent,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1,
+                ),
+              ),
+            ),
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: c.accent.withValues(alpha: c.isDark ? 0.07 : 0.05),
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(19),
-              ),
+              borderRadius:
+                  g.trainingGroupId == null
+                      ? const BorderRadius.vertical(top: Radius.circular(19))
+                      : BorderRadius.zero,
             ),
             child: Row(
               children: [
@@ -758,17 +833,19 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                         width: 73,
                         child: Text('SET', style: _columnLabelStyle(c)),
                       ),
-                      Expanded(
-                        child: Text(
-                          units.label.toUpperCase(),
-                          textAlign: TextAlign.center,
-                          style: _columnLabelStyle(c),
+                      if (_showPrimary(g.exerciseType)) ...[
+                        Expanded(
+                          child: Text(
+                            _primaryLabel(g.exerciseType, units),
+                            textAlign: TextAlign.center,
+                            style: _columnLabelStyle(c),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
+                        const SizedBox(width: 8),
+                      ],
                       Expanded(
                         child: Text(
-                          'REPS',
+                          _secondaryLabel(g.exerciseType),
                           textAlign: TextAlign.center,
                           style: _columnLabelStyle(c),
                         ),
@@ -857,9 +934,25 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                   _progressionBadge(c, s.progression),
                 ],
                 const SizedBox(width: 8),
-                Expanded(child: _numField(c, _wc(s), s.done, units.label)),
-                const SizedBox(width: 8),
-                Expanded(child: _numField(c, _rc(s), s.done, 'reps')),
+                if (_showPrimary(g.exerciseType)) ...[
+                  Expanded(
+                    child: _numField(
+                      c,
+                      _wc(s),
+                      s.done,
+                      _primaryUnit(g.exerciseType, units),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                Expanded(
+                  child: _numField(
+                    c,
+                    _rc(s),
+                    s.done,
+                    _secondaryUnit(g.exerciseType),
+                  ),
+                ),
                 const SizedBox(width: 10),
                 Pressable(
                   onTap: () => session.toggleSet(s),
@@ -912,8 +1005,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                                 HapticFeedback.selectionClick();
                               },
                       child: Text(
-                        'Previous  ${units.format(s.previousWeightKg ?? 0)}${units.label} × ${s.previousReps}'
-                        '${s.previousRpe != null ? '  @ ${s.previousRpe} RPE' : ''}',
+                        _previousLabel(g.exerciseType, units, s),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -969,6 +1061,42 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     color: c.textSecondary,
     fontFamily: 'Rubik',
   );
+
+  bool _showPrimary(String type) =>
+      type == 'weight_reps' ||
+      type == 'bodyweight_reps' ||
+      type == 'distance_duration';
+
+  String _primaryLabel(String type, UnitsController units) => switch (type) {
+    'bodyweight_reps' => 'ADDED ${units.label.toUpperCase()}',
+    'distance_duration' => 'DISTANCE KM',
+    'reps_only' => '',
+    'duration' => '',
+    _ => units.label.toUpperCase(),
+  };
+
+  String _secondaryLabel(String type) => switch (type) {
+    'duration' || 'distance_duration' => 'SECONDS',
+    _ => 'REPS',
+  };
+
+  String _primaryUnit(String type, UnitsController units) =>
+      type == 'distance_duration' ? 'km' : units.label;
+
+  String _secondaryUnit(String type) =>
+      type == 'duration' || type == 'distance_duration' ? 'sec' : 'reps';
+
+  String _previousLabel(String type, UnitsController units, SessionSet set) {
+    final effort = set.previousRpe != null ? '  @ ${set.previousRpe} RPE' : '';
+    return switch (type) {
+      'reps_only' => 'Previous  ${set.previousReps} reps$effort',
+      'duration' => 'Previous  ${set.previousReps} sec$effort',
+      'distance_duration' =>
+        'Previous  ${set.previousWeightKg ?? 0} km · ${set.previousReps} sec$effort',
+      _ =>
+        'Previous  ${units.format(set.previousWeightKg ?? 0)}${units.label} × ${set.previousReps}$effort',
+    };
+  }
 
   // Compact tag on a set row indicating a non-weight progression.
   Widget _progressionBadge(AppColors c, String progression) {
