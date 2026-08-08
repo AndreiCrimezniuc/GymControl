@@ -128,6 +128,8 @@ class ExercisesRepository {
     required int reps,
     String setType = 'working',
     String progression = '',
+    double? rpe,
+    int? rir,
     String? operationId,
     String? sessionId,
   }) async {
@@ -138,6 +140,8 @@ class ExercisesRepository {
       'reps': reps,
       'set_type': setType,
       'progression': progression,
+      'rpe': rpe,
+      'rir': rir,
       'operation_id': operationId,
       'session_id': sessionId,
     };
@@ -243,6 +247,8 @@ class ExercisesRepository {
           'reps': args['reps'],
           'set_type': args['set_type'],
           'progression': args['progression'] ?? '',
+          if (args['rpe'] != null) 'rpe': args['rpe'],
+          if (args['rir'] != null) 'rir': args['rir'],
           'operation_id': args['operation_id'],
           'session_id': args['session_id'],
         }),

@@ -69,5 +69,32 @@ void main() {
       c.moveExercise(c.groups.first, -1);
       expect(c.groups.map((g) => g.exerciseId), [1, 2, 3]);
     });
+
+    test('effort supports either RPE or RIR and can be cleared', () {
+      final c = WorkoutSessionController();
+      c.addExercise(exerciseId: 1, name: 'Bench', muscleGroup: 'chest');
+      final set = c.groups.single.sets.single;
+
+      c.setEffort(set, rpe: 8.5);
+      expect(set.rpe, 8.5);
+      expect(set.rir, isNull);
+
+      c.setEffort(set, rir: 2);
+      expect(set.rpe, isNull);
+      expect(set.rir, 2);
+
+      c.setEffort(set);
+      expect(set.rpe, isNull);
+      expect(set.rir, isNull);
+    });
+
+    test('exercise note can be edited during a session', () {
+      final c = WorkoutSessionController();
+      c.addExercise(exerciseId: 1, name: 'Bench', muscleGroup: 'chest');
+      final exercise = c.groups.single;
+
+      c.setExerciseNote(exercise, '  Keep shoulder blades retracted  ');
+      expect(exercise.note, 'Keep shoulder blades retracted');
+    });
   });
 }

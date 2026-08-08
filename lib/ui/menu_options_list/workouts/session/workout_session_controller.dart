@@ -6,6 +6,7 @@ import 'package:gymboss/data/repositories/workouts_repository.dart';
 import 'package:gymboss/domain/models/workouts/workout.dart';
 import 'package:gymboss/ui/core/units/units_controller.dart';
 import 'package:gymboss/ui/core/input/numeric_limit_formatter.dart';
+import 'package:gymboss/ui/menu_options_list/workouts/session/workout_calculators.dart';
 import 'package:uuid/uuid.dart';
 
 /// One set within an active session. Entered weight/reps are kept as strings so
@@ -19,6 +20,11 @@ class SessionSet {
   String reps;
   String type; // warmup | working | failure
   String progression; // '' | weight | amplitude | efficiency | meo | dropset
+  double? previousWeightKg;
+  int? previousReps;
+  double? previousRpe;
+  double? rpe;
+  int? rir;
   bool done;
   final String operationId;
 
@@ -31,6 +37,11 @@ class SessionSet {
     required this.reps,
     this.type = 'working',
     this.progression = '',
+    this.previousWeightKg,
+    this.previousReps,
+    this.previousRpe,
+    this.rpe,
+    this.rir,
     this.done = false,
     String? operationId,
   }) : operationId = operationId ?? const Uuid().v4();
@@ -67,6 +78,7 @@ class SessionExercise {
   final String imageUrl2;
   final int restSeconds;
   final List<SessionSet> sets;
+  String note;
   SessionExercise({
     required this.exerciseId,
     required this.name,
@@ -75,6 +87,7 @@ class SessionExercise {
     this.imageUrl2 = '',
     required this.restSeconds,
     required this.sets,
+    this.note = '',
   });
 }
 
@@ -87,6 +100,7 @@ class WorkoutSessionController extends ChangeNotifier {
   bool _active = false;
   bool _minimized = false;
   bool _finished = false;
+  bool _routineChanged = false;
 
   final List<SessionExercise> _groups = [];
   final Map<int, double> _prKg =
@@ -110,6 +124,7 @@ class WorkoutSessionController extends ChangeNotifier {
   bool get isActive => _active;
   bool get isMinimized => _minimized;
   bool get isFinished => _finished;
+  bool get routineChanged => _routineChanged;
   Workout? get workout => _workout;
   String get difficulty => _difficulty;
   List<SessionExercise> get groups => _groups;
@@ -163,6 +178,7 @@ class WorkoutSessionController extends ChangeNotifier {
     _loggedVolumeKg = 0;
     _resting = false;
     _finished = false;
+    _routineChanged = false;
     _minimized = false;
     _active = true;
     _startedAt = DateTime.now();
@@ -172,6 +188,7 @@ class WorkoutSessionController extends ChangeNotifier {
     });
     notifyListeners();
     _loadPrs();
+    _loadPreviousValues();
   }
 
   void _loadPrs() {
@@ -185,6 +202,26 @@ class WorkoutSessionController extends ChangeNotifier {
           .getStats(id)
           .then((stats) {
             _prKg[id] = stats.maxWeightKg;
+            if (_active) notifyListeners();
+          })
+          .catchError((_) {});
+    }
+  }
+
+  void _loadPreviousValues() {
+    for (final group in _groups) {
+      _exercises
+          .getHistory(group.exerciseId)
+          .then((history) {
+            if (history.isEmpty) return;
+            final previous = history.first.sets;
+            for (var i = 0; i < group.sets.length && i < previous.length; i++) {
+              final source = previous[i];
+              final target = group.sets[i];
+              target.previousWeightKg = source.weightKg;
+              target.previousReps = source.reps;
+              target.previousRpe = source.rpe;
+            }
             if (_active) notifyListeners();
           })
           .catchError((_) {});
@@ -213,6 +250,7 @@ class WorkoutSessionController extends ChangeNotifier {
           imageUrl: ex.imageUrl,
           imageUrl2: ex.imageUrl2,
           restSeconds: ex.restSeconds,
+          note: ex.comment,
           sets: [
             for (final s in planned)
               () {
@@ -293,6 +331,29 @@ class WorkoutSessionController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setEffort(SessionSet s, {double? rpe, int? rir}) {
+    if (s.done) return;
+    s.rpe = rpe;
+    s.rir = rir;
+    notifyListeners();
+  }
+
+  void usePrevious(SessionSet s) {
+    if (s.done || s.previousReps == null) return;
+    if (s.previousWeightKg != null) {
+      s.weight = _fmt(_units.fromKg(s.previousWeightKg!));
+    }
+    s.reps = '${s.previousReps}';
+    s.rpe = s.previousRpe;
+    notifyListeners();
+  }
+
+  void setExerciseNote(SessionExercise exercise, String note) {
+    exercise.note = note.trim();
+    _routineChanged = true;
+    notifyListeners();
+  }
+
   // ── Live edits during a session ──────────────────────────────────────────────
 
   /// Append a new (empty) set to an exercise, seeded from its last set.
@@ -309,6 +370,26 @@ class WorkoutSessionController extends ChangeNotifier {
       ),
     );
     _totalSets++;
+    _routineChanged = true;
+    notifyListeners();
+  }
+
+  void prependWarmupSets(SessionExercise group, List<WarmupSetPlan> plans) {
+    if (plans.isEmpty) return;
+    group.sets.insertAll(0, [
+      for (final plan in plans)
+        SessionSet(
+          exerciseId: group.exerciseId,
+          restSeconds: group.restSeconds,
+          plannedWeightKg: plan.weight,
+          plannedReps: plan.reps,
+          weight: _fmt(_units.fromKg(plan.weight)),
+          reps: '${plan.reps}',
+          type: 'warmup',
+        ),
+    ]);
+    _totalSets += plans.length;
+    _routineChanged = true;
     notifyListeners();
   }
 
@@ -318,6 +399,7 @@ class WorkoutSessionController extends ChangeNotifier {
     if (!g.sets.remove(s)) return;
     _totalSets--;
     _uncount(s);
+    _routineChanged = true;
     notifyListeners();
   }
 
@@ -351,6 +433,7 @@ class WorkoutSessionController extends ChangeNotifier {
       ),
     );
     _totalSets++;
+    _routineChanged = true;
     notifyListeners();
   }
 
@@ -361,6 +444,7 @@ class WorkoutSessionController extends ChangeNotifier {
     if (i < 0 || j < 0 || j >= _groups.length) return;
     _groups.removeAt(i);
     _groups.insert(j, g);
+    _routineChanged = true;
     notifyListeners();
   }
 
@@ -371,6 +455,43 @@ class WorkoutSessionController extends ChangeNotifier {
       _totalSets--;
       _uncount(s);
     }
+    _routineChanged = true;
+    notifyListeners();
+  }
+
+  Future<void> updateRoutineFromSession() async {
+    final workout = _workout;
+    if (workout == null || !_routineChanged) return;
+    final exercises = [
+      for (final group in _groups)
+        WorkoutExercise(
+          exerciseId: group.exerciseId,
+          name: group.name,
+          imageUrl: group.imageUrl,
+          imageUrl2: group.imageUrl2,
+          muscleGroup: group.muscleGroup,
+          restSeconds: group.restSeconds,
+          comment: group.note,
+          sets: [
+            for (final set in group.sets)
+              WorkoutSet(
+                difficulty: 'medium',
+                weightKg: _units.toKg(clampWorkoutDecimal(set.weight)),
+                reps: clampWorkoutInteger(set.reps),
+                setType: set.type,
+              ),
+          ],
+        ),
+    ];
+    _workout = await _workouts.update(
+      workout.id,
+      name: workout.name,
+      comment: workout.comment,
+      exercises: exercises,
+      deloadFactor: workout.deloadFactor,
+      type: workout.type,
+    );
+    _routineChanged = false;
     notifyListeners();
   }
 
@@ -439,6 +560,8 @@ class WorkoutSessionController extends ChangeNotifier {
           reps: clampWorkoutInteger(set.reps),
           setType: set.type,
           progression: set.progression,
+          rpe: set.rpe,
+          rir: set.rir,
           operationId: set.operationId,
           sessionId: _sessionId,
         );
@@ -462,6 +585,7 @@ class WorkoutSessionController extends ChangeNotifier {
     _active = false;
     _minimized = false;
     _finished = false;
+    _routineChanged = false;
     _workout = null;
     _sessionId = null;
     _groups.clear();
