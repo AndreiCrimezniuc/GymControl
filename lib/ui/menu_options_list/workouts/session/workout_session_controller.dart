@@ -258,6 +258,8 @@ class WorkoutSessionController extends ChangeNotifier {
           imageUrl2: ex.imageUrl2,
           restSeconds: ex.restSeconds,
           note: ex.comment,
+          trainingGroupId: ex.trainingGroupId,
+          trainingGroupType: ex.trainingGroupType,
           sets: [
             for (final s in planned)
               () {
@@ -536,6 +538,8 @@ class WorkoutSessionController extends ChangeNotifier {
           imageUrl2: group.imageUrl2,
           muscleGroup: group.muscleGroup,
           exerciseType: group.exerciseType,
+          trainingGroupId: group.trainingGroupId,
+          trainingGroupType: group.trainingGroupType,
           restSeconds: group.restSeconds,
           comment: group.note,
           sets: [
@@ -634,6 +638,15 @@ class WorkoutSessionController extends ChangeNotifier {
           progression: set.progression,
           rpe: set.rpe,
           rir: set.rir,
+          durationSeconds:
+              group.exerciseType == 'duration' ||
+                      group.exerciseType == 'distance_duration'
+                  ? clampWorkoutInteger(set.reps)
+                  : 0,
+          distanceKm:
+              group.exerciseType == 'distance_duration'
+                  ? clampWorkoutDecimal(set.weight)
+                  : 0,
           operationId: set.operationId,
           sessionId: _sessionId,
         );
