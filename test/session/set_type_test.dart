@@ -16,6 +16,8 @@ void main() {
   group('set type selection', () {
     test('setTypes lists the explicit options in order', () {
       expect(setTypes, ['warmup', 'working', 'failure', 'dropset']);
+      expect(setTypeMetadata.keys.toSet(), setTypes.toSet());
+      expect(setTypeMetadata['dropset']?.name, 'Drop set');
     });
 
     test('setSetType applies a valid explicit choice', () {

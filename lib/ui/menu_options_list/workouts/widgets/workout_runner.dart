@@ -832,6 +832,12 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
         );
       case 'failure':
         return (bg: c.accent.withValues(alpha: 0.16), fg: c.accent, badge: 'F');
+      case 'dropset':
+        return (
+          bg: const Color(0x332563EB),
+          fg: const Color(0xFF2563EB),
+          badge: 'D',
+        );
       default:
         return (bg: c.card, fg: c.textSecondary, badge: '•');
     }
@@ -878,16 +884,6 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
 
   // Explicit set-type selector so the type (warm-up / working / failure) is
   // chosen from named options instead of a blind tap-to-cycle.
-  static const _typeNames = {
-    'warmup': 'Warm-up',
-    'working': 'Working',
-    'failure': 'Failure',
-  };
-  static const _typeDescriptions = {
-    'warmup': 'Excluded from working volume',
-    'working': 'Counts toward volume & PRs',
-    'failure': 'Taken to muscular failure',
-  };
   static const _progressionNames = {
     'weight': 'Heavier weight',
     'amplitude': 'Greater amplitude',
@@ -911,8 +907,8 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
       rows: [
         for (final t in setTypes)
           _PickerRow(
-            title: _typeNames[t]!,
-            subtitle: _typeDescriptions[t]!,
+            title: setTypeMetadata[t]!.name,
+            subtitle: setTypeMetadata[t]!.description,
             badge: _typeVisual(context.colors, t).badge,
             badgeBg: _typeVisual(context.colors, t).bg,
             badgeFg: _typeVisual(context.colors, t).fg,

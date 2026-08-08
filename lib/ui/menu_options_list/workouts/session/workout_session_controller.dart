@@ -38,6 +38,18 @@ class SessionSet {
 
 const setTypes = ['warmup', 'working', 'failure', 'dropset'];
 
+/// User-facing metadata lives beside the supported values so adding a type
+/// cannot leave the runner picker with a missing label and a runtime `null!`.
+const Map<String, ({String name, String description})> setTypeMetadata = {
+  'warmup': (name: 'Warm-up', description: 'Excluded from working volume'),
+  'working': (name: 'Working', description: 'Counts toward volume & PRs'),
+  'failure': (name: 'Failure', description: 'Taken to muscular failure'),
+  'dropset': (
+    name: 'Drop set',
+    description: 'Reduced load without a full rest period',
+  ),
+};
+
 /// Ways a set can progress beyond simply adding load. Empty = none.
 const progressionTypes = [
   'weight',
