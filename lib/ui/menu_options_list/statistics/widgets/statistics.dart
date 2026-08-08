@@ -126,6 +126,10 @@ class _StatisticsState extends State<Statistics> {
                         const SizedBox(height: 24),
                         _MetricsBlock(summary: _summary),
                         const SizedBox(height: 24),
+                        const _SectionLabel('Training Load'),
+                        const SizedBox(height: 12),
+                        _TrainingLoadCard(points: _activity),
+                        const SizedBox(height: 24),
                         const _SectionLabel('Workout Calendar'),
                         const SizedBox(height: 12),
                         _ActivityCalendar(points: _activity),
@@ -157,6 +161,177 @@ class _StatisticsState extends State<Statistics> {
                   ),
                 ],
               ),
+    );
+  }
+}
+
+class _TrainingLoadCard extends StatelessWidget {
+  final List<ActivityPoint> points;
+
+  const _TrainingLoadCard({required this.points});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final now = DateTime.now();
+    final currentStart = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(const Duration(days: 27));
+    final previousStart = currentStart.subtract(const Duration(days: 28));
+    final current = _totals(currentStart, now.add(const Duration(days: 1)));
+    final previous = _totals(previousStart, currentStart);
+    final change =
+        previous.volume <= 0
+            ? null
+            : ((current.volume - previous.volume) / previous.volume * 100)
+                .round();
+    final status = switch (change) {
+      null => 'Building your baseline',
+      > 25 => 'Load increased quickly',
+      < -25 => 'Load is trending down',
+      _ => 'Load is progressing steadily',
+    };
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: c.card,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: c.border),
+        boxShadow: c.cardShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  status,
+                  style: TextStyle(
+                    color: c.textPrimary,
+                    fontFamily: 'Rubik',
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              if (change != null)
+                Text(
+                  '${change >= 0 ? '+' : ''}$change%',
+                  style: TextStyle(
+                    color: c.accent,
+                    fontFamily: 'Rubik',
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Last 28 days compared with the previous 28 days',
+            style: TextStyle(
+              color: c.textSecondary,
+              fontFamily: 'Rubik',
+              fontSize: 11,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              _LoadMetric(
+                label: 'Volume',
+                value: _compact(current.volume),
+                suffix: 'kg',
+              ),
+              _LoadMetric(
+                label: 'Sessions',
+                value: '${current.workouts}',
+                suffix: '',
+              ),
+              _LoadMetric(
+                label: 'Time',
+                value: (current.seconds / 3600).toStringAsFixed(1),
+                suffix: 'h',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  ({double volume, int workouts, int seconds}) _totals(
+    DateTime start,
+    DateTime end,
+  ) {
+    var volume = 0.0;
+    var workouts = 0;
+    var seconds = 0;
+    for (final point in points) {
+      final date = DateTime.tryParse(point.date);
+      if (date == null || date.isBefore(start) || !date.isBefore(end)) continue;
+      volume += point.volumeKg;
+      workouts += point.workouts;
+      seconds += point.durationSeconds;
+    }
+    return (volume: volume, workouts: workouts, seconds: seconds);
+  }
+
+  String _compact(double value) =>
+      value >= 1000
+          ? '${(value / 1000).toStringAsFixed(value >= 10000 ? 0 : 1)}k'
+          : value.toStringAsFixed(0);
+}
+
+class _LoadMetric extends StatelessWidget {
+  final String label;
+  final String value;
+  final String suffix;
+
+  const _LoadMetric({
+    required this.label,
+    required this.value,
+    required this.suffix,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: c.textSecondary,
+              fontFamily: 'Rubik',
+              fontSize: 10,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text.rich(
+            TextSpan(
+              text: value,
+              children: [
+                if (suffix.isNotEmpty)
+                  TextSpan(
+                    text: ' $suffix',
+                    style: TextStyle(color: c.textSecondary, fontSize: 10),
+                  ),
+              ],
+            ),
+            style: TextStyle(
+              color: c.textPrimary,
+              fontFamily: 'Rubik',
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -69,5 +69,60 @@ void main() {
       c.moveExercise(c.groups.first, -1);
       expect(c.groups.map((g) => g.exerciseId), [1, 2, 3]);
     });
+
+    test('effort supports either RPE or RIR and can be cleared', () {
+      final c = WorkoutSessionController();
+      c.addExercise(exerciseId: 1, name: 'Bench', muscleGroup: 'chest');
+      final set = c.groups.single.sets.single;
+
+      c.setEffort(set, rpe: 8.5);
+      expect(set.rpe, 8.5);
+      expect(set.rir, isNull);
+
+      c.setEffort(set, rir: 2);
+      expect(set.rpe, isNull);
+      expect(set.rir, 2);
+
+      c.setEffort(set);
+      expect(set.rpe, isNull);
+      expect(set.rir, isNull);
+    });
+
+    test('exercise note can be edited during a session', () {
+      final c = WorkoutSessionController();
+      c.addExercise(exerciseId: 1, name: 'Bench', muscleGroup: 'chest');
+      final exercise = c.groups.single;
+
+      c.setExerciseNote(exercise, '  Keep shoulder blades retracted  ');
+      expect(exercise.note, 'Keep shoulder blades retracted');
+    });
+
+    test('adjacent exercises can form and leave a circuit', () {
+      final c = WorkoutSessionController();
+      c.addExercise(exerciseId: 1, name: 'Bench', muscleGroup: 'chest');
+      c.addExercise(exerciseId: 2, name: 'Row', muscleGroup: 'back');
+
+      c.groupWithNext(c.groups.first, 'circuit');
+      expect(c.groups.first.trainingGroupId, isNotNull);
+      expect(c.groups.last.trainingGroupId, c.groups.first.trainingGroupId);
+      expect(c.groups.first.trainingGroupType, 'circuit');
+
+      c.ungroup(c.groups.last);
+      expect(
+        c.groups.every((exercise) => exercise.trainingGroupId == null),
+        isTrue,
+      );
+    });
+
+    test('exercise input type is preserved for live additions', () {
+      final c = WorkoutSessionController();
+      c.addExercise(
+        exerciseId: 7,
+        name: 'Run',
+        muscleGroup: 'cardio',
+        exerciseType: 'distance_duration',
+      );
+      expect(c.groups.single.exerciseType, 'distance_duration');
+    });
   });
 }

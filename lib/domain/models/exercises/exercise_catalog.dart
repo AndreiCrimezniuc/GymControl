@@ -175,12 +175,16 @@ class ExerciseHistorySet {
   final int reps;
   final String setType;
   final String progression;
+  final double? rpe;
+  final int? rir;
 
   const ExerciseHistorySet({
     required this.weightKg,
     required this.reps,
     required this.setType,
     required this.progression,
+    this.rpe,
+    this.rir,
   });
 
   factory ExerciseHistorySet.fromJson(Map<String, dynamic> json) =>
@@ -189,6 +193,8 @@ class ExerciseHistorySet {
         reps: (json['reps'] as num?)?.toInt() ?? 0,
         setType: json['set_type'] as String? ?? 'working',
         progression: json['progression'] as String? ?? '',
+        rpe: (json['rpe'] as num?)?.toDouble(),
+        rir: (json['rir'] as num?)?.toInt(),
       );
 }
 

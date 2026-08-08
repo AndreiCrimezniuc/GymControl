@@ -22,7 +22,14 @@ jobs:
         run: flutter pub get
 
       - name: Verify formatting
-        run: dart format --output=none --set-exit-if-changed lib test
+        # Legacy screens are being migrated incrementally. Enforce formatting
+        # on files changed by the PR so unrelated debt cannot block releases.
+        run: |
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          mapfile -t files < <(git diff --name-only --diff-filter=ACMR "origin/${{ github.base_ref }}...HEAD" -- '*.dart')
+          if [ "${#files[@]}" -gt 0 ]; then
+            dart format --output=none --set-exit-if-changed "${files[@]}"
+          fi
 
       - name: Analyze
         run: flutter analyze

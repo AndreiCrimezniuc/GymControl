@@ -46,6 +46,9 @@ class WorkoutExercise {
   final String imageUrl;
   final String imageUrl2;
   final String muscleGroup;
+  final String exerciseType;
+  final String? trainingGroupId;
+  final String trainingGroupType;
   final int restSeconds;
   final String comment;
   final List<WorkoutSet> sets;
@@ -56,6 +59,9 @@ class WorkoutExercise {
     required this.imageUrl,
     this.imageUrl2 = "",
     required this.muscleGroup,
+    this.exerciseType = 'weight_reps',
+    this.trainingGroupId,
+    this.trainingGroupType = '',
     required this.restSeconds,
     required this.comment,
     required this.sets,
@@ -67,6 +73,9 @@ class WorkoutExercise {
     imageUrl: (j['image_url'] as String?) ?? '',
     imageUrl2: (j['image_url2'] as String?) ?? '',
     muscleGroup: (j['muscle_group'] as String?) ?? '',
+    exerciseType: (j['exercise_type'] as String?) ?? 'weight_reps',
+    trainingGroupId: j['training_group_id'] as String?,
+    trainingGroupType: (j['training_group_type'] as String?) ?? '',
     restSeconds: (j['rest_seconds'] as num?)?.toInt() ?? 90,
     comment: (j['comment'] as String?) ?? '',
     sets:
@@ -77,6 +86,9 @@ class WorkoutExercise {
 
   Map<String, dynamic> toJson() => {
     'exercise_id': exerciseId,
+    'exercise_type': exerciseType,
+    'training_group_id': trainingGroupId,
+    'training_group_type': trainingGroupType,
     'rest_seconds': restSeconds,
     'comment': comment,
     'sets': sets.map((s) => s.toJson()).toList(),
@@ -95,6 +107,9 @@ class WorkoutExercise {
     imageUrl: imageUrl,
     imageUrl2: imageUrl2,
     muscleGroup: muscleGroup,
+    exerciseType: exerciseType,
+    trainingGroupId: trainingGroupId,
+    trainingGroupType: trainingGroupType,
     restSeconds: restSeconds ?? this.restSeconds,
     comment: comment ?? this.comment,
     sets: sets ?? this.sets,

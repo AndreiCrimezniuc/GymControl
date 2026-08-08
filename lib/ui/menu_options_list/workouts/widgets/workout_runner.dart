@@ -11,6 +11,7 @@ import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
 import 'package:gymboss/domain/models/exercises/exercise_catalog.dart';
 import 'package:gymboss/ui/menu_options_list/exercises/widgets/muscle_illustration.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/session/workout_session_controller.dart';
+import 'package:gymboss/ui/menu_options_list/workouts/session/workout_calculators.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/exercise_picker.dart';
 
 const _diffLabels = {'normal': 'Normal', 'deload': 'Deload'};
@@ -101,6 +102,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
       exerciseId: picked.id,
       name: picked.name,
       muscleGroup: picked.muscleGroup,
+      exerciseType: picked.exerciseType,
       imageUrl: picked.imageUrl,
       imageUrl2: picked.imageUrl2,
     );
@@ -120,6 +122,57 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
           (ctx) => CupertinoActionSheet(
             title: Text(g.name),
             actions: [
+              CupertinoActionSheetAction(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  _editExerciseNote(session, g);
+                },
+                child: Text(g.note.isEmpty ? 'Add note' : 'Edit note'),
+              ),
+              CupertinoActionSheetAction(
+                onPressed: () async {
+                  Navigator.of(ctx).pop();
+                  final sets = await showWarmupCalculator(
+                    context,
+                    initialWeight:
+                        g.sets.isEmpty ? 0 : g.sets.first.plannedWeightKg,
+                  );
+                  if (sets != null) session.prependWarmupSets(g, sets);
+                },
+                child: const Text('Warm-up calculator'),
+              ),
+              CupertinoActionSheetAction(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  showPlateCalculator(
+                    context,
+                    initialWeight:
+                        g.sets.isEmpty ? 0 : g.sets.first.plannedWeightKg,
+                  );
+                },
+                child: const Text('Plate calculator'),
+              ),
+              if (session.canGroupWithNext(g))
+                CupertinoActionSheetAction(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    _pickTrainingGroup(session, g);
+                  },
+                  child: Text(
+                    g.trainingGroupId == null
+                        ? 'Group with next…'
+                        : 'Extend group to next…',
+                  ),
+                ),
+              if (g.trainingGroupId != null)
+                CupertinoActionSheetAction(
+                  isDestructiveAction: true,
+                  onPressed: () {
+                    session.ungroup(g);
+                    Navigator.of(ctx).pop();
+                  },
+                  child: const Text('Remove exercise group'),
+                ),
               if (canUp)
                 CupertinoActionSheetAction(
                   onPressed: () {
@@ -157,6 +210,75 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     );
   }
 
+  Future<void> _pickTrainingGroup(
+    WorkoutSessionController session,
+    SessionExercise exercise,
+  ) async {
+    final type = await showCupertinoModalPopup<String>(
+      context: context,
+      builder:
+          (ctx) => CupertinoActionSheet(
+            title: const Text('Training group'),
+            message: const Text(
+              'Grouped exercises advance without starting the rest timer until the round is complete.',
+            ),
+            actions: [
+              for (final item in const [
+                ('superset', 'Superset'),
+                ('circuit', 'Circuit'),
+                ('interval', 'Interval block'),
+              ])
+                CupertinoActionSheetAction(
+                  onPressed: () => Navigator.pop(ctx, item.$1),
+                  child: Text(item.$2),
+                ),
+            ],
+            cancelButton: CupertinoActionSheetAction(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+          ),
+    );
+    if (type != null) session.groupWithNext(exercise, type);
+  }
+
+  Future<void> _editExerciseNote(
+    WorkoutSessionController session,
+    SessionExercise exercise,
+  ) async {
+    final controller = TextEditingController(text: exercise.note);
+    final note = await showCupertinoDialog<String>(
+      context: context,
+      builder:
+          (ctx) => CupertinoAlertDialog(
+            title: const Text('Exercise note'),
+            content: Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: CupertinoTextField(
+                controller: controller,
+                autofocus: true,
+                minLines: 2,
+                maxLines: 5,
+                placeholder: 'Form cues, pain, target for next time…',
+              ),
+            ),
+            actions: [
+              CupertinoDialogAction(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('Cancel'),
+              ),
+              CupertinoDialogAction(
+                isDefaultAction: true,
+                onPressed: () => Navigator.of(ctx).pop(controller.text),
+                child: const Text('Save'),
+              ),
+            ],
+          ),
+    );
+    controller.dispose();
+    if (note != null) session.setExerciseNote(exercise, note);
+  }
+
   Future<void> _confirmQuit() async {
     final quit = await showAppDialog<bool>(
       context,
@@ -181,7 +303,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
   }
 
   Future<void> _confirmFinish(WorkoutSessionController session) async {
-    final save = await showAppDialog<bool>(
+    final choice = await showAppDialog<String>(
       context,
       title: 'Finish workout?',
       message:
@@ -190,17 +312,24 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
         AppDialogAction(
           'Finish without saving',
           isDestructive: true,
-          onPressed: () => Navigator.pop(context, false),
+          onPressed: () => Navigator.pop(context, 'discard'),
         ),
         AppDialogAction(
-          'Finish and save',
-          onPressed: () => Navigator.pop(context, true),
+          session.routineChanged ? 'Save · keep routine' : 'Finish and save',
+          onPressed: () => Navigator.pop(context, 'save'),
         ),
+        if (session.routineChanged)
+          AppDialogAction(
+            'Save · update routine',
+            onPressed: () => Navigator.pop(context, 'update'),
+          ),
       ],
     );
-    if (save == null || !mounted) return;
+    if (choice == null || !mounted) return;
+    final save = choice != 'discard';
     setState(() => _finishing = true);
     try {
+      if (choice == 'update') await session.updateRoutineFromSession();
       await session.finish(save: save);
       if (!save && mounted) Navigator.of(context).pop();
     } catch (error) {
@@ -532,13 +661,34 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (g.trainingGroupId != null)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+              decoration: BoxDecoration(
+                color: c.accent,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(19),
+                ),
+              ),
+              child: Text(
+                g.trainingGroupType.toUpperCase(),
+                style: TextStyle(
+                  color: c.textOnAccent,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1,
+                ),
+              ),
+            ),
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: c.accent.withValues(alpha: c.isDark ? 0.07 : 0.05),
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(19),
-              ),
+              borderRadius:
+                  g.trainingGroupId == null
+                      ? const BorderRadius.vertical(top: Radius.circular(19))
+                      : BorderRadius.zero,
             ),
             child: Row(
               children: [
@@ -639,6 +789,37 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
               ],
             ),
           ),
+          if (g.note.isNotEmpty)
+            Pressable(
+              onTap: () => _editExerciseNote(session, g),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+                color: c.iconBg.withValues(alpha: 0.6),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      CupertinoIcons.pencil_outline,
+                      size: 15,
+                      color: c.accent,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        g.note,
+                        style: TextStyle(
+                          fontSize: 12,
+                          height: 1.35,
+                          color: c.textSecondary,
+                          fontFamily: 'Rubik',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           Container(height: 1, color: c.border),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
@@ -652,17 +833,19 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                         width: 73,
                         child: Text('SET', style: _columnLabelStyle(c)),
                       ),
-                      Expanded(
-                        child: Text(
-                          units.label.toUpperCase(),
-                          textAlign: TextAlign.center,
-                          style: _columnLabelStyle(c),
+                      if (_showPrimary(g.exerciseType)) ...[
+                        Expanded(
+                          child: Text(
+                            _primaryLabel(g.exerciseType, units),
+                            textAlign: TextAlign.center,
+                            style: _columnLabelStyle(c),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
+                        const SizedBox(width: 8),
+                      ],
                       Expanded(
                         child: Text(
-                          'REPS',
+                          _secondaryLabel(g.exerciseType),
                           textAlign: TextAlign.center,
                           style: _columnLabelStyle(c),
                         ),
@@ -721,70 +904,149 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
           color: s.done ? c.accent.withValues(alpha: 0.10) : c.iconBg,
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Row(
+        child: Column(
           children: [
-            _typeChip(c, session, s),
-            const SizedBox(width: 7),
-            Container(
-              width: 26,
-              height: 30,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: s.done ? c.accent : c.card,
-                borderRadius: BorderRadius.circular(9),
-                border: Border.all(color: s.done ? c.accent : c.border),
-              ),
-              child: Text(
-                '$number',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                  color: s.done ? c.textOnAccent : c.textSecondary,
-                  fontFamily: 'Rubik',
-                ),
-              ),
-            ),
-            if (s.progression.isNotEmpty) ...[
-              const SizedBox(width: 6),
-              _progressionBadge(c, s.progression),
-            ],
-            const SizedBox(width: 8),
-            Expanded(child: _numField(c, _wc(s), s.done, units.label)),
-            const SizedBox(width: 8),
-            Expanded(child: _numField(c, _rc(s), s.done, 'reps')),
-            const SizedBox(width: 10),
-            Pressable(
-              onTap: () => session.toggleSet(s),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                curve: const Cubic(0.23, 1, 0.32, 1),
-                width: 44,
-                height: 44,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: s.done ? c.accent : c.card,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: s.done ? c.accent : c.border),
-                ),
-                child: AnimatedScale(
-                  scale: s.done ? 1.0 : 0.82,
-                  duration: const Duration(milliseconds: 200),
-                  curve:
-                      s.done
-                          ? const Cubic(
-                            0.34,
-                            1.56,
-                            0.64,
-                            1,
-                          ) // gentle overshoot pop
-                          : const Cubic(0.23, 1, 0.32, 1),
-                  child: Icon(
-                    CupertinoIcons.check_mark,
-                    size: 22,
-                    color: s.done ? c.textOnAccent : c.textSecondary,
+            Row(
+              children: [
+                _typeChip(c, session, s),
+                const SizedBox(width: 7),
+                Container(
+                  width: 26,
+                  height: 30,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: s.done ? c.accent : c.card,
+                    borderRadius: BorderRadius.circular(9),
+                    border: Border.all(color: s.done ? c.accent : c.border),
+                  ),
+                  child: Text(
+                    '$number',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: s.done ? c.textOnAccent : c.textSecondary,
+                      fontFamily: 'Rubik',
+                    ),
                   ),
                 ),
-              ),
+                if (s.progression.isNotEmpty) ...[
+                  const SizedBox(width: 6),
+                  _progressionBadge(c, s.progression),
+                ],
+                const SizedBox(width: 8),
+                if (_showPrimary(g.exerciseType)) ...[
+                  Expanded(
+                    child: _numField(
+                      c,
+                      _wc(s),
+                      s.done,
+                      _primaryUnit(g.exerciseType, units),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                Expanded(
+                  child: _numField(
+                    c,
+                    _rc(s),
+                    s.done,
+                    _secondaryUnit(g.exerciseType),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Pressable(
+                  onTap: () => session.toggleSet(s),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    curve: const Cubic(0.23, 1, 0.32, 1),
+                    width: 44,
+                    height: 44,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: s.done ? c.accent : c.card,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: s.done ? c.accent : c.border),
+                    ),
+                    child: AnimatedScale(
+                      scale: s.done ? 1.0 : 0.82,
+                      duration: const Duration(milliseconds: 200),
+                      curve:
+                          s.done
+                              ? const Cubic(
+                                0.34,
+                                1.56,
+                                0.64,
+                                1,
+                              ) // gentle overshoot pop
+                              : const Cubic(0.23, 1, 0.32, 1),
+                      child: Icon(
+                        CupertinoIcons.check_mark,
+                        size: 22,
+                        color: s.done ? c.textOnAccent : c.textSecondary,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 7),
+            Row(
+              children: [
+                if (s.previousReps != null)
+                  Expanded(
+                    child: Pressable(
+                      onTap:
+                          s.done
+                              ? null
+                              : () {
+                                session.usePrevious(s);
+                                _wc(s).text = s.weight;
+                                _rc(s).text = s.reps;
+                                HapticFeedback.selectionClick();
+                              },
+                      child: Text(
+                        _previousLabel(g.exerciseType, units, s),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: c.textSecondary,
+                          fontFamily: 'Rubik',
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  const Spacer(),
+                Pressable(
+                  onTap: s.done ? null : () => _pickEffort(session, s),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: c.card,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: c.border),
+                    ),
+                    child: Text(
+                      s.rpe != null
+                          ? 'RPE ${s.rpe}'
+                          : s.rir != null
+                          ? 'RIR ${s.rir}'
+                          : 'RPE / RIR',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: c.textSecondary,
+                        fontFamily: 'Rubik',
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -799,6 +1061,42 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     color: c.textSecondary,
     fontFamily: 'Rubik',
   );
+
+  bool _showPrimary(String type) =>
+      type == 'weight_reps' ||
+      type == 'bodyweight_reps' ||
+      type == 'distance_duration';
+
+  String _primaryLabel(String type, UnitsController units) => switch (type) {
+    'bodyweight_reps' => 'ADDED ${units.label.toUpperCase()}',
+    'distance_duration' => 'DISTANCE KM',
+    'reps_only' => '',
+    'duration' => '',
+    _ => units.label.toUpperCase(),
+  };
+
+  String _secondaryLabel(String type) => switch (type) {
+    'duration' || 'distance_duration' => 'SECONDS',
+    _ => 'REPS',
+  };
+
+  String _primaryUnit(String type, UnitsController units) =>
+      type == 'distance_duration' ? 'km' : units.label;
+
+  String _secondaryUnit(String type) =>
+      type == 'duration' || type == 'distance_duration' ? 'sec' : 'reps';
+
+  String _previousLabel(String type, UnitsController units, SessionSet set) {
+    final effort = set.previousRpe != null ? '  @ ${set.previousRpe} RPE' : '';
+    return switch (type) {
+      'reps_only' => 'Previous  ${set.previousReps} reps$effort',
+      'duration' => 'Previous  ${set.previousReps} sec$effort',
+      'distance_duration' =>
+        'Previous  ${set.previousWeightKg ?? 0} km · ${set.previousReps} sec$effort',
+      _ =>
+        'Previous  ${units.format(set.previousWeightKg ?? 0)}${units.label} × ${set.previousReps}$effort',
+    };
+  }
 
   // Compact tag on a set row indicating a non-weight progression.
   Widget _progressionBadge(AppColors c, String progression) {
@@ -832,6 +1130,12 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
         );
       case 'failure':
         return (bg: c.accent.withValues(alpha: 0.16), fg: c.accent, badge: 'F');
+      case 'dropset':
+        return (
+          bg: const Color(0x332563EB),
+          fg: const Color(0xFF2563EB),
+          badge: 'D',
+        );
       default:
         return (bg: c.card, fg: c.textSecondary, badge: '•');
     }
@@ -878,16 +1182,6 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
 
   // Explicit set-type selector so the type (warm-up / working / failure) is
   // chosen from named options instead of a blind tap-to-cycle.
-  static const _typeNames = {
-    'warmup': 'Warm-up',
-    'working': 'Working',
-    'failure': 'Failure',
-  };
-  static const _typeDescriptions = {
-    'warmup': 'Excluded from working volume',
-    'working': 'Counts toward volume & PRs',
-    'failure': 'Taken to muscular failure',
-  };
   static const _progressionNames = {
     'weight': 'Heavier weight',
     'amplitude': 'Greater amplitude',
@@ -911,8 +1205,8 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
       rows: [
         for (final t in setTypes)
           _PickerRow(
-            title: _typeNames[t]!,
-            subtitle: _typeDescriptions[t]!,
+            title: setTypeMetadata[t]!.name,
+            subtitle: setTypeMetadata[t]!.description,
             badge: _typeVisual(context.colors, t).badge,
             badgeBg: _typeVisual(context.colors, t).bg,
             badgeFg: _typeVisual(context.colors, t).fg,
@@ -954,6 +1248,89 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
         ),
       ],
     );
+  }
+
+  Future<void> _pickEffort(
+    WorkoutSessionController session,
+    SessionSet s,
+  ) async {
+    HapticFeedback.selectionClick();
+    final mode = await showCupertinoModalPopup<String>(
+      context: context,
+      builder:
+          (ctx) => CupertinoActionSheet(
+            title: const Text('Effort'),
+            message: const Text(
+              'RPE measures effort from 6–10. RIR records estimated reps left.',
+            ),
+            actions: [
+              CupertinoActionSheetAction(
+                onPressed: () => Navigator.pop(ctx, 'rpe'),
+                child: const Text('Log RPE'),
+              ),
+              CupertinoActionSheetAction(
+                onPressed: () => Navigator.pop(ctx, 'rir'),
+                child: const Text('Log RIR'),
+              ),
+              if (s.rpe != null || s.rir != null)
+                CupertinoActionSheetAction(
+                  isDestructiveAction: true,
+                  onPressed: () => Navigator.pop(ctx, 'clear'),
+                  child: const Text('Clear effort'),
+                ),
+            ],
+            cancelButton: CupertinoActionSheetAction(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+          ),
+    );
+    if (!mounted || mode == null) return;
+    if (mode == 'clear') {
+      session.setEffort(s);
+      return;
+    }
+    if (mode == 'rpe') {
+      final value = await showCupertinoModalPopup<double>(
+        context: context,
+        builder:
+            (ctx) => CupertinoActionSheet(
+              title: const Text('Rate of perceived exertion'),
+              actions: [
+                for (final value in const [6, 7, 8, 8.5, 9, 9.5, 10])
+                  CupertinoActionSheetAction(
+                    onPressed: () => Navigator.pop(ctx, value.toDouble()),
+                    child: Text('$value RPE'),
+                  ),
+              ],
+              cancelButton: CupertinoActionSheetAction(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+            ),
+      );
+      if (value != null) session.setEffort(s, rpe: value);
+      return;
+    }
+    final value = await showCupertinoModalPopup<int>(
+      context: context,
+      builder:
+          (ctx) => CupertinoActionSheet(
+            title: const Text('Reps in reserve'),
+            actions: [
+              for (final value in const [0, 1, 2, 3, 4, 5])
+                CupertinoActionSheetAction(
+                  onPressed: () => Navigator.pop(ctx, value),
+                  child: Text('$value RIR'),
+                ),
+            ],
+            cancelButton: CupertinoActionSheetAction(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+          ),
+    );
+    if (value != null) session.setEffort(s, rir: value);
   }
 
   // A themed bottom-sheet picker (grab handle, app surface, tap-to-select rows)
