@@ -38,6 +38,8 @@ class _WorkoutsState extends State<Workouts> {
   String? _folderId;
   String _query = '';
   String _sort = 'updated';
+  String _libraryGoal = 'all';
+  String _libraryMuscle = 'all';
 
   @override
   void initState() {
@@ -394,6 +396,29 @@ class _WorkoutsState extends State<Workouts> {
                       ),
                 )
                 .toList();
+    if (_tab == 1) {
+      list.removeWhere((workout) {
+        final haystack =
+            '${workout.name} ${workout.comment} ${workout.muscleGroups.join(' ')}'
+                .toLowerCase();
+        final goalMatches = switch (_libraryGoal) {
+          'strength' => RegExp(r'strength|power|5x5').hasMatch(haystack),
+          'muscle' => RegExp(
+            r'hypertrophy|muscle|bodybuilding|push|pull|legs',
+          ).hasMatch(haystack),
+          'fitness' => RegExp(
+            r'fitness|conditioning|full body|beginner',
+          ).hasMatch(haystack),
+          _ => true,
+        };
+        final muscleMatches =
+            _libraryMuscle == 'all' ||
+            workout.muscleGroups.any(
+              (muscle) => muscle.toLowerCase() == _libraryMuscle,
+            );
+        return !goalMatches || !muscleMatches;
+      });
+    }
     if (_sort == 'performed') {
       list.sort((a, b) => b.timesPerformed.compareTo(a.timesPerformed));
     } else if (_sort == 'name') {
@@ -445,6 +470,37 @@ class _WorkoutsState extends State<Workouts> {
               ],
             ),
           ),
+        if (_tab == 1 && _libraryLoaded) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+            child: _LibraryCoachCard(
+              goal: _libraryGoal,
+              onGoal: (value) => setState(() => _libraryGoal = value),
+            ),
+          ),
+          SizedBox(
+            height: 46,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              children: [
+                for (final muscle in <String>{
+                  'all',
+                  ..._public.expand(
+                    (workout) => workout.muscleGroups.map(
+                      (value) => value.toLowerCase(),
+                    ),
+                  ),
+                })
+                  _FolderChip(
+                    label: muscle == 'all' ? 'All muscles' : muscle,
+                    selected: _libraryMuscle == muscle,
+                    onTap: () => setState(() => _libraryMuscle = muscle),
+                  ),
+              ],
+            ),
+          ),
+        ],
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
           child: Row(
@@ -726,6 +782,104 @@ class _WorkoutCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _LibraryCoachCard extends StatelessWidget {
+  final String goal;
+  final ValueChanged<String> onGoal;
+
+  const _LibraryCoachCard({required this.goal, required this.onGoal});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    const goals = <String, (String, IconData)>{
+      'all': ('Explore', CupertinoIcons.compass_fill),
+      'strength': ('Strength', CupertinoIcons.bolt_fill),
+      'muscle': ('Build muscle', CupertinoIcons.arrow_up_right),
+      'fitness': ('General fitness', CupertinoIcons.heart_fill),
+    };
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: c.card,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: c.border),
+        boxShadow: c.cardShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'What are you training for?',
+            style: TextStyle(
+              color: c.textPrimary,
+              fontFamily: 'Rubik',
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Pick a goal and start from a coach-built template.',
+            style: TextStyle(
+              color: c.textSecondary,
+              fontFamily: 'Rubik',
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final entry in goals.entries)
+                Semantics(
+                  button: true,
+                  selected: goal == entry.key,
+                  child: CupertinoButton(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 11,
+                      vertical: 8,
+                    ),
+                    minimumSize: const Size(44, 36),
+                    color: goal == entry.key ? c.accent : c.iconBg,
+                    borderRadius: BorderRadius.circular(12),
+                    onPressed: () => onGoal(entry.key),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          entry.value.$2,
+                          size: 14,
+                          color:
+                              goal == entry.key
+                                  ? c.textOnAccent
+                                  : c.textSecondary,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          entry.value.$1,
+                          style: TextStyle(
+                            color:
+                                goal == entry.key
+                                    ? c.textOnAccent
+                                    : c.textPrimary,
+                            fontFamily: 'Rubik',
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }
