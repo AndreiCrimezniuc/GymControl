@@ -1,11 +1,9 @@
 import 'package:flutter/widgets.dart';
 
 /// Full colour palette for one theme (light or dark). Read it from context via
-/// `context.colors` (see theme_controller.dart). Tuned to the "design 5" look:
-/// near-white / pure-black backgrounds, a bright red accent, and a high-contrast
-/// inverse surface for the primary action button. The light palette is a cool,
-/// athletic system; the dark palette intentionally keeps its instrument-like
-/// character.
+/// `context.colors` (see theme_controller.dart). The light palette uses a
+/// graphite neutral scale with a restrained signal-red accent. The dark palette
+/// intentionally keeps its existing instrument-like character.
 class AppColors {
   final bool isDark;
 
@@ -58,7 +56,7 @@ class AppColors {
   /// A soft, background-tinted card shadow for gentle depth.
   List<BoxShadow> get cardShadow => [
     BoxShadow(
-      color: isDark ? const Color(0x66000000) : const Color(0x12203B49),
+      color: isDark ? const Color(0x66000000) : const Color(0x1419191B),
       blurRadius: isDark ? 24 : 16,
       offset: Offset(0, isDark ? 8 : 7),
     ),
@@ -66,22 +64,21 @@ class AppColors {
 
   static const light = AppColors(
     isDark: false,
-    bg: Color(0xFFF3F6F8),
-    bgTop: Color(0xFFF8FAFB),
-    bgBottom: Color(0xFFF3F6F8),
+    bg: Color(0xFFF5F5F3),
+    bgTop: Color(0xFFFAFAF8),
+    bgBottom: Color(0xFFF2F2EF),
     card: Color(0xFFFFFFFF),
-    // Pale cyan surface used for fields, icon wells and inactive controls.
-    iconBg: Color(0xFFDCEFF1),
-    border: Color(0xFFD9E1E6),
-    pillBorder: Color(0xFFC7D5DC),
-    textPrimary: Color(0xFF172026),
-    textSecondary: Color(0xFF64737D),
+    iconBg: Color(0xFFECECEA),
+    border: Color(0xFFDCDCD8),
+    pillBorder: Color(0xFFD2D2CE),
+    textPrimary: Color(0xFF19191B),
+    textSecondary: Color(0xFF6D6D72),
     textOnAccent: Color(0xFFFFFFFF),
-    accent: Color(0xFF087E8B),
-    accentPressed: Color(0xFF05636E),
-    ringTrack: Color(0xFFDDE7EB),
-    navInactive: Color(0xFF91A0A9),
-    invBg: Color(0xFF172026),
+    accent: Color(0xFFC83C36),
+    accentPressed: Color(0xFFA42E29),
+    ringTrack: Color(0xFFE3E3DF),
+    navInactive: Color(0xFF8A8A8F),
+    invBg: Color(0xFF19191B),
     invText: Color(0xFFFFFFFF),
   );
 
