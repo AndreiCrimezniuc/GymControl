@@ -51,7 +51,7 @@ class _WorkoutsState extends State<Workouts> {
     _load();
   }
 
-  Future<void> _load({bool spinner = true}) async {
+  Future<void> _load({bool spinner = true, bool forceRefresh = false}) async {
     if (spinner) {
       setState(() {
         _loading = true;
@@ -59,7 +59,7 @@ class _WorkoutsState extends State<Workouts> {
       });
     }
     try {
-      final mine = await _repo.listOwned();
+      final mine = await _repo.listOwned(forceRefresh: forceRefresh);
       if (mounted) {
         setState(() {
           _mine = mine;
@@ -67,7 +67,7 @@ class _WorkoutsState extends State<Workouts> {
         });
       }
       try {
-        final folders = await _repo.listFolders();
+        final folders = await _repo.listFolders(forceRefresh: forceRefresh);
         if (mounted) {
           setState(() {
             _folders = folders;
@@ -96,7 +96,7 @@ class _WorkoutsState extends State<Workouts> {
       _libraryError = null;
     });
     try {
-      final items = await _repo.listPublic();
+      final items = await _repo.listPublic(forceRefresh: force);
       if (!mounted) return;
       setState(() {
         _public = items;
@@ -556,7 +556,7 @@ class _WorkoutsState extends State<Workouts> {
                         onRefresh:
                             () =>
                                 _tab == 0
-                                    ? _load(spinner: false)
+                                    ? _load(spinner: false, forceRefresh: true)
                                     : _loadLibrary(force: true),
                       ),
                       if (list.isEmpty)

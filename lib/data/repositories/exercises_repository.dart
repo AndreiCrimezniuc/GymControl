@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 
 import 'package:gymboss/config/api_config.dart';
+import 'package:gymboss/data/local/exercise_media_cache.dart';
 import 'package:gymboss/data/local/local_store.dart';
 import 'package:gymboss/data/local/mutation.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
@@ -11,6 +13,7 @@ import 'package:gymboss/data/sync/connectivity_service.dart';
 import 'package:gymboss/data/sync/network_failure.dart';
 import 'package:gymboss/data/sync/sync_service.dart';
 import 'package:gymboss/domain/models/exercises/exercise_catalog.dart';
+import 'package:gymboss/domain/models/exercises/exercise_catalog_policy.dart';
 
 class ExercisesRepository {
   static const _catalogCollection = 'exercise';
@@ -31,10 +34,21 @@ class ExercisesRepository {
     _registerHandlers();
   }
 
-  Future<List<ExerciseCatalogItem>> getCatalog() async {
+  Future<List<ExerciseCatalogItem>> getCatalog({
+    bool forceRefresh = false,
+  }) async {
+    if (!forceRefresh && _store.hasList(_catalogKey)) {
+      final cached = _cachedCatalog();
+      if (await _isOnline()) unawaited(_refreshCatalogInBackground());
+      return cached;
+    }
     if (!await _isOnline() && _store.hasList(_catalogKey)) {
       return _cachedCatalog();
     }
+    return _refreshCatalog();
+  }
+
+  Future<List<ExerciseCatalogItem>> _refreshCatalog() async {
     try {
       final resp = await _client
           .get(Uri.parse(_base))
@@ -43,14 +57,22 @@ class ExercisesRepository {
         throw Exception('GET /exercises HTTP ${resp.statusCode}');
       }
       final raw = (jsonDecode(resp.body) as List).cast<Map<String, dynamic>>();
-      for (final doc in raw) {
+      final curated = ExerciseCatalogPolicy.curate(
+        raw.map(ExerciseCatalogItem.fromJson),
+      );
+      final visibleIds = curated.map((exercise) => '${exercise.id}').toSet();
+      final visibleRaw = raw
+          .where((doc) => visibleIds.contains('${doc['id']}'))
+          .toList(growable: false);
+      for (final doc in visibleRaw) {
         await _store.putDoc(_catalogCollection, '${doc['id']}', doc);
       }
       await _store.putListIds(
         _catalogKey,
-        raw.map((doc) => '${doc['id']}').toList(),
+        visibleRaw.map((doc) => '${doc['id']}').toList(),
       );
-      return raw.map(ExerciseCatalogItem.fromJson).toList();
+      unawaited(ExerciseMediaCache.warm(curated));
+      return curated;
     } on Object catch (error) {
       if (isTransientNetworkFailure(error) && _store.hasList(_catalogKey)) {
         return _cachedCatalog();
@@ -59,11 +81,20 @@ class ExercisesRepository {
     }
   }
 
-  List<ExerciseCatalogItem> _cachedCatalog() =>
-      _store
-          .getListDocs(_catalogCollection, _catalogKey)
-          .map(ExerciseCatalogItem.fromJson)
-          .toList();
+  Future<void> _refreshCatalogInBackground() async {
+    try {
+      await _refreshCatalog();
+    } catch (_) {
+      // A durable snapshot is already on screen; refresh again on the next
+      // launch, connectivity event, or explicit pull-to-refresh.
+    }
+  }
+
+  List<ExerciseCatalogItem> _cachedCatalog() => ExerciseCatalogPolicy.curate(
+    _store
+        .getListDocs(_catalogCollection, _catalogKey)
+        .map(ExerciseCatalogItem.fromJson),
+  );
 
   Future<ExerciseStats> getStats(int id) async {
     final cached = _store.getDoc('exercise_stats', '$id');

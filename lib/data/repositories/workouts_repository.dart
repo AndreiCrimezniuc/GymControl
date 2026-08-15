@@ -44,14 +44,24 @@ class WorkoutsRepository {
 
   // ── Reads (cache fallback) ─────────────────────────────────────────────────
 
-  Future<List<Workout>> listOwned() => _cachedList(_base, _ownedKey);
-  Future<List<Workout>> listPublic() =>
-      _cachedList('$_base/public', _publicKey);
+  Future<List<Workout>> listOwned({bool forceRefresh = false}) =>
+      _cachedList(_base, _ownedKey, forceRefresh: forceRefresh);
+  Future<List<Workout>> listPublic({bool forceRefresh = false}) =>
+      _cachedList('$_base/public', _publicKey, forceRefresh: forceRefresh);
 
-  Future<List<WorkoutFolder>> listFolders() async {
+  Future<List<WorkoutFolder>> listFolders({bool forceRefresh = false}) async {
+    if (!forceRefresh && _store.hasList(_foldersKey)) {
+      final cached = _cachedFolders();
+      if (await _isOnline()) unawaited(_refreshFoldersInBackground());
+      return cached;
+    }
     if (!await _isOnline() && _store.hasList(_foldersKey)) {
       return _cachedFolders();
     }
+    return _refreshFolders();
+  }
+
+  Future<List<WorkoutFolder>> _refreshFolders() async {
     try {
       final response = await _client
           .get(Uri.parse('${ApiConfig.apiBaseUrl}/api/v1/workout-folders'))
@@ -74,6 +84,14 @@ class WorkoutsRepository {
         return _cachedFolders();
       }
       rethrow;
+    }
+  }
+
+  Future<void> _refreshFoldersInBackground() async {
+    try {
+      await _refreshFolders();
+    } catch (_) {
+      // Keep the last durable snapshot and retry later.
     }
   }
 
@@ -141,10 +159,25 @@ class WorkoutsRepository {
     }
   }
 
-  Future<List<Workout>> _cachedList(String url, String key) async {
+  Future<List<Workout>> _cachedList(
+    String url,
+    String key, {
+    bool forceRefresh = false,
+  }) async {
+    if (!forceRefresh && _store.hasList(key)) {
+      final cached = _readCachedWorkouts(key);
+      if (await _isOnline()) {
+        unawaited(_refreshWorkoutListInBackground(url, key));
+      }
+      return cached;
+    }
     if (!await _isOnline() && _store.hasList(key)) {
       return _readCachedWorkouts(key);
     }
+    return _refreshWorkoutList(url, key);
+  }
+
+  Future<List<Workout>> _refreshWorkoutList(String url, String key) async {
     try {
       final resp = await _client
           .get(Uri.parse(url))
@@ -164,6 +197,14 @@ class WorkoutsRepository {
         return _readCachedWorkouts(key);
       }
       rethrow;
+    }
+  }
+
+  Future<void> _refreshWorkoutListInBackground(String url, String key) async {
+    try {
+      await _refreshWorkoutList(url, key);
+    } catch (_) {
+      // Keep the last durable snapshot and retry later.
     }
   }
 

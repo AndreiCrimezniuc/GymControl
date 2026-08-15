@@ -46,7 +46,7 @@ class _ExercisesState extends State<Exercises> {
     super.dispose();
   }
 
-  Future<void> _load({bool spinner = true}) async {
+  Future<void> _load({bool spinner = true, bool forceRefresh = false}) async {
     if (spinner) {
       setState(() {
         _loading = true;
@@ -54,7 +54,7 @@ class _ExercisesState extends State<Exercises> {
       });
     }
     try {
-      final items = await _repo.getCatalog();
+      final items = await _repo.getCatalog(forceRefresh: forceRefresh);
       if (mounted) {
         setState(() {
           _all = items;
@@ -127,7 +127,10 @@ class _ExercisesState extends State<Exercises> {
     showCupertinoModalPopup<void>(
       context: context,
       builder:
-          (_) => _CreateExerciseSheet(repo: _repo, onCreated: (_) => _load()),
+          (_) => _CreateExerciseSheet(
+            repo: _repo,
+            onCreated: (_) => _load(forceRefresh: true),
+          ),
     );
   }
 
@@ -330,7 +333,7 @@ class _ExercisesState extends State<Exercises> {
           child: CustomScrollView(
             slivers: [
               CupertinoSliverRefreshControl(
-                onRefresh: () => _load(spinner: false),
+                onRefresh: () => _load(spinner: false, forceRefresh: true),
               ),
               if (filtered.isEmpty)
                 SliverFillRemaining(
