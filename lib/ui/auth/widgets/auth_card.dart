@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
-import 'package:gymboss/ui/core/theme/theme_controller.dart';
+import 'package:gymboss/ui/core/theme/app_design.dart';
+import 'package:gymboss/ui/core/ui/widgets/app_glass_surface.dart';
 
 class AuthCard extends StatelessWidget {
   final List<Widget> children;
@@ -8,19 +9,16 @@ class AuthCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = context.colors;
-    return Container(
+    return SizedBox(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: c.card,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: c.border, width: 1.5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: children,
+      child: AppGlassSurface(
+        radius: AppDesign.radiusSheet,
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: children,
+        ),
       ),
     );
   }

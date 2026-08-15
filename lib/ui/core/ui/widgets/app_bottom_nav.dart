@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
+import 'package:gymboss/ui/core/theme/app_design.dart';
 
 class BottomNavItem {
   final IconData icon;
@@ -9,7 +10,7 @@ class BottomNavItem {
 }
 
 /// Bottom navigation bar. The active item is tinted with the accent colour and
-/// underlined; the rest are muted.
+/// placed on a floating glass dock; the rest are muted.
 class AppBottomNav extends StatelessWidget {
   final List<BottomNavItem> items;
   final int activeIndex;
@@ -24,10 +25,14 @@ class AppBottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Container(
+      margin: const EdgeInsets.fromLTRB(14, 4, 14, 10),
       decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: c.border)),
+        color: c.card,
+        borderRadius: BorderRadius.circular(AppDesign.radiusCard),
+        border: Border.all(color: c.border, width: AppDesign.hairline),
+        boxShadow: c.cardShadow,
       ),
-      padding: const EdgeInsets.only(top: 10, bottom: 8),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
@@ -64,26 +69,23 @@ class _NavButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: onTap == null
-          ? null
-          : () {
-              if (!active) HapticFeedback.selectionClick();
-              onTap!();
-            },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 24, color: active ? accent : inactive),
-          const SizedBox(height: 5),
-          Container(
-            width: 18,
-            height: 2,
-            decoration: BoxDecoration(
-              color: active ? accent : const Color(0x00000000),
-              borderRadius: BorderRadius.circular(1),
-            ),
-          ),
-        ],
+      onTap:
+          onTap == null
+              ? null
+              : () {
+                if (!active) HapticFeedback.selectionClick();
+                onTap!();
+              },
+      child: AnimatedContainer(
+        duration: AppDesign.quick,
+        width: 44,
+        height: 34,
+        decoration: BoxDecoration(
+          color:
+              active ? accent.withValues(alpha: 0.14) : const Color(0x00000000),
+          borderRadius: BorderRadius.circular(13),
+        ),
+        child: Icon(icon, size: 21, color: active ? accent : inactive),
       ),
     );
   }

@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:gymboss/ui/core/theme/app_colors.dart';
+import 'package:gymboss/ui/core/theme/app_design.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/input/numeric_limit_formatter.dart';
 import 'package:gymboss/ui/core/units/units_controller.dart';
@@ -422,8 +423,14 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
   Widget _header(AppColors c, WorkoutSessionController s) {
     final progress =
         s.totalSets == 0 ? 0.0 : (s.doneSets / s.totalSets).clamp(0.0, 1.0);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+    return Container(
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 10),
+      decoration: BoxDecoration(
+        color: c.card.withValues(alpha: c.isDark ? 0.42 : 0.58),
+        border: Border(
+          bottom: BorderSide(color: c.border, width: AppDesign.hairline),
+        ),
+      ),
       child: Column(
         children: [
           Row(
@@ -448,9 +455,9 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 15,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.25,
                     color: c.textPrimary,
-                    fontFamily: 'Rubik',
                   ),
                 ),
               ),
@@ -495,7 +502,6 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                   color: c.textPrimary,
-                  fontFamily: 'Rubik',
                 ),
               ),
               const Spacer(),
@@ -505,7 +511,6 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                   color: c.accent,
-                  fontFamily: 'Rubik',
                 ),
               ),
               const Spacer(),
@@ -521,7 +526,6 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                   color: c.textPrimary,
-                  fontFamily: 'Rubik',
                 ),
               ),
             ],
@@ -533,7 +537,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
 
   Widget _body(AppColors c, WorkoutSessionController s, UnitsController units) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 120),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
       children: [
         for (var gi = 0; gi < s.groups.length; gi++)
           _exerciseCard(c, s, units, gi + 1, s.groups[gi]),
@@ -547,8 +551,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     );
   }
 
-  // A high-contrast, full-width add affordance. It intentionally stays white
-  // in both themes: this separates editing actions from red completion actions.
+  // Editing controls use a quiet glass surface, matching the reference UI.
   Widget _addRowButton(
     AppColors c,
     IconData icon,
@@ -561,31 +564,22 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
         height: 48,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: const Color(0xFFFFFFFF),
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(
-            color: c.isDark ? const Color(0xFF3A3A40) : const Color(0xFFD8D2CE),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF000000).withValues(alpha: 0.10),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          color: c.card,
+          borderRadius: BorderRadius.circular(AppDesign.radiusControl),
+          border: Border.all(color: c.border, width: AppDesign.hairline),
+          boxShadow: c.cardShadow,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 17, color: const Color(0xFF111113)),
+            Icon(icon, size: 17, color: c.textPrimary),
             const SizedBox(width: 6),
             Text(
               label,
               style: TextStyle(
                 fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFF111113),
-                fontFamily: 'Rubik',
+                fontWeight: FontWeight.w600,
+                color: c.textPrimary,
               ),
             ),
           ],
@@ -599,8 +593,10 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       decoration: BoxDecoration(
-        color: c.bg,
-        border: Border(top: BorderSide(color: c.border)),
+        color: c.card.withValues(alpha: c.isDark ? 0.46 : 0.62),
+        border: Border(
+          top: BorderSide(color: c.border, width: AppDesign.hairline),
+        ),
       ),
       child: Pressable(
         onTap: _finishing ? null : () => _confirmFinish(s),
@@ -608,8 +604,9 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
           height: 56,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: c.accent,
-            borderRadius: BorderRadius.circular(16),
+            color: c.invBg,
+            borderRadius: BorderRadius.circular(AppDesign.radiusControl),
+            boxShadow: c.cardShadow,
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -619,17 +616,16 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                     ? CupertinoIcons.checkmark_alt
                     : CupertinoIcons.flag_fill,
                 size: 18,
-                color: c.textOnAccent,
+                color: c.invText,
               ),
               const SizedBox(width: 8),
               Text(
-                allDone ? 'FINISH · ALL DONE' : 'FINISH WORKOUT',
+                allDone ? 'Finish · all done' : 'Finish workout',
                 style: TextStyle(
-                  fontFamily: 'Rubik',
                   fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1,
-                  color: c.textOnAccent,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.2,
+                  color: c.invText,
                 ),
               ),
             ],
@@ -654,8 +650,8 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
         color: c.card,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: c.border),
+        borderRadius: BorderRadius.circular(AppDesign.radiusCard),
+        border: Border.all(color: c.border, width: AppDesign.hairline),
         boxShadow: c.cardShadow,
       ),
       child: Column(
@@ -684,7 +680,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: c.accent.withValues(alpha: c.isDark ? 0.07 : 0.05),
+              color: c.iconBg.withValues(alpha: c.isDark ? 0.52 : 0.62),
               borderRadius:
                   g.trainingGroupId == null
                       ? const BorderRadius.vertical(top: Radius.circular(19))
@@ -718,18 +714,13 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
                           color: c.textPrimary,
-                          fontFamily: 'Rubik',
                         ),
                       ),
                       const SizedBox(height: 3),
                       Text(
                         'Rest ${g.restSeconds}s'
                         '${pr != null ? '  ·  PR ${units.format(pr)}${units.label}' : ''}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: c.textSecondary,
-                          fontFamily: 'Rubik',
-                        ),
+                        style: TextStyle(fontSize: 12, color: c.textSecondary),
                       ),
                     ],
                   ),
@@ -749,7 +740,6 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                       fontSize: 12,
                       fontWeight: FontWeight.w800,
                       color: c.accent,
-                      fontFamily: 'Rubik',
                     ),
                   ),
                 ),
@@ -769,7 +759,6 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                       fontSize: 12,
                       fontWeight: FontWeight.w800,
                       color: allDone ? c.textOnAccent : c.textSecondary,
-                      fontFamily: 'Rubik',
                     ),
                   ),
                 ),
@@ -812,7 +801,6 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                           fontSize: 12,
                           height: 1.35,
                           color: c.textSecondary,
-                          fontFamily: 'Rubik',
                         ),
                       ),
                     ),
@@ -925,7 +913,6 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
                       color: s.done ? c.textOnAccent : c.textSecondary,
-                      fontFamily: 'Rubik',
                     ),
                   ),
                 ),
@@ -1012,7 +999,6 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
                           color: c.textSecondary,
-                          fontFamily: 'Rubik',
                         ),
                       ),
                     ),
@@ -1041,7 +1027,6 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
                         color: c.textSecondary,
-                        fontFamily: 'Rubik',
                       ),
                     ),
                   ),
@@ -1059,7 +1044,6 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     fontWeight: FontWeight.w800,
     letterSpacing: 0.8,
     color: c.textSecondary,
-    fontFamily: 'Rubik',
   );
 
   bool _showPrimary(String type) =>
@@ -1112,7 +1096,6 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
           fontSize: 10,
           fontWeight: FontWeight.w800,
           color: c.accent,
-          fontFamily: 'Rubik',
         ),
       ),
     );
@@ -1169,7 +1152,6 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                 fontSize: 13,
                 fontWeight: FontWeight.w800,
                 color: v.fg,
-                fontFamily: 'Rubik',
               ),
             ),
             if (!s.done)
@@ -1378,7 +1360,6 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                         fontSize: 12,
                         fontWeight: FontWeight.w800,
                         color: r.badgeFg ?? c.textSecondary,
-                        fontFamily: 'Rubik',
                       ),
                     ),
                   )
@@ -1397,7 +1378,6 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                           fontWeight:
                               r.selected ? FontWeight.w700 : FontWeight.w600,
                           color: r.destructive ? c.accent : c.textPrimary,
-                          fontFamily: 'Rubik',
                         ),
                       ),
                       if (r.subtitle != null) ...[
@@ -1407,7 +1387,6 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                           style: TextStyle(
                             fontSize: 12,
                             color: c.textSecondary,
-                            fontFamily: 'Rubik',
                           ),
                         ),
                       ],
@@ -1453,7 +1432,6 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                       fontSize: 17,
                       fontWeight: FontWeight.w700,
                       color: c.textPrimary,
-                      fontFamily: 'Rubik',
                     ),
                   ),
                 ),
@@ -1490,19 +1468,11 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
       color: c.textPrimary,
       fontSize: 18,
       fontWeight: FontWeight.w800,
-      fontFamily: 'Rubik',
     ),
     placeholderStyle: TextStyle(color: c.textSecondary, fontSize: 16),
     suffix: Padding(
       padding: const EdgeInsets.only(right: 8),
-      child: Text(
-        unit,
-        style: TextStyle(
-          fontSize: 11,
-          color: c.textSecondary,
-          fontFamily: 'Rubik',
-        ),
-      ),
+      child: Text(unit, style: TextStyle(fontSize: 11, color: c.textSecondary)),
     ),
     padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 8),
     decoration: BoxDecoration(
@@ -1560,7 +1530,6 @@ class _RestPill extends StatelessWidget {
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
                 color: c.invText,
-                fontFamily: 'Rubik',
               ),
             ),
           ),
@@ -1581,7 +1550,6 @@ class _RestPill extends StatelessWidget {
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                   color: c.textOnAccent,
-                  fontFamily: 'Rubik',
                 ),
               ),
             ),
@@ -1648,17 +1616,12 @@ class _DoneView extends StatelessWidget {
               fontSize: 22,
               fontWeight: FontWeight.w800,
               color: c.textPrimary,
-              fontFamily: 'Rubik',
             ),
           ),
           const SizedBox(height: 6),
           Text(
             '$workoutName  ·  ${_diffLabels[difficulty] ?? difficulty}',
-            style: TextStyle(
-              fontSize: 13,
-              color: c.textSecondary,
-              fontFamily: 'Rubik',
-            ),
+            style: TextStyle(fontSize: 13, color: c.textSecondary),
           ),
           const SizedBox(height: 28),
           Row(
@@ -1687,7 +1650,6 @@ class _DoneView extends StatelessWidget {
                 child: Text(
                   'DONE',
                   style: TextStyle(
-                    fontFamily: 'Rubik',
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 2,
@@ -1718,7 +1680,6 @@ class _DoneView extends StatelessWidget {
               fontSize: 24,
               fontWeight: FontWeight.w800,
               color: c.textPrimary,
-              fontFamily: 'Rubik',
             ),
           ),
           const SizedBox(height: 4),
@@ -1728,7 +1689,6 @@ class _DoneView extends StatelessWidget {
               fontSize: 10,
               letterSpacing: 0.5,
               color: c.textSecondary,
-              fontFamily: 'Rubik',
             ),
           ),
         ],

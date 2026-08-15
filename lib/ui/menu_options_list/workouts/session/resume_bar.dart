@@ -17,9 +17,10 @@ class WorkoutResumeBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final progress = session.totalSets == 0
-        ? 0.0
-        : (session.doneSets / session.totalSets).clamp(0.0, 1.0);
+    final progress =
+        session.totalSets == 0
+            ? 0.0
+            : (session.doneSets / session.totalSets).clamp(0.0, 1.0);
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
       child: Pressable(
@@ -70,7 +71,6 @@ class WorkoutResumeBar extends StatelessWidget {
                               fontSize: 14,
                               fontWeight: FontWeight.w800,
                               color: c.invText,
-                              fontFamily: 'Rubik',
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -81,7 +81,6 @@ class WorkoutResumeBar extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 11,
                               color: c.invText.withValues(alpha: 0.7),
-                              fontFamily: 'Rubik',
                             ),
                           ),
                         ],

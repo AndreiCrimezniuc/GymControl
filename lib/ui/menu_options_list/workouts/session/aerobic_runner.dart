@@ -171,7 +171,6 @@ class _AerobicRunnerScreenState extends State<AerobicRunnerScreen> {
               fontSize: 15,
               fontWeight: FontWeight.w800,
               color: c.textPrimary,
-              fontFamily: 'Rubik',
             ),
           ),
         ),
@@ -191,7 +190,6 @@ class _AerobicRunnerScreenState extends State<AerobicRunnerScreen> {
             fontWeight: FontWeight.w800,
             fontFeatures: const [FontFeature.tabularFigures()],
             color: c.textPrimary,
-            fontFamily: 'Rubik',
           ),
         ),
         const SizedBox(height: 8),
@@ -199,11 +197,7 @@ class _AerobicRunnerScreenState extends State<AerobicRunnerScreen> {
           _c.laps.isEmpty
               ? (_c.running ? 'Running' : 'Paused')
               : 'Lap ${_c.laps.length + 1} · ${AerobicSessionController.fmt(_c.currentLapSeconds)}',
-          style: TextStyle(
-            fontSize: 14,
-            color: c.textSecondary,
-            fontFamily: 'Rubik',
-          ),
+          style: TextStyle(fontSize: 14, color: c.textSecondary),
         ),
       ],
     ),
@@ -256,7 +250,6 @@ class _AerobicRunnerScreenState extends State<AerobicRunnerScreen> {
             fontSize: 15,
             fontWeight: FontWeight.w800,
             color: filled ? c.textOnAccent : c.textPrimary,
-            fontFamily: 'Rubik',
           ),
         ),
       ),
@@ -269,32 +262,28 @@ class _AerobicRunnerScreenState extends State<AerobicRunnerScreen> {
     child: ListView.builder(
       itemCount: _c.laps.length,
       reverse: true,
-      itemBuilder: (_, i) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 5),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Lap ${i + 1}',
-              style: TextStyle(
-                fontSize: 13,
-                color: c.textSecondary,
-                fontFamily: 'Rubik',
-              ),
+      itemBuilder:
+          (_, i) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: 5),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Lap ${i + 1}',
+                  style: TextStyle(fontSize: 13, color: c.textSecondary),
+                ),
+                Text(
+                  AerobicSessionController.fmt(_c.laps[i]),
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                    color: c.textPrimary,
+                  ),
+                ),
+              ],
             ),
-            Text(
-              AerobicSessionController.fmt(_c.laps[i]),
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                fontFeatures: const [FontFeature.tabularFigures()],
-                color: c.textPrimary,
-                fontFamily: 'Rubik',
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
     ),
   );
 
@@ -316,7 +305,6 @@ class _AerobicRunnerScreenState extends State<AerobicRunnerScreen> {
             fontWeight: FontWeight.w800,
             letterSpacing: 1,
             color: c.textOnAccent,
-            fontFamily: 'Rubik',
           ),
         ),
       ),

@@ -120,11 +120,12 @@ class _RankingState extends State<Ranking> {
   Widget build(BuildContext context) {
     return AppPage(
       title: 'Rank',
-      body: _loading
-          ? const Center(child: CupertinoActivityIndicator())
-          : _error != null
-          ? _ErrorView(error: _error!, onRetry: _load)
-          : _RankContent(ranks: _ranks!, repo: _repo, onRefresh: _load),
+      body:
+          _loading
+              ? const Center(child: CupertinoActivityIndicator())
+              : _error != null
+              ? _ErrorView(error: _error!, onRetry: _load)
+              : _RankContent(ranks: _ranks!, repo: _repo, onRefresh: _load),
     );
   }
 }
@@ -207,7 +208,6 @@ class _OverallHero extends StatelessWidget {
               fontWeight: FontWeight.w600,
               color: c.textSecondary,
               letterSpacing: 1.5,
-              fontFamily: 'Rubik',
             ),
           ),
           const SizedBox(height: 16),
@@ -222,7 +222,6 @@ class _OverallHero extends StatelessWidget {
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
                 color: _rankColor(overall),
-                fontFamily: 'Rubik',
               ),
             ),
             const SizedBox(height: 16),
@@ -252,11 +251,7 @@ class _UnlockedBadge extends StatelessWidget {
           child: Center(
             child: Text(
               '?',
-              style: TextStyle(
-                fontSize: 36,
-                color: c.textSecondary,
-                fontFamily: 'Rubik',
-              ),
+              style: TextStyle(fontSize: 36, color: c.textSecondary),
             ),
           ),
         ),
@@ -264,12 +259,7 @@ class _UnlockedBadge extends StatelessWidget {
         Text(
           'Record 3+ exercises\nto unlock your rank',
           textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 13,
-            color: c.textSecondary,
-            fontFamily: 'Rubik',
-            height: 1.5,
-          ),
+          style: TextStyle(fontSize: 13, color: c.textSecondary, height: 1.5),
         ),
       ],
     );
@@ -296,30 +286,30 @@ class _BigRankBadge extends StatelessWidget {
         ],
       ),
       child: Center(
-        child: isSS
-            ? ShaderMask(
-                shaderCallback: (bounds) => const LinearGradient(
-                  colors: [Color(0xFF7C3AED), Color(0xFF3B82F6)],
-                ).createShader(bounds),
-                child: Text(
+        child:
+            isSS
+                ? ShaderMask(
+                  shaderCallback:
+                      (bounds) => const LinearGradient(
+                        colors: [Color(0xFF7C3AED), Color(0xFF3B82F6)],
+                      ).createShader(bounds),
+                  child: Text(
+                    rank,
+                    style: const TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w900,
+                      color: CupertinoColors.white,
+                    ),
+                  ),
+                )
+                : Text(
                   rank,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.w900,
-                    color: CupertinoColors.white,
-                    fontFamily: 'Rubik',
+                    color: color,
                   ),
                 ),
-              )
-            : Text(
-                rank,
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w900,
-                  color: color,
-                  fontFamily: 'Rubik',
-                ),
-              ),
       ),
     );
   }
@@ -375,29 +365,25 @@ class _OverallProgressBar extends StatelessWidget {
         const SizedBox(height: 6),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: _order
-              .map(
-                (r) => Text(
-                  r,
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontFamily: 'Rubik',
-                    fontWeight: FontWeight.w600,
-                    color: r == rank ? _rankColor(r) : c.textSecondary,
-                  ),
-                ),
-              )
-              .toList(),
+          children:
+              _order
+                  .map(
+                    (r) => Text(
+                      r,
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w600,
+                        color: r == rank ? _rankColor(r) : c.textSecondary,
+                      ),
+                    ),
+                  )
+                  .toList(),
         ),
         const SizedBox(height: 4),
         if (rank != 'SS')
           Text(
             '${(_nextThreshold(rank) - pct).toStringAsFixed(1)} points to ${_nextRank(rank)} rank',
-            style: TextStyle(
-              fontSize: 11,
-              color: c.textSecondary,
-              fontFamily: 'Rubik',
-            ),
+            style: TextStyle(fontSize: 11, color: c.textSecondary),
           ),
       ],
     );
@@ -415,9 +401,10 @@ class _ExerciseCard extends StatelessWidget {
     final c = context.colors;
     final color = _rankColor(er.rank);
     final fill = (er.percentile / 100).clamp(0.0, 1.0);
-    final toNext = er.rank != 'SS'
-        ? '${(_nextThreshold(er.rank) - er.percentile).toStringAsFixed(1)}% to ${_nextRank(er.rank)}'
-        : '🏆 Max rank!';
+    final toNext =
+        er.rank != 'SS'
+            ? '${(_nextThreshold(er.rank) - er.percentile).toStringAsFixed(1)}% to ${_nextRank(er.rank)}'
+            : '🏆 Max rank!';
 
     return Container(
       decoration: BoxDecoration(
@@ -440,17 +427,12 @@ class _ExerciseCard extends StatelessWidget {
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: c.textPrimary,
-                    fontFamily: 'Rubik',
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   '${er.weightKg.toStringAsFixed(1)} kg × ${er.reps}  ·  est. 1RM: ${er.oneRmKg.toStringAsFixed(1)} kg',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: c.textSecondary,
-                    fontFamily: 'Rubik',
-                  ),
+                  style: TextStyle(fontSize: 11, color: c.textSecondary),
                 ),
                 const SizedBox(height: 8),
                 _MiniProgressBar(fill: fill, color: color),
@@ -460,19 +442,11 @@ class _ExerciseCard extends StatelessWidget {
                   children: [
                     Text(
                       'Top ${(100 - er.percentile).toStringAsFixed(1)}%',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: color,
-                        fontFamily: 'Rubik',
-                      ),
+                      style: TextStyle(fontSize: 10, color: color),
                     ),
                     Text(
                       toNext,
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: c.textSecondary,
-                        fontFamily: 'Rubik',
-                      ),
+                      style: TextStyle(fontSize: 10, color: c.textSecondary),
                     ),
                   ],
                 ),
@@ -507,7 +481,6 @@ class _SmallRankBadge extends StatelessWidget {
             fontSize: 15,
             fontWeight: FontWeight.w900,
             color: color,
-            fontFamily: 'Rubik',
           ),
         ),
       ),
@@ -563,19 +536,13 @@ class _NoLiftsCard extends StatelessWidget {
               fontSize: 15,
               fontWeight: FontWeight.w700,
               color: c.textPrimary,
-              fontFamily: 'Rubik',
             ),
           ),
           const SizedBox(height: 6),
           Text(
             'Tap the button below to add your first lift\nand discover where you rank globally.',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 12,
-              color: c.textSecondary,
-              fontFamily: 'Rubik',
-              height: 1.5,
-            ),
+            style: TextStyle(fontSize: 12, color: c.textSecondary, height: 1.5),
           ),
         ],
       ),
@@ -616,16 +583,11 @@ class _WeightNudge extends StatelessWidget {
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
                       color: c.textPrimary,
-                      fontFamily: 'Rubik',
                     ),
                   ),
                   Text(
                     'Required for accurate strength rankings',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: c.textSecondary,
-                      fontFamily: 'Rubik',
-                    ),
+                    style: TextStyle(fontSize: 11, color: c.textSecondary),
                   ),
                 ],
               ),
@@ -665,7 +627,6 @@ class _MotivationalQuote extends StatelessWidget {
         style: TextStyle(
           fontSize: 12,
           color: c.textSecondary,
-          fontFamily: 'Rubik',
           fontStyle: FontStyle.italic,
         ),
       ),
@@ -685,8 +646,8 @@ class _RecordLiftButton extends StatelessWidget {
     final c = context.colors;
     return CupertinoButton(
       padding: EdgeInsets.zero,
-      onPressed: () =>
-          _showRecordLiftSheet(context, repo: repo, onDone: onDone),
+      onPressed:
+          () => _showRecordLiftSheet(context, repo: repo, onDone: onDone),
       child: Container(
         height: 52,
         decoration: BoxDecoration(
@@ -711,7 +672,6 @@ class _RecordLiftButton extends StatelessWidget {
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
                 color: c.textOnAccent,
-                fontFamily: 'Rubik',
               ),
             ),
           ],
@@ -832,7 +792,6 @@ class _RecordLiftSheetState extends State<_RecordLiftSheet> {
               fontSize: 18,
               fontWeight: FontWeight.w700,
               color: c.textPrimary,
-              fontFamily: 'Rubik',
             ),
           ),
           const SizedBox(height: 16),
@@ -849,20 +808,20 @@ class _RecordLiftSheetState extends State<_RecordLiftSheet> {
                 initialItem: _exIdx,
               ),
               onSelectedItemChanged: (i) => setState(() => _exIdx = i),
-              children: _kExercises
-                  .map(
-                    (e) => Center(
-                      child: Text(
-                        e.$2,
-                        style: TextStyle(
-                          color: c.textPrimary,
-                          fontSize: 14,
-                          fontFamily: 'Rubik',
+              children:
+                  _kExercises
+                      .map(
+                        (e) => Center(
+                          child: Text(
+                            e.$2,
+                            style: TextStyle(
+                              color: c.textPrimary,
+                              fontSize: 14,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                  )
-                  .toList(),
+                      )
+                      .toList(),
             ).frame(height: 120),
           ),
           const SizedBox(height: 14),
@@ -899,22 +858,14 @@ class _RecordLiftSheetState extends State<_RecordLiftSheet> {
             const SizedBox(height: 10),
             Text(
               'Est. 1RM: ${orm.toStringAsFixed(1)} kg',
-              style: TextStyle(
-                fontSize: 12,
-                color: c.textSecondary,
-                fontFamily: 'Rubik',
-              ),
+              style: TextStyle(fontSize: 12, color: c.textSecondary),
             ),
           ],
           if (_error != null) ...[
             const SizedBox(height: 8),
             Text(
               _error!,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFFEF4444),
-                fontFamily: 'Rubik',
-              ),
+              style: const TextStyle(fontSize: 12, color: Color(0xFFEF4444)),
             ),
           ],
           const SizedBox(height: 16),
@@ -930,17 +881,17 @@ class _RecordLiftSheetState extends State<_RecordLiftSheet> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
-                  child: _saving
-                      ? const CupertinoActivityIndicator()
-                      : Text(
-                          'Save PR',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: c.textOnAccent,
-                            fontFamily: 'Rubik',
+                  child:
+                      _saving
+                          ? const CupertinoActivityIndicator()
+                          : Text(
+                            'Save PR',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: c.textOnAccent,
+                            ),
                           ),
-                        ),
                 ),
               ),
             ),
@@ -963,7 +914,6 @@ class _SheetLabel extends StatelessWidget {
       fontWeight: FontWeight.w600,
       color: context.colors.textSecondary,
       letterSpacing: 0.5,
-      fontFamily: 'Rubik',
     ),
   );
 }
@@ -989,10 +939,11 @@ class _SheetFieldState extends State<_SheetField> {
     return CupertinoTextField(
       controller: widget.controller,
       placeholder: widget.placeholder,
-      keyboardType: widget.isDecimal
-          ? const TextInputType.numberWithOptions(decimal: true)
-          : TextInputType.number,
-      style: TextStyle(color: c.textPrimary, fontSize: 15, fontFamily: 'Rubik'),
+      keyboardType:
+          widget.isDecimal
+              ? const TextInputType.numberWithOptions(decimal: true)
+              : TextInputType.number,
+      style: TextStyle(color: c.textPrimary, fontSize: 15),
       placeholderStyle: TextStyle(color: c.textSecondary, fontSize: 15),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
@@ -1016,12 +967,13 @@ void _showWeightSheet(
 }) {
   showCupertinoModalPopup<void>(
     context: context,
-    builder: (_) => _WeightSheet(
-      repo: repo,
-      onDone: onDone,
-      initialWeight: initialWeight,
-      initialHeight: initialHeight,
-    ),
+    builder:
+        (_) => _WeightSheet(
+          repo: repo,
+          onDone: onDone,
+          initialWeight: initialWeight,
+          initialHeight: initialHeight,
+        ),
   );
 }
 
@@ -1050,14 +1002,16 @@ class _WeightSheetState extends State<_WeightSheet> {
   void initState() {
     super.initState();
     _weightCtrl = TextEditingController(
-      text: widget.initialWeight != null
-          ? widget.initialWeight!.toStringAsFixed(1)
-          : '',
+      text:
+          widget.initialWeight != null
+              ? widget.initialWeight!.toStringAsFixed(1)
+              : '',
     );
     _heightCtrl = TextEditingController(
-      text: widget.initialHeight != null
-          ? widget.initialHeight!.toStringAsFixed(0)
-          : '',
+      text:
+          widget.initialHeight != null
+              ? widget.initialHeight!.toStringAsFixed(0)
+              : '',
     );
   }
 
@@ -1111,17 +1065,12 @@ class _WeightSheetState extends State<_WeightSheet> {
               fontSize: 18,
               fontWeight: FontWeight.w700,
               color: c.textPrimary,
-              fontFamily: 'Rubik',
             ),
           ),
           const SizedBox(height: 4),
           Text(
             'Used to compute your relative strength score.',
-            style: TextStyle(
-              fontSize: 12,
-              color: c.textSecondary,
-              fontFamily: 'Rubik',
-            ),
+            style: TextStyle(fontSize: 12, color: c.textSecondary),
           ),
           const SizedBox(height: 16),
           Row(
@@ -1170,17 +1119,17 @@ class _WeightSheetState extends State<_WeightSheet> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
-                  child: _saving
-                      ? const CupertinoActivityIndicator()
-                      : Text(
-                          'Save',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: c.textOnAccent,
-                            fontFamily: 'Rubik',
+                  child:
+                      _saving
+                          ? const CupertinoActivityIndicator()
+                          : Text(
+                            'Save',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: c.textOnAccent,
+                            ),
                           ),
-                        ),
                 ),
               ),
             ),
@@ -1209,11 +1158,7 @@ class _ErrorView extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'Could not load rankings',
-            style: TextStyle(
-              fontSize: 15,
-              color: c.textPrimary,
-              fontFamily: 'Rubik',
-            ),
+            style: TextStyle(fontSize: 15, color: c.textPrimary),
           ),
           const SizedBox(height: 16),
           CupertinoButton(onPressed: onRetry, child: const Text('Retry')),

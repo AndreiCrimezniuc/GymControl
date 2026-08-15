@@ -5,6 +5,7 @@ import 'package:gymboss/data/repositories/workouts_repository.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/domain/models/workouts/workout.dart';
 import 'package:gymboss/ui/core/theme/app_colors.dart';
+import 'package:gymboss/ui/core/theme/app_design.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
 import 'package:gymboss/ui/core/ui/widgets/skeleton.dart';
@@ -509,11 +510,8 @@ class _WorkoutsState extends State<Workouts> {
                 child: CupertinoSearchTextField(
                   placeholder: 'Search all workouts',
                   backgroundColor: c.card,
-                  style: TextStyle(color: c.textPrimary, fontFamily: 'Rubik'),
-                  placeholderStyle: TextStyle(
-                    color: c.textSecondary,
-                    fontFamily: 'Rubik',
-                  ),
+                  style: TextStyle(color: c.textPrimary),
+                  placeholderStyle: TextStyle(color: c.textSecondary),
                   onChanged: (value) => setState(() => _query = value),
                 ),
               ),
@@ -539,11 +537,7 @@ class _WorkoutsState extends State<Workouts> {
               alignment: Alignment.centerLeft,
               child: Text(
                 'Searching across all folders',
-                style: TextStyle(
-                  color: c.textSecondary,
-                  fontFamily: 'Rubik',
-                  fontSize: 12,
-                ),
+                style: TextStyle(color: c.textSecondary, fontSize: 12),
               ),
             ),
           ),
@@ -613,7 +607,6 @@ class _WorkoutsState extends State<Workouts> {
         fontSize: 13,
         fontWeight: FontWeight.w600,
         color: c.textPrimary,
-        fontFamily: 'Rubik',
       ),
     ),
   );
@@ -644,28 +637,9 @@ class _WorkoutCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.fromLTRB(16, 14, 12, 13),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors:
-                  c.isDark
-                      ? const [
-                        Color(0xFF252428),
-                        Color(0xFF18181B),
-                        Color(0xFF121214),
-                      ]
-                      : const [
-                        Color(0xFFFFFFFF),
-                        Color(0xFFF7F7F5),
-                        Color(0xFFECECEA),
-                      ],
-              stops: const [0, 0.48, 1],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color:
-                  c.isDark ? const Color(0xFF343239) : const Color(0xFFD2D2CE),
-            ),
+            color: c.card,
+            borderRadius: BorderRadius.circular(AppDesign.radiusCard),
+            border: Border.all(color: c.border, width: AppDesign.hairline),
             boxShadow: c.cardShadow,
           ),
           child: Column(
@@ -680,9 +654,9 @@ class _WorkoutCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 15,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -0.25,
                         color: c.textPrimary,
-                        fontFamily: 'Rubik',
                       ),
                     ),
                   ),
@@ -703,7 +677,6 @@ class _WorkoutCard extends StatelessWidget {
                           fontWeight: FontWeight.w800,
                           letterSpacing: 0.5,
                           color: c.accent,
-                          fontFamily: 'Rubik',
                         ),
                       ),
                     ),
@@ -750,7 +723,6 @@ class _WorkoutCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12,
                     color: c.textSecondary,
-                    fontFamily: 'Rubik',
                     fontStyle: FontStyle.italic,
                   ),
                 ),
@@ -768,7 +740,6 @@ class _WorkoutCard extends StatelessWidget {
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: c.textSecondary,
-                      fontFamily: 'Rubik',
                     ),
                   ),
                   const Spacer(),
@@ -817,7 +788,6 @@ class _LibraryCoachCard extends StatelessWidget {
             'What are you training for?',
             style: TextStyle(
               color: c.textPrimary,
-              fontFamily: 'Rubik',
               fontSize: 14,
               fontWeight: FontWeight.w800,
             ),
@@ -825,11 +795,7 @@ class _LibraryCoachCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             'Pick a goal and start from a coach-built template.',
-            style: TextStyle(
-              color: c.textSecondary,
-              fontFamily: 'Rubik',
-              fontSize: 12,
-            ),
+            style: TextStyle(color: c.textSecondary, fontSize: 12),
           ),
           const SizedBox(height: 12),
           Wrap(
@@ -868,7 +834,6 @@ class _LibraryCoachCard extends StatelessWidget {
                                 goal == entry.key
                                     ? c.textOnAccent
                                     : c.textPrimary,
-                            fontFamily: 'Rubik',
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                           ),
@@ -914,7 +879,6 @@ class _CardTag extends StatelessWidget {
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: c.textSecondary,
-              fontFamily: 'Rubik',
             ),
           ),
         ],
@@ -945,7 +909,6 @@ class _SearchEmpty extends StatelessWidget {
                 fontSize: 17,
                 fontWeight: FontWeight.w800,
                 color: c.textPrimary,
-                fontFamily: 'Rubik',
               ),
             ),
             const SizedBox(height: 6),
@@ -956,7 +919,6 @@ class _SearchEmpty extends StatelessWidget {
                 fontSize: 13,
                 height: 1.4,
                 color: c.textSecondary,
-                fontFamily: 'Rubik',
               ),
             ),
           ],
@@ -1014,7 +976,6 @@ class _FolderChip extends StatelessWidget {
                   color: selected ? colors.textOnAccent : colors.textPrimary,
                   fontWeight: FontWeight.w700,
                   fontSize: 12,
-                  fontFamily: 'Rubik',
                 ),
               ),
               if (onManage != null) ...[
@@ -1065,7 +1026,6 @@ class _EmptyView extends StatelessWidget {
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
                 color: c.textPrimary,
-                fontFamily: 'Rubik',
               ),
             ),
             const SizedBox(height: 6),
@@ -1078,7 +1038,6 @@ class _EmptyView extends StatelessWidget {
                 fontSize: 12,
                 color: c.textSecondary,
                 height: 1.5,
-                fontFamily: 'Rubik',
               ),
             ),
             if (mine) ...[
@@ -1111,7 +1070,7 @@ class _ErrorView extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'Could not load workouts',
-            style: TextStyle(color: c.textPrimary, fontFamily: 'Rubik'),
+            style: TextStyle(color: c.textPrimary),
           ),
           const SizedBox(height: 16),
           CupertinoButton(onPressed: onRetry, child: const Text('Retry')),

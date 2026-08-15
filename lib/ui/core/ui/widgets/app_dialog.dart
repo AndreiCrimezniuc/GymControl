@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/cupertino.dart';
 import 'package:gymboss/ui/core/theme/app_colors.dart';
+import 'package:gymboss/ui/core/theme/app_design.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
 
@@ -33,12 +34,13 @@ Future<T?> showAppDialog<T>(
   return showCupertinoDialog<T>(
     context: context,
     barrierDismissible: barrierDismissible,
-    builder: (_) => _AppDialog(
-      title: title,
-      message: message,
-      content: content,
-      actions: actions,
-    ),
+    builder:
+        (_) => _AppDialog(
+          title: title,
+          message: message,
+          content: content,
+          actions: actions,
+        ),
   );
 }
 
@@ -64,16 +66,16 @@ class _AppDialog extends StatelessWidget {
         child: SizedBox(
           width: width,
           child: Container(
-            padding: const EdgeInsets.fromLTRB(22, 22, 22, 16),
+            padding: const EdgeInsets.fromLTRB(22, 22, 22, 18),
             decoration: BoxDecoration(
               color: c.card,
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: c.border),
+              borderRadius: BorderRadius.circular(AppDesign.radiusSheet),
+              border: Border.all(color: c.border, width: AppDesign.hairline),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0x40000000),
-                  blurRadius: 40,
-                  offset: const Offset(0, 18),
+                  color: const Color(0x30000000),
+                  blurRadius: 36,
+                  offset: const Offset(0, 14),
                 ),
               ],
             ),
@@ -86,9 +88,9 @@ class _AppDialog extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 17,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.3,
                     color: c.textPrimary,
-                    fontFamily: 'Rubik',
                   ),
                 ),
                 if (message != null) ...[
@@ -100,7 +102,6 @@ class _AppDialog extends StatelessWidget {
                       fontSize: 13,
                       height: 1.45,
                       color: c.textSecondary,
-                      fontFamily: 'Rubik',
                     ),
                   ),
                 ],
@@ -146,15 +147,14 @@ class _DialogButton extends StatelessWidget {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: bg,
-          borderRadius: BorderRadius.circular(13),
+          borderRadius: BorderRadius.circular(AppDesign.radiusControl),
         ),
         child: Text(
           action.label,
           style: TextStyle(
             fontSize: 15,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w600,
             color: fg,
-            fontFamily: 'Rubik',
           ),
         ),
       ),
@@ -217,11 +217,7 @@ class _AppActionSheet extends StatelessWidget {
                     child: Text(
                       title!,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: c.textSecondary,
-                        fontFamily: 'Rubik',
-                      ),
+                      style: TextStyle(fontSize: 13, color: c.textSecondary),
                     ),
                   ),
                   Container(height: 1, color: c.border),
@@ -257,20 +253,20 @@ class _AppActionSheet extends StatelessWidget {
       child: Container(
         height: 54,
         alignment: Alignment.center,
-        decoration: standalone
-            ? BoxDecoration(
-                color: c.card,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: c.border),
-              )
-            : null,
+        decoration:
+            standalone
+                ? BoxDecoration(
+                  color: c.card,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: c.border),
+                )
+                : null,
         child: Text(
           a.label,
           style: TextStyle(
             fontSize: 16,
             fontWeight: bold ? FontWeight.w700 : FontWeight.w600,
             color: color,
-            fontFamily: 'Rubik',
           ),
         ),
       ),

@@ -42,7 +42,6 @@ class StreakRing extends StatelessWidget {
                 Text(
                   '$value',
                   style: TextStyle(
-                    fontFamily: 'Rubik',
                     fontSize: size * 0.29,
                     fontWeight: FontWeight.w700,
                     height: 1,
@@ -53,7 +52,6 @@ class StreakRing extends StatelessWidget {
                 Text(
                   caption.toUpperCase(),
                   style: TextStyle(
-                    fontFamily: 'Rubik',
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 2.5,

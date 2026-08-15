@@ -9,7 +9,9 @@ import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/domain/models/ranking/rank_data.dart';
 import 'package:gymboss/domain/models/streak/streak_data.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
+import 'package:gymboss/ui/core/theme/app_design.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_scaffold.dart';
+import 'package:gymboss/ui/core/ui/widgets/app_glass_surface.dart';
 import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
 import 'package:gymboss/ui/core/ui/widgets/theme_toggle.dart';
 import 'package:gymboss/ui/menu_options_list/exercises/widgets/exercises.dart';
@@ -157,33 +159,45 @@ class _MenuOptionsState extends State<MenuOptions> {
                 Row(
                   children: [
                     Text(
-                      'GYM CONTROL',
+                      'GymControl',
                       style: TextStyle(
-                        fontFamily: 'Rubik',
-                        fontSize: 19,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 2,
+                        fontSize: 25,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -0.7,
                         color: c.textPrimary,
                       ),
                     ),
                     const Spacer(),
                     Container(
-                      width: 7,
-                      height: 7,
-                      decoration: BoxDecoration(
-                        color: c.accent,
-                        borderRadius: BorderRadius.circular(4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 7,
                       ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'READY',
-                      style: TextStyle(
-                        fontFamily: 'Rubik',
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 1.5,
-                        color: c.textSecondary,
+                      decoration: BoxDecoration(
+                        color: c.iconBg,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: c.border),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 7,
+                            height: 7,
+                            decoration: BoxDecoration(
+                              color: c.accent,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Ready',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: c.textSecondary,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -209,47 +223,53 @@ class _MenuOptionsState extends State<MenuOptions> {
 
                 // ── Menu ────────────────────────────────────────────────
                 Text(
-                  'MENU',
+                  'Your training',
                   style: TextStyle(
-                    fontFamily: 'Rubik',
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 2,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
                     color: c.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 12),
-                _MenuRow(
-                  icon: Icons.emoji_events_rounded,
-                  accentTile: true,
-                  title: 'My Workouts',
-                  subtitle: 'Programs & routines',
-                  onTap: () => _pushAndReload(const Workouts()),
-                ),
-                _MenuRow(
-                  icon: Icons.bar_chart_rounded,
-                  title: 'Statistics',
-                  subtitle: 'Track progress',
-                  onTap: () => _push(const Statistics()),
-                ),
-                _MenuRow(
-                  icon: Icons.emoji_events_outlined,
-                  title: 'Rank',
-                  subtitle: 'See where you stand',
-                  onTap: () => _push(const Ranking()),
-                ),
-                _MenuRow(
-                  icon: Icons.fitness_center_rounded,
-                  title: 'Exercises',
-                  subtitle: 'Browse library',
-                  onTap: () => _push(const Exercises()),
-                ),
-                _MenuRow(
-                  icon: Icons.wb_sunny_outlined,
-                  title: 'Settings',
-                  subtitle: 'Customize app',
-                  onTap: () => _push(const Settings()),
-                  last: true,
+                AppGlassSurface(
+                  radius: AppDesign.radiusCard,
+                  blur: true,
+                  child: Column(
+                    children: [
+                      _MenuRow(
+                        icon: Icons.emoji_events_rounded,
+                        accentTile: true,
+                        title: 'My Workouts',
+                        subtitle: 'Programs & routines',
+                        onTap: () => _pushAndReload(const Workouts()),
+                      ),
+                      _MenuRow(
+                        icon: Icons.bar_chart_rounded,
+                        title: 'Statistics',
+                        subtitle: 'Track progress',
+                        onTap: () => _push(const Statistics()),
+                      ),
+                      _MenuRow(
+                        icon: Icons.emoji_events_outlined,
+                        title: 'Rank',
+                        subtitle: 'See where you stand',
+                        onTap: () => _push(const Ranking()),
+                      ),
+                      _MenuRow(
+                        icon: Icons.fitness_center_rounded,
+                        title: 'Exercises',
+                        subtitle: 'Browse library',
+                        onTap: () => _push(const Exercises()),
+                      ),
+                      _MenuRow(
+                        icon: Icons.wb_sunny_outlined,
+                        title: 'Settings',
+                        subtitle: 'Customize app',
+                        onTap: () => _push(const Settings()),
+                        last: true,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -282,51 +302,53 @@ class _StatStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return Container(
-      height: 116,
-      color: c.accent,
-      child: Row(
-        children: [
-          for (var i = 0; i < segments.length; i++) ...[
-            if (i > 0) Container(width: 1, color: const Color(0x33FFFFFF)),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 18,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    Text(
-                      segments[i].$1,
-                      style: const TextStyle(
-                        fontFamily: 'Rubik',
-                        fontSize: 30,
-                        fontWeight: FontWeight.w800,
-                        height: 1,
-                        color: Color(0xFFFFFFFF),
+    return AppGlassSurface(
+      radius: AppDesign.radiusCard,
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: SizedBox(
+        height: 104,
+        child: Row(
+          children: [
+            for (var i = 0; i < segments.length; i++) ...[
+              if (i > 0) Container(width: 1, height: 54, color: c.border),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 18,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      Text(
+                        segments[i].$1,
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w600,
+                          height: 1,
+                          letterSpacing: -0.8,
+                          color: c.textPrimary,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      segments[i].$2,
-                      style: const TextStyle(
-                        fontFamily: 'Rubik',
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1,
-                        height: 1.25,
-                        color: Color(0xCCFFFFFF),
+                      const SizedBox(height: 8),
+                      Text(
+                        segments[i].$2,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 0.5,
+                          height: 1.25,
+                          color: c.textSecondary,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -360,7 +382,7 @@ class _MenuRow extends StatelessWidget {
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
             child: Row(
               children: [
                 Container(
@@ -371,7 +393,7 @@ class _MenuRow extends StatelessWidget {
                         accentTile
                             ? c.accent.withValues(alpha: 0.12)
                             : c.iconBg,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(14),
                   ),
                   child: Icon(
                     icon,
@@ -387,20 +409,16 @@ class _MenuRow extends StatelessWidget {
                       Text(
                         title,
                         style: TextStyle(
-                          fontFamily: 'Rubik',
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: -0.25,
                           color: c.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         subtitle,
-                        style: TextStyle(
-                          fontFamily: 'Rubik',
-                          fontSize: 13,
-                          color: c.textSecondary,
-                        ),
+                        style: TextStyle(fontSize: 12, color: c.textSecondary),
                       ),
                     ],
                   ),
@@ -432,23 +450,21 @@ class _StartButton extends StatelessWidget {
     return Pressable(
       onTap: onTap,
       child: Container(
-        height: 58,
+        height: 56,
         alignment: Alignment.center,
-        margin: const EdgeInsets.symmetric(horizontal: 20),
         decoration: ShapeDecoration(
           color: c.invBg,
           shape: ContinuousRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
+            borderRadius: BorderRadius.circular(28),
           ),
           shadows: c.cardShadow,
         ),
         child: Text(
-          'START WORKOUT',
+          'Start workout',
           style: TextStyle(
-            fontFamily: 'Rubik',
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 2,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            letterSpacing: -0.2,
             color: c.invText,
           ),
         ),
@@ -521,17 +537,12 @@ class _FirstTimeWeightSheetState extends State<_FirstTimeWeightSheet> {
               fontSize: 17,
               fontWeight: FontWeight.w700,
               color: c.textPrimary,
-              fontFamily: 'Rubik',
             ),
           ),
           const SizedBox(height: 4),
           Text(
             'Optional — helps calculate your strength rank',
-            style: TextStyle(
-              fontSize: 12,
-              color: c.textSecondary,
-              fontFamily: 'Rubik',
-            ),
+            style: TextStyle(fontSize: 12, color: c.textSecondary),
           ),
           const SizedBox(height: 16),
           Row(
@@ -569,10 +580,7 @@ class _FirstTimeWeightSheetState extends State<_FirstTimeWeightSheet> {
                     child: Center(
                       child: Text(
                         'Skip',
-                        style: TextStyle(
-                          color: c.textSecondary,
-                          fontFamily: 'Rubik',
-                        ),
+                        style: TextStyle(color: c.textSecondary),
                       ),
                     ),
                   ),
@@ -598,7 +606,6 @@ class _FirstTimeWeightSheetState extends State<_FirstTimeWeightSheet> {
                                 style: TextStyle(
                                   color: c.textOnAccent,
                                   fontWeight: FontWeight.w600,
-                                  fontFamily: 'Rubik',
                                 ),
                               ),
                     ),
@@ -635,7 +642,6 @@ class _MetricField extends StatelessWidget {
             fontSize: 11,
             fontWeight: FontWeight.w600,
             color: c.textSecondary,
-            fontFamily: 'Rubik',
           ),
         ),
         const SizedBox(height: 6),
@@ -643,11 +649,7 @@ class _MetricField extends StatelessWidget {
           controller: controller,
           placeholder: placeholder,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          style: TextStyle(
-            color: c.textPrimary,
-            fontSize: 15,
-            fontFamily: 'Rubik',
-          ),
+          style: TextStyle(color: c.textPrimary, fontSize: 15),
           placeholderStyle: TextStyle(color: c.textSecondary, fontSize: 15),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
@@ -749,7 +751,6 @@ class _MonthlyWeightDialogState extends State<_MonthlyWeightDialog> {
                     fontSize: 17,
                     fontWeight: FontWeight.w800,
                     color: c.textPrimary,
-                    fontFamily: 'Rubik',
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -760,7 +761,6 @@ class _MonthlyWeightDialogState extends State<_MonthlyWeightDialog> {
                     fontSize: 13,
                     height: 1.45,
                     color: c.textSecondary,
-                    fontFamily: 'Rubik',
                   ),
                 ),
                 const SizedBox(height: 14),
@@ -770,11 +770,7 @@ class _MonthlyWeightDialogState extends State<_MonthlyWeightDialog> {
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-                  style: TextStyle(
-                    color: c.textPrimary,
-                    fontSize: 15,
-                    fontFamily: 'Rubik',
-                  ),
+                  style: TextStyle(color: c.textPrimary, fontSize: 15),
                   placeholderStyle: TextStyle(
                     color: c.textSecondary,
                     fontSize: 15,
@@ -808,7 +804,6 @@ class _MonthlyWeightDialogState extends State<_MonthlyWeightDialog> {
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,
                                 color: c.textOnAccent,
-                                fontFamily: 'Rubik',
                               ),
                             ),
                   ),
@@ -829,7 +824,6 @@ class _MonthlyWeightDialogState extends State<_MonthlyWeightDialog> {
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                         color: c.textPrimary,
-                        fontFamily: 'Rubik',
                       ),
                     ),
                   ),
@@ -842,11 +836,7 @@ class _MonthlyWeightDialogState extends State<_MonthlyWeightDialog> {
                     alignment: Alignment.center,
                     child: Text(
                       "Don't ask again",
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: c.textSecondary,
-                        fontFamily: 'Rubik',
-                      ),
+                      style: TextStyle(fontSize: 13, color: c.textSecondary),
                     ),
                   ),
                 ),
@@ -894,17 +884,12 @@ class _YearCalendarSheet extends StatelessWidget {
               color: c.textPrimary,
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              fontFamily: 'Rubik',
             ),
           ),
           const SizedBox(height: 4),
           Text(
             '${streak.activeWeeks.length} week${streak.activeWeeks.length == 1 ? '' : 's'} active this year',
-            style: TextStyle(
-              color: c.textSecondary,
-              fontSize: 12,
-              fontFamily: 'Rubik',
-            ),
+            style: TextStyle(color: c.textSecondary, fontSize: 12),
           ),
           const SizedBox(height: 20),
           Expanded(
@@ -984,7 +969,6 @@ class _WeekGrid extends StatelessWidget {
                 color: isCurrent && !isActive ? c.accent : numColor,
                 fontSize: 7,
                 fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w400,
-                fontFamily: 'Rubik',
                 height: 1,
               ),
             ),

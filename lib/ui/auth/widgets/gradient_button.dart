@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
+import 'package:gymboss/ui/core/theme/app_design.dart';
 import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
 
 class GradientButton extends StatelessWidget {
@@ -25,22 +26,25 @@ class GradientButton extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 15),
         decoration: BoxDecoration(
-          color: loading ? c.iconBg : c.accent,
-          borderRadius: BorderRadius.circular(14),
+          color: loading ? c.iconBg : c.invBg,
+          borderRadius: BorderRadius.circular(AppDesign.radiusControl),
+          boxShadow: loading ? null : c.cardShadow,
         ),
         child: Center(
-          child: loading
-              ? const CupertinoActivityIndicator(color: CupertinoColors.white)
-              : Text(
-                  label,
-                  style: TextStyle(
-                    color: c.textOnAccent,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    fontFamily: 'Rubik',
-                    letterSpacing: 0.5,
+          child:
+              loading
+                  ? const CupertinoActivityIndicator(
+                    color: CupertinoColors.white,
+                  )
+                  : Text(
+                    label,
+                    style: TextStyle(
+                      color: c.invText,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: -0.2,
+                    ),
                   ),
-                ),
         ),
       ),
     );

@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
+import 'package:gymboss/ui/core/theme/app_design.dart';
 
 class AuthField extends StatelessWidget {
   final TextEditingController controller;
@@ -31,8 +32,8 @@ class AuthField extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: c.iconBg,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: c.border, width: 1),
+        borderRadius: BorderRadius.circular(AppDesign.radiusControl),
+        border: Border.all(color: c.border, width: AppDesign.hairline),
       ),
       child: CupertinoTextField(
         controller: controller,
@@ -45,18 +46,10 @@ class AuthField extends StatelessWidget {
         autofillHints: autofillHints,
         autocorrect: false,
         enableSuggestions: !obscureText,
-        style: TextStyle(
-          color: c.textPrimary,
-          fontFamily: 'Rubik',
-          fontSize: 15,
-        ),
-        placeholderStyle: TextStyle(
-          color: c.textSecondary,
-          fontFamily: 'Rubik',
-          fontSize: 15,
-        ),
+        style: TextStyle(color: c.textPrimary, fontSize: 15),
+        placeholderStyle: TextStyle(color: c.textSecondary, fontSize: 15),
         decoration: null,
-        padding: const EdgeInsets.only(left: 0, right: 16, top: 14, bottom: 14),
+        padding: const EdgeInsets.only(left: 0, right: 16, top: 15, bottom: 15),
         prefix: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14),
           child: Icon(icon, color: c.accent, size: 18),

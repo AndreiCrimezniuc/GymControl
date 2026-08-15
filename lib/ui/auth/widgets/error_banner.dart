@@ -35,7 +35,6 @@ class ErrorBanner extends StatelessWidget {
                   style: const TextStyle(
                     color: Color(0xFFFF6B6B),
                     fontSize: 13,
-                    fontFamily: 'Rubik',
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.3,
                   ),
@@ -45,7 +44,6 @@ class ErrorBanner extends StatelessWidget {
                   style: const TextStyle(
                     color: Color(0xFF8B4040),
                     fontSize: 10,
-                    fontFamily: 'Rubik',
                     fontWeight: FontWeight.w400,
                   ),
                 ),

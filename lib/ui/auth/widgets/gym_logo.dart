@@ -37,7 +37,6 @@ class GymLogo extends StatelessWidget {
                 fontSize: 32,
                 fontWeight: FontWeight.w900,
                 color: c.textPrimary,
-                fontFamily: 'Rubik',
                 letterSpacing: 2,
               ),
             ),
@@ -48,7 +47,6 @@ class GymLogo extends StatelessWidget {
                 fontSize: 28,
                 fontWeight: FontWeight.w900,
                 color: c.accent,
-                fontFamily: 'Rubik',
                 letterSpacing: 1.2,
               ),
             ),
@@ -60,7 +58,6 @@ class GymLogo extends StatelessWidget {
           style: TextStyle(
             fontSize: 14,
             color: c.textSecondary,
-            fontFamily: 'Rubik',
             letterSpacing: 0.5,
           ),
         ),

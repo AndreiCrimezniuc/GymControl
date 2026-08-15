@@ -197,7 +197,6 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
                                       _type == t
                                           ? c.textOnAccent
                                           : c.textSecondary,
-                                  fontFamily: 'Rubik',
                                 ),
                               ),
                             ),
@@ -232,7 +231,6 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
                                 style: TextStyle(
                                   fontSize: 11,
                                   color: c.textSecondary,
-                                  fontFamily: 'Rubik',
                                   height: 1.3,
                                 ),
                               ),
@@ -247,7 +245,6 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
                         style: TextStyle(
                           fontSize: 12,
                           color: c.textSecondary,
-                          fontFamily: 'Rubik',
                           height: 1.3,
                         ),
                       ),
@@ -262,7 +259,6 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
                             fontWeight: FontWeight.w700,
                             letterSpacing: 1,
                             color: c.textSecondary,
-                            fontFamily: 'Rubik',
                           ),
                         ),
                         const Spacer(),
@@ -271,7 +267,6 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
                           style: TextStyle(
                             fontSize: 12,
                             color: c.textSecondary,
-                            fontFamily: 'Rubik',
                           ),
                         ),
                       ],
@@ -313,7 +308,6 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
                                 color: c.accent,
-                                fontFamily: 'Rubik',
                               ),
                             ),
                           ],
@@ -327,7 +321,6 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
                         style: const TextStyle(
                           fontSize: 12,
                           color: Color(0xFFEF4444),
-                          fontFamily: 'Rubik',
                         ),
                       ),
                     ],
@@ -354,7 +347,6 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
                                   ? 'SAVE CHANGES'
                                   : 'CREATE WORKOUT',
                               style: TextStyle(
-                                fontFamily: 'Rubik',
                                 fontSize: 15,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: 1.2,
@@ -386,7 +378,6 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
           fontSize: 11,
           fontWeight: FontWeight.w600,
           color: c.textSecondary,
-          fontFamily: 'Rubik',
         ),
       ),
       const SizedBox(height: 6),
@@ -395,11 +386,7 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
         placeholder: placeholder,
         maxLines: maxLines,
         scrollPadding: const EdgeInsets.only(bottom: 140),
-        style: TextStyle(
-          color: c.textPrimary,
-          fontSize: 15,
-          fontFamily: 'Rubik',
-        ),
+        style: TextStyle(color: c.textPrimary, fontSize: 15),
         placeholderStyle: TextStyle(color: c.textSecondary, fontSize: 15),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
@@ -462,7 +449,6 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: c.textPrimary,
-                    fontFamily: 'Rubik',
                   ),
                 ),
               ),
@@ -490,11 +476,7 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
               const Spacer(),
               Text(
                 '${widget.model.sets.length} sets',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: c.textSecondary,
-                  fontFamily: 'Rubik',
-                ),
+                style: TextStyle(fontSize: 12, color: c.textSecondary),
               ),
             ],
           ),
@@ -505,11 +487,7 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
                 width: 34,
                 child: Text(
                   '#',
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: c.textSecondary,
-                    fontFamily: 'Rubik',
-                  ),
+                  style: TextStyle(fontSize: 10, color: c.textSecondary),
                 ),
               ),
               Expanded(child: _setHeader(c, unit.toUpperCase())),
@@ -535,7 +513,6 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
                         color: c.textSecondary,
-                        fontFamily: 'Rubik',
                       ),
                     ),
                   ),
@@ -578,7 +555,6 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
                                 set.type == 'working'
                                     ? c.textPrimary
                                     : c.accent,
-                            fontFamily: 'Rubik',
                           ),
                         ),
                       ),
@@ -622,7 +598,6 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
                       color: c.accent,
-                      fontFamily: 'Rubik',
                     ),
                   ),
                 ],
@@ -634,11 +609,7 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
             controller: widget.model.commentCtrl,
             placeholder: 'Note for this exercise (optional)',
             scrollPadding: const EdgeInsets.only(bottom: 140),
-            style: TextStyle(
-              color: c.textPrimary,
-              fontSize: 13,
-              fontFamily: 'Rubik',
-            ),
+            style: TextStyle(color: c.textPrimary, fontSize: 13),
             placeholderStyle: TextStyle(color: c.textSecondary, fontSize: 13),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
@@ -659,7 +630,6 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
       fontWeight: FontWeight.w700,
       letterSpacing: 0.4,
       color: colors.textSecondary,
-      fontFamily: 'Rubik',
     ),
   );
 
@@ -706,7 +676,7 @@ class _MiniField extends StatelessWidget {
         NumericLimitFormatter(allowDecimal: label != 'Sets' && label != 'reps'),
       ],
       textAlign: TextAlign.center,
-      style: TextStyle(color: c.textPrimary, fontSize: 14, fontFamily: 'Rubik'),
+      style: TextStyle(color: c.textPrimary, fontSize: 14),
       placeholderStyle: TextStyle(color: c.textSecondary, fontSize: 13),
       padding: EdgeInsets.symmetric(horizontal: 8, vertical: dense ? 8 : 10),
       decoration: BoxDecoration(
@@ -719,14 +689,7 @@ class _MiniField extends StatelessWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              color: c.textSecondary,
-              fontFamily: 'Rubik',
-            ),
-          ),
+          Text(label, style: TextStyle(fontSize: 10, color: c.textSecondary)),
           const SizedBox(height: 4),
           SizedBox(width: width, child: field),
         ],
