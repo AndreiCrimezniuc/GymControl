@@ -83,8 +83,25 @@ class _GymControlAppState extends State<GymControlApp> {
             theme: CupertinoThemeData(
               brightness: theme.isDark ? Brightness.dark : Brightness.light,
               scaffoldBackgroundColor: theme.colors.bg,
-              textTheme: const CupertinoTextThemeData(
-                textStyle: TextStyle(fontFamily: 'Rubik'),
+              primaryColor: theme.colors.accent,
+              barBackgroundColor: theme.colors.card,
+              textTheme: CupertinoTextThemeData(
+                textStyle: TextStyle(
+                  color: theme.colors.textPrimary,
+                  fontSize: 16,
+                  letterSpacing: -0.2,
+                ),
+                navTitleTextStyle: TextStyle(
+                  color: theme.colors.textPrimary,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.35,
+                ),
+                actionTextStyle: TextStyle(
+                  color: theme.colors.accent,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
             debugShowCheckedModeBanner: false,
@@ -214,7 +231,6 @@ class _AuthGateState extends State<_AuthGate> {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: context.colors.textSecondary,
-                          fontFamily: 'Rubik',
                           fontSize: 14,
                         ),
                       ),
@@ -226,7 +242,6 @@ class _AuthGateState extends State<_AuthGate> {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: context.colors.textSecondary,
-                          fontFamily: 'Rubik',
                           fontSize: 13,
                         ),
                       ),

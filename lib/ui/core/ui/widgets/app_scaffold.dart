@@ -2,7 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/offline_banner.dart';
 
-/// Full-screen themed page background (vertical warm gradient) + SafeArea, with
+/// Full-screen ambient background + SafeArea, with
 /// an app-wide offline/pending-sync status strip above the content.
 class AppScaffold extends StatelessWidget {
   final Widget child;
@@ -15,20 +15,43 @@ class AppScaffold extends StatelessWidget {
     // The banner is zero-height when online and synced, so it never shifts
     // layout in the happy path; when shown it sits just under the safe-area top.
     final content = Column(
+      children: [const OfflineBanner(), Expanded(child: child)],
+    );
+    final body = Stack(
+      fit: StackFit.expand,
       children: [
-        const OfflineBanner(),
-        Expanded(child: child),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [c.bgTop, c.bg, c.bgBottom],
+              stops: const [0, 0.48, 1],
+            ),
+          ),
+        ),
+        Positioned(
+          top: -120,
+          right: -100,
+          child: IgnorePointer(
+            child: Container(
+              width: 310,
+              height: 310,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    c.textPrimary.withValues(alpha: c.isDark ? 0.045 : 0.16),
+                    c.textPrimary.withValues(alpha: 0),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        safeArea ? SafeArea(child: content) : content,
       ],
     );
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [c.bgTop, c.bgBottom],
-        ),
-      ),
-      child: safeArea ? SafeArea(child: content) : content,
-    );
+    return ColoredBox(color: c.bg, child: body);
   }
 }

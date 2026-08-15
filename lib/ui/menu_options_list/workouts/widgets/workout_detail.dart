@@ -318,7 +318,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
               ? Center(
                 child: Text(
                   'Could not load',
-                  style: TextStyle(color: c.textSecondary, fontFamily: 'Rubik'),
+                  style: TextStyle(color: c.textSecondary),
                 ),
               )
               : _buildBody(c, w),
@@ -341,7 +341,6 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                       fontSize: 13,
                       color: c.textSecondary,
                       height: 1.5,
-                      fontFamily: 'Rubik',
                     ),
                   ),
                 ),
@@ -364,7 +363,6 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: c.textSecondary,
-                      fontFamily: 'Rubik',
                     ),
                   ),
                 ],
@@ -423,7 +421,6 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
                                   color: c.textPrimary,
-                                  fontFamily: 'Rubik',
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -432,7 +429,6 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: c.textSecondary,
-                                  fontFamily: 'Rubik',
                                 ),
                               ),
                             ],
@@ -508,7 +504,6 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                   color: _difficulty == d ? c.textOnAccent : c.textSecondary,
-                  fontFamily: 'Rubik',
                 ),
               ),
             ),
@@ -531,11 +526,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
         const SizedBox(width: 6),
         Text(
           'Potential volume: ${context.units.formatVolume(vol)}',
-          style: TextStyle(
-            fontSize: 12,
-            color: c.textSecondary,
-            fontFamily: 'Rubik',
-          ),
+          style: TextStyle(fontSize: 12, color: c.textSecondary),
         ),
       ],
     );
@@ -571,7 +562,6 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
           Text(
             'START WORKOUT · ${_diffLabels[_difficulty]!.toUpperCase()}',
             style: TextStyle(
-              fontFamily: 'Rubik',
               fontSize: 15,
               fontWeight: FontWeight.w800,
               letterSpacing: 1.2,
@@ -604,7 +594,6 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
           Text(
             'SAVE A COPY',
             style: TextStyle(
-              fontFamily: 'Rubik',
               fontSize: 15,
               fontWeight: FontWeight.w800,
               letterSpacing: 1.5,
@@ -686,7 +675,6 @@ class _ExerciseBlock extends StatelessWidget {
                                 fontSize: 11,
                                 fontWeight: FontWeight.w800,
                                 color: c.accent,
-                                fontFamily: 'Rubik',
                               ),
                             ),
                           ),
@@ -700,7 +688,6 @@ class _ExerciseBlock extends StatelessWidget {
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
                                 color: c.textPrimary,
-                                fontFamily: 'Rubik',
                               ),
                             ),
                           ),
@@ -709,11 +696,7 @@ class _ExerciseBlock extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         'Rest ${exercise.restSeconds}s',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: c.textSecondary,
-                          fontFamily: 'Rubik',
-                        ),
+                        style: TextStyle(fontSize: 11, color: c.textSecondary),
                       ),
                     ],
                   ),
@@ -753,7 +736,6 @@ class _ExerciseBlock extends StatelessWidget {
                                   fontSize: 11,
                                   fontWeight: FontWeight.w800,
                                   color: c.accent,
-                                  fontFamily: 'Rubik',
                                 ),
                               ),
                             ),
@@ -765,7 +747,6 @@ class _ExerciseBlock extends StatelessWidget {
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
                                   color: c.textPrimary,
-                                  fontFamily: 'Rubik',
                                 ),
                               )
                             else
@@ -775,7 +756,6 @@ class _ExerciseBlock extends StatelessWidget {
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: c.textSecondary,
-                                  fontFamily: 'Rubik',
                                 ),
                               ),
                             const Spacer(),
@@ -785,7 +765,6 @@ class _ExerciseBlock extends StatelessWidget {
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
                                 color: c.textPrimary,
-                                fontFamily: 'Rubik',
                               ),
                             ),
                           ],
@@ -802,7 +781,6 @@ class _ExerciseBlock extends StatelessWidget {
                   fontSize: 12,
                   color: c.textSecondary,
                   fontStyle: FontStyle.italic,
-                  fontFamily: 'Rubik',
                 ),
               ),
             ],
@@ -844,7 +822,6 @@ class _StatChip extends StatelessWidget {
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
                 color: c.textPrimary,
-                fontFamily: 'Rubik',
               ),
             ),
             const SizedBox(height: 2),
@@ -854,7 +831,6 @@ class _StatChip extends StatelessWidget {
                 fontSize: 9,
                 letterSpacing: 0.5,
                 color: c.textSecondary,
-                fontFamily: 'Rubik',
               ),
             ),
           ],
@@ -873,7 +849,6 @@ class _SectionLabel extends StatelessWidget {
     style: TextStyle(
       fontSize: 16,
       fontWeight: FontWeight.w700,
-      fontFamily: 'Rubik',
       color: context.colors.textPrimary,
     ),
   );
@@ -981,7 +956,6 @@ class _WorkoutHistoryScreenState extends State<_WorkoutHistoryScreen> {
                           fontSize: 17,
                           fontWeight: FontWeight.w700,
                           color: c.textPrimary,
-                          fontFamily: 'Rubik',
                         ),
                       ),
                     ),
@@ -1010,7 +984,6 @@ class _WorkoutHistoryScreenState extends State<_WorkoutHistoryScreen> {
                                   fontSize: 11,
                                   fontWeight: FontWeight.w600,
                                   color: c.textSecondary,
-                                  fontFamily: 'Rubik',
                                 ),
                               ),
                             ),
@@ -1065,11 +1038,7 @@ class _WorkoutHistoryScreenState extends State<_WorkoutHistoryScreen> {
               const SizedBox(width: 7),
               Text(
                 'Tap a marked day to view the workout',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: c.textSecondary,
-                  fontFamily: 'Rubik',
-                ),
+                style: TextStyle(fontSize: 12, color: c.textSecondary),
               ),
             ],
           ),
@@ -1111,7 +1080,6 @@ class _CalendarDay extends StatelessWidget {
                   fontSize: 13,
                   fontWeight: completed ? FontWeight.w800 : FontWeight.w500,
                   color: completed ? c.textOnAccent : c.textPrimary,
-                  fontFamily: 'Rubik',
                 ),
               ),
               if (completed)
@@ -1191,7 +1159,7 @@ class _RunDetailScreenState extends State<_RunDetailScreen> {
               ? Center(
                 child: Text(
                   'No logged sets for this session',
-                  style: TextStyle(color: c.textSecondary, fontFamily: 'Rubik'),
+                  style: TextStyle(color: c.textSecondary),
                 ),
               )
               : ListView(
@@ -1232,18 +1200,10 @@ class _RunDetailScreenState extends State<_RunDetailScreen> {
               fontSize: 18,
               fontWeight: FontWeight.w800,
               color: c.textPrimary,
-              fontFamily: 'Rubik',
             ),
           ),
           const SizedBox(height: 3),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              color: c.textSecondary,
-              fontFamily: 'Rubik',
-            ),
-          ),
+          Text(label, style: TextStyle(fontSize: 10, color: c.textSecondary)),
         ],
       ),
     ),
@@ -1284,7 +1244,6 @@ class _RunDetailScreenState extends State<_RunDetailScreen> {
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: c.textPrimary,
-                    fontFamily: 'Rubik',
                   ),
                 ),
               ),
@@ -1333,7 +1292,6 @@ class _RunDetailScreenState extends State<_RunDetailScreen> {
                             warm
                                 ? c.textSecondary
                                 : (fail ? c.accent : c.textPrimary),
-                        fontFamily: 'Rubik',
                       ),
                     ),
                   );

@@ -2,8 +2,8 @@ import 'package:flutter/widgets.dart';
 
 /// Full colour palette for one theme (light or dark). Read it from context via
 /// `context.colors` (see theme_controller.dart). The light palette uses a
-/// graphite neutral scale with a restrained signal-red accent. The dark palette
-/// intentionally keeps its existing instrument-like character.
+/// warm neutral scale inspired by ChatGPT's umber appearance. Surfaces use
+/// alpha rather than fake gradients so content feels layered and translucent.
 class AppColors {
   final bool isDark;
 
@@ -56,51 +56,49 @@ class AppColors {
   /// A soft, background-tinted card shadow for gentle depth.
   List<BoxShadow> get cardShadow => [
     BoxShadow(
-      color: isDark ? const Color(0x66000000) : const Color(0x1419191B),
-      blurRadius: isDark ? 24 : 16,
-      offset: Offset(0, isDark ? 8 : 7),
+      color: isDark ? const Color(0x260F0808) : const Color(0x160F0808),
+      blurRadius: isDark ? 20 : 16,
+      offset: const Offset(0, 6),
     ),
   ];
 
   static const light = AppColors(
     isDark: false,
-    bg: Color(0xFFF5F5F3),
-    bgTop: Color(0xFFFAFAF8),
-    bgBottom: Color(0xFFF2F2EF),
-    card: Color(0xFFFFFFFF),
-    iconBg: Color(0xFFECECEA),
-    border: Color(0xFFDCDCD8),
-    pillBorder: Color(0xFFD2D2CE),
-    textPrimary: Color(0xFF19191B),
-    textSecondary: Color(0xFF6D6D72),
+    bg: Color(0xFFF3ECE9),
+    bgTop: Color(0xFFF8F3F0),
+    bgBottom: Color(0xFFECE1DD),
+    card: Color(0xCCFFFFFF),
+    iconBg: Color(0x99FFFFFF),
+    border: Color(0x24705A55),
+    pillBorder: Color(0x38705A55),
+    textPrimary: Color(0xFF2C2422),
+    textSecondary: Color(0xFF756966),
     textOnAccent: Color(0xFFFFFFFF),
-    accent: Color(0xFFC83C36),
-    accentPressed: Color(0xFFA42E29),
-    ringTrack: Color(0xFFE3E3DF),
-    navInactive: Color(0xFF8A8A8F),
-    invBg: Color(0xFF19191B),
+    accent: Color(0xFFB4473F),
+    accentPressed: Color(0xFF91372F),
+    ringTrack: Color(0x52705A55),
+    navInactive: Color(0xFF8B7D79),
+    invBg: Color(0xFF332927),
     invText: Color(0xFFFFFFFF),
   );
 
   static const dark = AppColors(
     isDark: true,
-    // Cooler, flatter neutrals (dropped the brown cast) so dark surfaces read
-    // as engineered rather than warm — a more grown-up, "instrument" feel.
-    bg: Color(0xFF0A0A0B),
-    bgTop: Color(0xFF0A0A0B),
-    bgBottom: Color(0xFF0A0A0B),
-    card: Color(0xFF141416),
-    iconBg: Color(0xFF1C1C20),
-    border: Color(0xFF232327),
-    pillBorder: Color(0xFF33333A),
-    textPrimary: Color(0xFFEDEDEF),
-    textSecondary: Color(0xFF8A8A93),
+    bg: Color(0xFF573535),
+    bgTop: Color(0xFF573535),
+    bgBottom: Color(0xFF4F3030),
+    card: Color(0xB85A3D3C),
+    iconBg: Color(0x80664747),
+    border: Color(0x1FFFFFFF),
+    pillBorder: Color(0x33FFFFFF),
+    textPrimary: Color(0xFFF8F4F2),
+    textSecondary: Color(0xFFBFAEAC),
     textOnAccent: Color(0xFFFFFFFF),
-    accent: Color(0xFFCE3630),
-    accentPressed: Color(0xFFA82A24),
-    ringTrack: Color(0xFF26262B),
-    navInactive: Color(0xFF6A6A73),
-    invBg: Color(0xFFEDEDEF),
-    invText: Color(0xFF121212),
+    accent: Color(0xFFF0A09A),
+    accentPressed: Color(0xFFD9827B),
+    ringTrack: Color(0x2EFFFFFF),
+    navInactive: Color(0xFFA99491),
+    invBg: Color(0xFFF8F4F2),
+    invText: Color(0xFF3B2928),
   );
 }

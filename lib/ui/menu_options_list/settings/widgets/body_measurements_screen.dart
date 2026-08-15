@@ -160,7 +160,6 @@ class _BodyMeasurementsScreenState extends State<BodyMeasurementsScreen> {
                                   style: TextStyle(
                                     fontWeight: FontWeight.w800,
                                     color: c.textPrimary,
-                                    fontFamily: 'Rubik',
                                   ),
                                 ),
                                 const SizedBox(height: 5),
@@ -170,7 +169,6 @@ class _BodyMeasurementsScreenState extends State<BodyMeasurementsScreen> {
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: c.textSecondary,
-                                    fontFamily: 'Rubik',
                                   ),
                                 ),
                               ],
@@ -219,7 +217,6 @@ class _MeasurementChart extends StatelessWidget {
               fontWeight: FontWeight.w800,
               letterSpacing: 0.8,
               color: c.textSecondary,
-              fontFamily: 'Rubik',
             ),
           ),
           const SizedBox(height: 12),
@@ -229,11 +226,7 @@ class _MeasurementChart extends StatelessWidget {
                     ? Center(
                       child: Text(
                         'Add two weight entries to see the trend',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: c.textSecondary,
-                          fontFamily: 'Rubik',
-                        ),
+                        style: TextStyle(fontSize: 12, color: c.textSecondary),
                       ),
                     )
                     : CustomPaint(
@@ -334,28 +327,18 @@ class _MeasurementCard extends StatelessWidget {
               fontSize: 13,
               fontWeight: FontWeight.w800,
               color: c.textPrimary,
-              fontFamily: 'Rubik',
             ),
           ),
           const SizedBox(height: 6),
           Text(
             values.join(' · '),
-            style: TextStyle(
-              fontSize: 12,
-              color: c.textSecondary,
-              height: 1.4,
-              fontFamily: 'Rubik',
-            ),
+            style: TextStyle(fontSize: 12, color: c.textSecondary, height: 1.4),
           ),
           if (item.note.isNotEmpty) ...[
             const SizedBox(height: 5),
             Text(
               item.note,
-              style: TextStyle(
-                fontSize: 11,
-                color: c.textSecondary,
-                fontFamily: 'Rubik',
-              ),
+              style: TextStyle(fontSize: 11, color: c.textSecondary),
             ),
           ],
         ],
@@ -465,7 +448,6 @@ class _MeasurementEditorState extends State<_MeasurementEditor> {
               fontSize: 18,
               fontWeight: FontWeight.w800,
               color: c.textPrimary,
-              fontFamily: 'Rubik',
             ),
           ),
           const SizedBox(height: 14),

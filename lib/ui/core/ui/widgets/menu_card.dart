@@ -1,5 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
+import 'package:gymboss/ui/core/theme/app_design.dart';
+import 'package:gymboss/ui/core/ui/widgets/app_glass_surface.dart';
 
 /// A menu row card: a tinted icon tile, a title + subtitle, and a chevron.
 class MenuCard extends StatelessWidget {
@@ -24,13 +26,9 @@ class MenuCard extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-        decoration: BoxDecoration(
-          color: c.card,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: c.border),
-        ),
+      child: AppGlassSurface(
+        radius: AppDesign.radiusCard,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
         child: Row(
           children: [
             Container(
@@ -38,7 +36,7 @@ class MenuCard extends StatelessWidget {
               height: 46,
               decoration: BoxDecoration(
                 color: c.iconBg,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppDesign.radiusSmall),
               ),
               child: Icon(icon, size: 22, color: iconColor ?? c.textSecondary),
             ),
@@ -50,9 +48,9 @@ class MenuCard extends StatelessWidget {
                   Text(
                     title,
                     style: TextStyle(
-                      fontFamily: 'Rubik',
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: -0.25,
                       color: c.textPrimary,
                     ),
                   ),
@@ -60,8 +58,8 @@ class MenuCard extends StatelessWidget {
                   Text(
                     subtitle,
                     style: TextStyle(
-                      fontFamily: 'Rubik',
                       fontSize: 13,
+                      height: 1.3,
                       color: c.textSecondary,
                     ),
                   ),

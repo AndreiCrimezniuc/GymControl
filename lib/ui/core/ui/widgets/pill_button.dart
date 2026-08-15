@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
+import 'package:gymboss/ui/core/theme/app_design.dart';
 
 /// A rounded pill button — filled (accent) or outlined — with an uppercase,
 /// letter-spaced label. Used for the START / PROGRAM / STATS row.
@@ -26,16 +27,18 @@ class PillButton extends StatelessWidget {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: filled ? c.accent : const Color(0x00000000),
-          borderRadius: BorderRadius.circular(27),
-          border: filled ? null : Border.all(color: c.pillBorder, width: 1.5),
+          borderRadius: BorderRadius.circular(AppDesign.radiusControl),
+          border:
+              filled
+                  ? null
+                  : Border.all(color: c.pillBorder, width: AppDesign.hairline),
         ),
         child: Text(
-          label.toUpperCase(),
+          label,
           style: TextStyle(
-            fontFamily: 'Rubik',
             fontSize: 15,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 1.5,
+            fontWeight: FontWeight.w600,
+            letterSpacing: -0.2,
             color: filled ? c.textOnAccent : c.textPrimary,
           ),
         ),

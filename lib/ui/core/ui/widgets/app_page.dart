@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
+import 'package:gymboss/ui/core/theme/app_design.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_scaffold.dart';
 import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
 
@@ -25,8 +26,14 @@ class AppPage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(4, 4, 12, 8),
+          Container(
+            padding: const EdgeInsets.fromLTRB(4, 4, 12, 10),
+            decoration: BoxDecoration(
+              color: c.card.withValues(alpha: c.isDark ? 0.44 : 0.62),
+              border: Border(
+                bottom: BorderSide(color: c.border, width: AppDesign.hairline),
+              ),
+            ),
             child: Row(
               children: [
                 Semantics(
@@ -40,7 +47,7 @@ class AppPage extends StatelessWidget {
                       child: Center(
                         child: Icon(
                           CupertinoIcons.chevron_back,
-                          size: 24,
+                          size: 20,
                           color: c.textPrimary,
                         ),
                       ),
@@ -52,9 +59,9 @@ class AppPage extends StatelessWidget {
                   child: Text(
                     title,
                     style: TextStyle(
-                      fontFamily: 'Rubik',
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: -0.4,
                       color: c.textPrimary,
                     ),
                   ),

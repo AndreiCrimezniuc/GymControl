@@ -211,7 +211,6 @@ class _TrainingLoadCard extends StatelessWidget {
                   status,
                   style: TextStyle(
                     color: c.textPrimary,
-                    fontFamily: 'Rubik',
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
                   ),
@@ -222,7 +221,6 @@ class _TrainingLoadCard extends StatelessWidget {
                   '${change >= 0 ? '+' : ''}$change%',
                   style: TextStyle(
                     color: c.accent,
-                    fontFamily: 'Rubik',
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -231,11 +229,7 @@ class _TrainingLoadCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             'Last 28 days compared with the previous 28 days',
-            style: TextStyle(
-              color: c.textSecondary,
-              fontFamily: 'Rubik',
-              fontSize: 11,
-            ),
+            style: TextStyle(color: c.textSecondary, fontSize: 11),
           ),
           const SizedBox(height: 16),
           Row(
@@ -303,14 +297,7 @@ class _LoadMetric extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: c.textSecondary,
-              fontFamily: 'Rubik',
-              fontSize: 10,
-            ),
-          ),
+          Text(label, style: TextStyle(color: c.textSecondary, fontSize: 10)),
           const SizedBox(height: 3),
           Text.rich(
             TextSpan(
@@ -325,7 +312,6 @@ class _LoadMetric extends StatelessWidget {
             ),
             style: TextStyle(
               color: c.textPrimary,
-              fontFamily: 'Rubik',
               fontSize: 18,
               fontWeight: FontWeight.w800,
             ),
@@ -406,7 +392,6 @@ class _ActivityCalendarState extends State<_ActivityCalendar> {
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
                     color: c.textPrimary,
-                    fontFamily: 'Rubik',
                   ),
                 ),
               ),
@@ -468,7 +453,6 @@ class _ActivityCalendarState extends State<_ActivityCalendar> {
                     fontSize: 11,
                     fontWeight: active ? FontWeight.w800 : FontWeight.w500,
                     color: active ? c.textOnAccent : c.textSecondary,
-                    fontFamily: 'Rubik',
                   ),
                 ),
               );
@@ -532,7 +516,6 @@ class _ActivityChartState extends State<_ActivityChart> {
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
                   color: c.textPrimary,
-                  fontFamily: 'Rubik',
                 ),
               ),
             ],
@@ -577,11 +560,7 @@ class _ActivityChartState extends State<_ActivityChart> {
           const SizedBox(height: 8),
           Text(
             'Weight × reps per training day · warmups excluded',
-            style: TextStyle(
-              fontSize: 11,
-              color: c.textSecondary,
-              fontFamily: 'Rubik',
-            ),
+            style: TextStyle(fontSize: 11, color: c.textSecondary),
           ),
         ],
       ),
@@ -612,19 +591,13 @@ class _EmptyState extends StatelessWidget {
               fontSize: 15,
               fontWeight: FontWeight.w700,
               color: c.textPrimary,
-              fontFamily: 'Rubik',
             ),
           ),
           const SizedBox(height: 6),
           Text(
             'Record a lift in the Rank screen to start\ntracking your strength progress.',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 12,
-              color: c.textSecondary,
-              fontFamily: 'Rubik',
-              height: 1.5,
-            ),
+            style: TextStyle(fontSize: 12, color: c.textSecondary, height: 1.5),
           ),
         ],
       ),
@@ -643,7 +616,6 @@ class _SectionLabel extends StatelessWidget {
       style: TextStyle(
         fontSize: 18,
         fontWeight: FontWeight.w700,
-        fontFamily: 'Rubik',
         color: context.colors.textPrimary,
       ),
     );
@@ -685,26 +657,11 @@ class _StatTile extends StatelessWidget {
                 fontSize: 26,
                 fontWeight: FontWeight.w700,
                 color: c.textPrimary,
-                fontFamily: 'Rubik',
               ),
             ),
-            Text(
-              unit,
-              style: TextStyle(
-                fontSize: 10,
-                color: c.textSecondary,
-                fontFamily: 'Rubik',
-              ),
-            ),
+            Text(unit, style: TextStyle(fontSize: 10, color: c.textSecondary)),
             const SizedBox(height: 4),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 11,
-                color: c.textSecondary,
-                fontFamily: 'Rubik',
-              ),
-            ),
+            Text(title, style: TextStyle(fontSize: 11, color: c.textSecondary)),
           ],
         ),
       ),
@@ -750,7 +707,6 @@ class _OneRmChart extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 9,
                                 color: c.textSecondary,
-                                fontFamily: 'Rubik',
                               ),
                             ),
                             const SizedBox(height: 3),
@@ -782,7 +738,6 @@ class _OneRmChart extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 9,
                               color: c.textSecondary,
-                              fontFamily: 'Rubik',
                             ),
                           ),
                         ),
@@ -839,7 +794,6 @@ class _RecordsList extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 14,
                       color: c.textPrimary,
-                      fontFamily: 'Rubik',
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -852,17 +806,12 @@ class _RecordsList extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 14,
                         color: c.textPrimary,
-                        fontFamily: 'Rubik',
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                     Text(
                       'Rank ${r.rank}',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: c.textSecondary,
-                        fontFamily: 'Rubik',
-                      ),
+                      style: TextStyle(fontSize: 11, color: c.textSecondary),
                     ),
                   ],
                 ),
@@ -948,11 +897,7 @@ class _MetricRow extends StatelessWidget {
           Expanded(
             child: Text(
               title,
-              style: TextStyle(
-                fontSize: 13,
-                color: c.textSecondary,
-                fontFamily: 'Rubik',
-              ),
+              style: TextStyle(fontSize: 13, color: c.textSecondary),
             ),
           ),
           Flexible(
@@ -965,7 +910,6 @@ class _MetricRow extends StatelessWidget {
                 fontSize: 14,
                 fontWeight: FontWeight.w800,
                 color: c.textPrimary,
-                fontFamily: 'Rubik',
               ),
             ),
           ),
@@ -1016,10 +960,7 @@ class _MonthlyChart extends StatelessWidget {
                   ? Center(
                     child: Text(
                       'No sessions yet',
-                      style: TextStyle(
-                        color: c.textSecondary,
-                        fontFamily: 'Rubik',
-                      ),
+                      style: TextStyle(color: c.textSecondary),
                     ),
                   )
                   : Row(
@@ -1036,7 +977,6 @@ class _MonthlyChart extends StatelessWidget {
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,
                                   color: c.textSecondary,
-                                  fontFamily: 'Rubik',
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -1058,7 +998,6 @@ class _MonthlyChart extends StatelessWidget {
                                 style: TextStyle(
                                   fontSize: 9,
                                   color: c.textSecondary,
-                                  fontFamily: 'Rubik',
                                 ),
                               ),
                             ],
@@ -1096,7 +1035,6 @@ class _PeriodToggle extends StatelessWidget {
               fontSize: 11,
               fontWeight: FontWeight.w700,
               color: on ? c.textOnAccent : c.textSecondary,
-              fontFamily: 'Rubik',
             ),
           ),
         ),

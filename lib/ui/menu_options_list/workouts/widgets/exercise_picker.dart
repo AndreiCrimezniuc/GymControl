@@ -122,10 +122,7 @@ class _ExercisePickerState extends State<ExercisePicker> {
                           child: CupertinoSearchTextField(
                             placeholder: 'Search ${_all.length} exercises',
                             backgroundColor: c.card,
-                            style: TextStyle(
-                              color: c.textPrimary,
-                              fontFamily: 'Rubik',
-                            ),
+                            style: TextStyle(color: c.textPrimary),
                             onChanged:
                                 (value) => setState(() => _query = value),
                           ),
@@ -174,7 +171,6 @@ class _ExercisePickerState extends State<ExercisePicker> {
                                                 _equipment != null
                                             ? c.textOnAccent
                                             : c.textPrimary,
-                                    fontFamily: 'Rubik',
                                   ),
                                 ),
                               ],
@@ -273,7 +269,6 @@ class _ExercisePickerState extends State<ExercisePicker> {
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
                             color: c.textSecondary,
-                            fontFamily: 'Rubik',
                           ),
                         ),
                         if (_muscleGroup != null || _equipment != null) ...[
@@ -287,7 +282,6 @@ class _ExercisePickerState extends State<ExercisePicker> {
                               fontSize: 11,
                               fontWeight: FontWeight.w800,
                               color: c.accent,
-                              fontFamily: 'Rubik',
                             ),
                           ),
                         ],
@@ -344,7 +338,6 @@ class _ExercisePickerState extends State<ExercisePicker> {
                                                   fontSize: 14,
                                                   fontWeight: FontWeight.w700,
                                                   color: c.textPrimary,
-                                                  fontFamily: 'Rubik',
                                                 ),
                                               ),
                                               Text(
@@ -357,7 +350,6 @@ class _ExercisePickerState extends State<ExercisePicker> {
                                                 style: TextStyle(
                                                   fontSize: 12,
                                                   color: c.textSecondary,
-                                                  fontFamily: 'Rubik',
                                                 ),
                                               ),
                                             ],
@@ -430,7 +422,6 @@ class _PickerEmpty extends StatelessWidget {
                 fontSize: 17,
                 fontWeight: FontWeight.w800,
                 color: c.textPrimary,
-                fontFamily: 'Rubik',
               ),
             ),
             const SizedBox(height: 6),
@@ -439,11 +430,7 @@ class _PickerEmpty extends StatelessWidget {
                   ? 'Try another muscle filter.'
                   : 'Try a shorter name or another muscle filter.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                color: c.textSecondary,
-                fontFamily: 'Rubik',
-              ),
+              style: TextStyle(fontSize: 13, color: c.textSecondary),
             ),
           ],
         ),
@@ -481,7 +468,6 @@ class _MuscleTag extends StatelessWidget {
             fontSize: 12,
             fontWeight: FontWeight.w700,
             color: selected ? colors.textOnAccent : colors.textPrimary,
-            fontFamily: 'Rubik',
           ),
         ),
       ),

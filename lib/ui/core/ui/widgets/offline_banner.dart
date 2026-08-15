@@ -49,7 +49,6 @@ class OfflineBanner extends StatelessWidget {
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: c.textOnAccent,
-                      fontFamily: 'Rubik',
                     ),
                   ),
                 ),

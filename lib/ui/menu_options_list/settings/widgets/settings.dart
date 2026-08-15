@@ -335,7 +335,6 @@ class _SettingsState extends State<Settings> {
                   'Helps us detect app errors. Includes only event codes, app version and platform; never email, workout content, tokens or stack traces.',
                   style: TextStyle(
                     color: context.colors.textSecondary,
-                    fontFamily: 'Rubik',
                     fontSize: 12,
                     height: 1.35,
                   ),
@@ -372,7 +371,6 @@ class _Section extends StatelessWidget {
               fontSize: 11,
               fontWeight: FontWeight.w600,
               color: c.textSecondary,
-              fontFamily: 'Rubik',
               letterSpacing: 0.8,
             ),
           ),
@@ -426,11 +424,7 @@ class _SettingsTile extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: TextStyle(
-                  fontSize: 15,
-                  color: c.textPrimary,
-                  fontFamily: 'Rubik',
-                ),
+                style: TextStyle(fontSize: 15, color: c.textPrimary),
               ),
             ),
             Icon(
@@ -472,21 +466,10 @@ class _ValueTile extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: TextStyle(
-                  fontSize: 15,
-                  color: c.textPrimary,
-                  fontFamily: 'Rubik',
-                ),
+                style: TextStyle(fontSize: 15, color: c.textPrimary),
               ),
             ),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 14,
-                color: c.textSecondary,
-                fontFamily: 'Rubik',
-              ),
-            ),
+            Text(value, style: TextStyle(fontSize: 14, color: c.textSecondary)),
             const SizedBox(width: 6),
             Icon(
               CupertinoIcons.chevron_forward,
@@ -524,11 +507,7 @@ class _SwitchTile extends StatelessWidget {
           Expanded(
             child: Text(
               label,
-              style: TextStyle(
-                fontSize: 15,
-                color: c.textPrimary,
-                fontFamily: 'Rubik',
-              ),
+              style: TextStyle(fontSize: 15, color: c.textPrimary),
             ),
           ),
           CupertinoSwitch(
@@ -566,20 +545,12 @@ class _LanguageTile extends StatelessWidget {
             Expanded(
               child: Text(
                 l.labelLanguage,
-                style: TextStyle(
-                  fontSize: 15,
-                  color: c.textPrimary,
-                  fontFamily: 'Rubik',
-                ),
+                style: TextStyle(fontSize: 15, color: c.textPrimary),
               ),
             ),
             Text(
               _name(l, code),
-              style: TextStyle(
-                fontSize: 14,
-                color: c.textSecondary,
-                fontFamily: 'Rubik',
-              ),
+              style: TextStyle(fontSize: 14, color: c.textSecondary),
             ),
             const SizedBox(width: 6),
             Icon(
@@ -653,11 +624,7 @@ class _UnitsTile extends StatelessWidget {
           Expanded(
             child: Text(
               'Weight units',
-              style: TextStyle(
-                fontSize: 15,
-                color: c.textPrimary,
-                fontFamily: 'Rubik',
-              ),
+              style: TextStyle(fontSize: 15, color: c.textPrimary),
             ),
           ),
           SizedBox(
@@ -686,7 +653,6 @@ class _UnitsTile extends StatelessWidget {
         fontSize: 13,
         fontWeight: FontWeight.w700,
         color: active ? c.textOnAccent : c.textSecondary,
-        fontFamily: 'Rubik',
       ),
     ),
   );
@@ -770,7 +736,6 @@ class _BodyMetricsSheetState extends State<_BodyMetricsSheet> {
               fontSize: 17,
               fontWeight: FontWeight.w700,
               color: c.textPrimary,
-              fontFamily: 'Rubik',
             ),
           ),
           const SizedBox(height: 16),
@@ -815,7 +780,6 @@ class _BodyMetricsSheetState extends State<_BodyMetricsSheet> {
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
                               color: c.textOnAccent,
-                              fontFamily: 'Rubik',
                             ),
                           ),
                 ),
@@ -866,7 +830,6 @@ class _AboutSheet extends StatelessWidget {
               fontSize: 17,
               fontWeight: FontWeight.w700,
               color: c.textPrimary,
-              fontFamily: 'Rubik',
             ),
           ),
           const SizedBox(height: 16),
@@ -909,25 +872,16 @@ class _Credit extends StatelessWidget {
             fontSize: 11,
             fontWeight: FontWeight.w600,
             color: c.textSecondary,
-            fontFamily: 'Rubik',
             letterSpacing: 0.8,
           ),
         ),
         const SizedBox(height: 6),
         Text(
           body,
-          style: TextStyle(
-            fontSize: 13,
-            color: c.textPrimary,
-            height: 1.4,
-            fontFamily: 'Rubik',
-          ),
+          style: TextStyle(fontSize: 13, color: c.textPrimary, height: 1.4),
         ),
         const SizedBox(height: 4),
-        Text(
-          url,
-          style: TextStyle(fontSize: 12, color: c.accent, fontFamily: 'Rubik'),
-        ),
+        Text(url, style: TextStyle(fontSize: 12, color: c.accent)),
       ],
     );
   }
@@ -955,7 +909,6 @@ class _MetricInput extends StatelessWidget {
             fontSize: 11,
             fontWeight: FontWeight.w600,
             color: c.textSecondary,
-            fontFamily: 'Rubik',
           ),
         ),
         const SizedBox(height: 6),
@@ -963,11 +916,7 @@ class _MetricInput extends StatelessWidget {
           controller: controller,
           placeholder: placeholder,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          style: TextStyle(
-            color: c.textPrimary,
-            fontSize: 15,
-            fontFamily: 'Rubik',
-          ),
+          style: TextStyle(color: c.textPrimary, fontSize: 15),
           placeholderStyle: TextStyle(color: c.textSecondary, fontSize: 15),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
@@ -1007,7 +956,6 @@ class _LogoutButton extends StatelessWidget {
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
                 color: red,
-                fontFamily: 'Rubik',
               ),
             ),
           ],
@@ -1064,7 +1012,6 @@ class _DeleteAccountButton extends StatelessWidget {
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
                     color: red,
-                    fontFamily: 'Rubik',
                   ),
                 ),
               ],
@@ -1075,11 +1022,7 @@ class _DeleteAccountButton extends StatelessWidget {
         Text(
           'Permanently deletes your workouts, exercise history and profile. This cannot be undone.',
           textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 11,
-            color: context.colors.textSecondary,
-            fontFamily: 'Rubik',
-          ),
+          style: TextStyle(fontSize: 11, color: context.colors.textSecondary),
         ),
       ],
     );

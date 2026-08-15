@@ -85,7 +85,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         fontSize: 22,
                         fontWeight: FontWeight.w700,
                         color: ctx.colors.textPrimary,
-                        fontFamily: 'Rubik',
                         letterSpacing: -0.2,
                       ),
                     ),
@@ -154,7 +153,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         text: TextSpan(
                           style: TextStyle(
                             fontSize: 14,
-                            fontFamily: 'Rubik',
                             color: ctx.colors.textSecondary,
                           ),
                           children: [
@@ -193,11 +191,7 @@ class _Divider extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Text(
             'or',
-            style: TextStyle(
-              color: c.textSecondary,
-              fontFamily: 'Rubik',
-              fontSize: 13,
-            ),
+            style: TextStyle(color: c.textSecondary, fontSize: 13),
           ),
         ),
         Expanded(child: Container(height: 1, color: c.border)),
