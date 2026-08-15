@@ -11,6 +11,18 @@ void main() {
     expect(AppColors.light.card.a, lessThan(1));
     expect(AppColors.light.iconBg.a, lessThan(1));
     expect(AppColors.light.border.a, greaterThanOrEqualTo(0.2));
+    expect(
+      _contrast(AppColors.light.accent, AppColors.light.bg),
+      greaterThanOrEqualTo(4.5),
+    );
+    expect(
+      _contrast(AppColors.light.textOnAccent, AppColors.light.accent),
+      greaterThanOrEqualTo(4.5),
+    );
+    expect(
+      _contrast(AppColors.light.accentSecondary, AppColors.light.bg),
+      greaterThanOrEqualTo(4.5),
+    );
   });
 
   test('dark selection keeps the original graphite palette', () {
@@ -27,4 +39,9 @@ void main() {
     expect(AppDesign.radiusCard, lessThan(AppDesign.radiusSheet));
     expect(AppDesign.hairline, lessThan(1));
   });
+}
+
+double _contrast(Color first, Color second) {
+  final high = [first.computeLuminance(), second.computeLuminance()]..sort();
+  return (high.last + 0.05) / (high.first + 0.05);
 }
