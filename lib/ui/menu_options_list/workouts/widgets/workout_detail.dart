@@ -37,6 +37,69 @@ class WorkoutDetailScreen extends StatefulWidget {
   State<WorkoutDetailScreen> createState() => _WorkoutDetailScreenState();
 }
 
+class _LaunchChoice extends StatelessWidget {
+  final String label;
+  final String detail;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _LaunchChoice({
+    required this.label,
+    required this.detail,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 46),
+        margin: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? c.accent.withValues(alpha: .14) : c.card,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: selected ? c.accent : c.border),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: c.textPrimary,
+                    ),
+                  ),
+                  Text(
+                    detail,
+                    style: TextStyle(fontSize: 11, color: c.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              selected
+                  ? CupertinoIcons.check_mark_circled_solid
+                  : CupertinoIcons.circle,
+              size: 20,
+              color: selected ? c.accent : c.textSecondary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   Workout? _w;
   WorkoutStats? _stats;
@@ -112,8 +175,10 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
       if (mounted) _load();
       return;
     }
+    final configured = await _configureExercises(_w!);
+    if (!mounted || configured == null) return;
     session.start(
-      workout: _w!,
+      workout: configured,
       difficulty: _difficulty,
       exercises: widget.exercises,
       workouts: widget.repo,
@@ -124,6 +189,139 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
       rootNavigator: true,
     ).push(CupertinoPageRoute(builder: (_) => const WorkoutRunnerScreen()));
     if (mounted) _load();
+  }
+
+  Future<Workout?> _configureExercises(Workout workout) async {
+    final optional = workout.exercises.where((e) => e.isOptional).toList();
+    final groups = <String, List<WorkoutExercise>>{};
+    for (final exercise in workout.exercises) {
+      final id = exercise.alternativeGroupId;
+      if (id != null) (groups[id] ??= []).add(exercise);
+    }
+    groups.removeWhere((_, choices) => choices.length < 2);
+    if (optional.isEmpty && groups.isEmpty) return workout;
+
+    final included = {for (final exercise in optional) exercise.exerciseId};
+    final selected = {
+      for (final entry in groups.entries)
+        entry.key: entry.value.first.exerciseId,
+    };
+    final accepted = await showCupertinoModalPopup<bool>(
+      context: context,
+      builder:
+          (sheetContext) => StatefulBuilder(
+            builder: (context, setSheetState) {
+              final c = context.colors;
+              return Container(
+                padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
+                decoration: BoxDecoration(
+                  color: c.bg,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(22),
+                  ),
+                ),
+                child: SafeArea(
+                  top: false,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 38,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: c.border,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Text(
+                        'Configure workout',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: c.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Optional exercises and alternatives can change each session.',
+                        style: TextStyle(fontSize: 12, color: c.textSecondary),
+                      ),
+                      const SizedBox(height: 12),
+                      for (final exercise in optional)
+                        _LaunchChoice(
+                          label: exercise.name,
+                          detail: 'Optional',
+                          selected: included.contains(exercise.exerciseId),
+                          onTap:
+                              () => setSheetState(
+                                () =>
+                                    included.contains(exercise.exerciseId)
+                                        ? included.remove(exercise.exerciseId)
+                                        : included.add(exercise.exerciseId),
+                              ),
+                        ),
+                      for (final entry in groups.entries) ...[
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8, bottom: 4),
+                          child: Text(
+                            'CHOOSE ONE',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: .8,
+                              color: c.accentSecondary,
+                            ),
+                          ),
+                        ),
+                        for (final exercise in entry.value)
+                          _LaunchChoice(
+                            label: exercise.name,
+                            detail: 'Alternative',
+                            selected:
+                                selected[entry.key] == exercise.exerciseId,
+                            onTap:
+                                () => setSheetState(
+                                  () =>
+                                      selected[entry.key] = exercise.exerciseId,
+                                ),
+                          ),
+                      ],
+                      const SizedBox(height: 10),
+                      CupertinoButton.filled(
+                        onPressed: () => Navigator.pop(sheetContext, true),
+                        child: const Text('Start workout'),
+                      ),
+                      CupertinoButton(
+                        onPressed: () => Navigator.pop(sheetContext, false),
+                        child: const Text('Cancel'),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+    );
+    if (accepted != true) return null;
+    final chosenAlternativeIds = selected.values.toSet();
+    return workout.copyWith(
+      exercises:
+          workout.exercises.where((exercise) {
+            if (exercise.isOptional &&
+                !included.contains(exercise.exerciseId)) {
+              return false;
+            }
+            if (exercise.alternativeGroupId != null &&
+                groups.containsKey(exercise.alternativeGroupId)) {
+              return chosenAlternativeIds.contains(exercise.exerciseId);
+            }
+            return true;
+          }).toList(),
+    );
   }
 
   Future<void> _saveCopy() async {
