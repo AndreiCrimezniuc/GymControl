@@ -64,6 +64,27 @@ fi
 
 flutter pub get
 
-echo "Installing and launching the release on device $DEVICE_ID..."
-echo "After the app opens, press q to stop this command; the app stays installed."
-flutter run --release -d "$DEVICE_ID"
+echo "Building a signed iOS release..."
+flutter build ios --release
+
+APP_PATH="$REPO_DIR/build/ios/iphoneos/Runner.app"
+if [[ ! -d "$APP_PATH" ]]; then
+  echo "Signed app was not produced at $APP_PATH" >&2
+  exit 1
+fi
+
+BUNDLE_ID="$(plutil -extract CFBundleIdentifier raw "$APP_PATH/Info.plist")"
+
+# Flutter's device discovery can occasionally list a physical iPhone and then
+# lose it before `flutter run` starts. CoreDevice is Xcode's underlying USB
+# transport and reliably mounts the developer image, installs, and launches.
+echo "Installing $BUNDLE_ID on device $DEVICE_ID..."
+xcrun devicectl device install app --device "$DEVICE_ID" "$APP_PATH"
+
+echo "Launching $BUNDLE_ID..."
+xcrun devicectl device process launch \
+  --device "$DEVICE_ID" \
+  --terminate-existing \
+  "$BUNDLE_ID"
+
+echo "GymControl release installed and launched successfully."
