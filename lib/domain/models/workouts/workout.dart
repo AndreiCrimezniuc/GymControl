@@ -302,6 +302,11 @@ class ActivityPoint {
   final int durationSeconds;
   final int reps;
   final double volumeKg;
+  final int workingSets;
+  final int hardSets;
+  final double averageRpe;
+  final int rpeSets;
+  final double distanceKm;
   final int workouts;
 
   const ActivityPoint({
@@ -309,6 +314,11 @@ class ActivityPoint {
     required this.durationSeconds,
     required this.reps,
     required this.volumeKg,
+    this.workingSets = 0,
+    this.hardSets = 0,
+    this.averageRpe = 0,
+    this.rpeSets = 0,
+    this.distanceKm = 0,
     required this.workouts,
   });
 
@@ -317,6 +327,11 @@ class ActivityPoint {
     durationSeconds: (json['duration_seconds'] as num?)?.toInt() ?? 0,
     reps: (json['reps'] as num?)?.toInt() ?? 0,
     volumeKg: (json['volume_kg'] as num?)?.toDouble() ?? 0,
+    workingSets: (json['working_sets'] as num?)?.toInt() ?? 0,
+    hardSets: (json['hard_sets'] as num?)?.toInt() ?? 0,
+    averageRpe: (json['average_rpe'] as num?)?.toDouble() ?? 0,
+    rpeSets: (json['rpe_sets'] as num?)?.toInt() ?? 0,
+    distanceKm: (json['distance_km'] as num?)?.toDouble() ?? 0,
     workouts: (json['workouts'] as num?)?.toInt() ?? 0,
   );
 }
