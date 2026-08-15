@@ -537,7 +537,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
 
   Widget _body(AppColors c, WorkoutSessionController s, UnitsController units) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 108),
       children: [
         for (var gi = 0; gi < s.groups.length; gi++)
           _exerciseCard(c, s, units, gi + 1, s.groups[gi]),
@@ -561,7 +561,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     return Pressable(
       onTap: onTap,
       child: Container(
-        height: 48,
+        height: 44,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: c.card,
@@ -591,7 +591,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
   Widget _finishBar(AppColors c, WorkoutSessionController s) {
     final allDone = s.doneSets >= s.totalSets;
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      padding: const EdgeInsets.fromLTRB(14, 9, 14, 12),
       decoration: BoxDecoration(
         color: c.card.withValues(alpha: c.usesLightForeground ? 0.46 : 0.62),
         border: Border(
@@ -601,7 +601,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
       child: Pressable(
         onTap: _finishing ? null : () => _confirmFinish(s),
         child: Container(
-          height: 56,
+          height: 48,
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: c.invBg,
@@ -647,7 +647,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     final pr =
         g.sets.isNotEmpty ? session.prFor(g.sets.first.exerciseId) : null;
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
+      margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
         color: c.card,
         borderRadius: BorderRadius.circular(AppDesign.radiusCard),
@@ -660,7 +660,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
           if (g.trainingGroupId != null)
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
               decoration: BoxDecoration(
                 color: c.accent,
                 borderRadius: const BorderRadius.vertical(
@@ -678,7 +678,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
               ),
             ),
           Container(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(11),
             decoration: BoxDecoration(
               color: c.iconBg.withValues(
                 alpha: c.usesLightForeground ? 0.52 : 0.62,
@@ -691,19 +691,19 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
             child: Row(
               children: [
                 SizedBox(
-                  width: 48,
-                  height: 48,
+                  width: 40,
+                  height: 40,
                   child: ExerciseVisual(
                     name: g.name,
                     muscleGroup: g.muscleGroup,
                     category: '',
                     imageUrl: g.imageUrl,
                     imageUrl2: g.imageUrl2,
-                    radius: 14,
-                    figurePadding: 6,
+                    radius: 11,
+                    figurePadding: 5,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -713,7 +713,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: 15,
                           fontWeight: FontWeight.w800,
                           color: c.textPrimary,
                         ),
@@ -748,8 +748,8 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                 const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
+                    horizontal: 8,
+                    vertical: 5,
                   ),
                   decoration: BoxDecoration(
                     color: allDone ? c.accent : c.iconBg,
@@ -785,7 +785,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
               onTap: () => _editExerciseNote(session, g),
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
                 color: c.iconBg.withValues(alpha: 0.6),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -812,7 +812,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
             ),
           Container(height: 1, color: c.border),
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+            padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
             child: Column(
               children: [
                 Padding(
@@ -888,8 +888,8 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 240),
         curve: const Cubic(0.23, 1, 0.32, 1),
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        margin: const EdgeInsets.symmetric(vertical: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 6),
         decoration: BoxDecoration(
           color: s.done ? c.accent.withValues(alpha: 0.10) : c.iconBg,
           borderRadius: BorderRadius.circular(12),
@@ -948,8 +948,8 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     curve: const Cubic(0.23, 1, 0.32, 1),
-                    width: 44,
-                    height: 44,
+                    width: 40,
+                    height: 40,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: s.done ? c.accent : c.card,
@@ -970,7 +970,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                               : const Cubic(0.23, 1, 0.32, 1),
                       child: Icon(
                         CupertinoIcons.check_mark,
-                        size: 22,
+                        size: 20,
                         color: s.done ? c.textOnAccent : c.textSecondary,
                       ),
                     ),
@@ -978,7 +978,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 7),
+            const SizedBox(height: 5),
             Row(
               children: [
                 if (s.previousReps != null)
@@ -1000,7 +1000,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
-                          color: c.textSecondary,
+                          color: c.accentSecondary,
                         ),
                       ),
                     ),
@@ -1468,15 +1468,15 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     textAlign: TextAlign.center,
     style: TextStyle(
       color: c.textPrimary,
-      fontSize: 18,
+      fontSize: 16,
       fontWeight: FontWeight.w800,
     ),
-    placeholderStyle: TextStyle(color: c.textSecondary, fontSize: 16),
+    placeholderStyle: TextStyle(color: c.textSecondary, fontSize: 15),
     suffix: Padding(
       padding: const EdgeInsets.only(right: 8),
       child: Text(unit, style: TextStyle(fontSize: 11, color: c.textSecondary)),
     ),
-    padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 8),
+    padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 7),
     decoration: BoxDecoration(
       color: c.card,
       borderRadius: BorderRadius.circular(10),
