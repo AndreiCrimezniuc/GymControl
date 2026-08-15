@@ -81,7 +81,10 @@ class _GymControlAppState extends State<GymControlApp> {
           return CupertinoApp(
             navigatorKey: _navKey,
             theme: CupertinoThemeData(
-              brightness: theme.isDark ? Brightness.dark : Brightness.light,
+              brightness:
+                  theme.colors.usesLightForeground
+                      ? Brightness.dark
+                      : Brightness.light,
               scaffoldBackgroundColor: theme.colors.bg,
               primaryColor: theme.colors.accent,
               barBackgroundColor: theme.colors.card,

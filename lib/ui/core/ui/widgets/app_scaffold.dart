@@ -41,7 +41,9 @@ class AppScaffold extends StatelessWidget {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    c.textPrimary.withValues(alpha: c.isDark ? 0.045 : 0.16),
+                    c.textPrimary.withValues(
+                      alpha: c.usesLightForeground ? 0.045 : 0.16,
+                    ),
                     c.textPrimary.withValues(alpha: 0),
                   ],
                 ),

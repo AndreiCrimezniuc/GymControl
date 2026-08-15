@@ -29,7 +29,9 @@ class AppPage extends StatelessWidget {
           Container(
             padding: const EdgeInsets.fromLTRB(4, 4, 12, 10),
             decoration: BoxDecoration(
-              color: c.card.withValues(alpha: c.isDark ? 0.44 : 0.62),
+              color: c.card.withValues(
+                alpha: c.usesLightForeground ? 0.44 : 0.62,
+              ),
               border: Border(
                 bottom: BorderSide(color: c.border, width: AppDesign.hairline),
               ),

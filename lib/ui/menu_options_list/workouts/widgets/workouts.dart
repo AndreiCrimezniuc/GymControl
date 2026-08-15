@@ -862,7 +862,7 @@ class _CardTag extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
-        color: c.iconBg.withValues(alpha: c.isDark ? 0.9 : 0.72),
+        color: c.iconBg.withValues(alpha: c.usesLightForeground ? 0.9 : 0.72),
         borderRadius: BorderRadius.circular(9),
         border: Border.all(color: c.border),
       ),

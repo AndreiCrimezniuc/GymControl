@@ -426,7 +426,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     return Container(
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 10),
       decoration: BoxDecoration(
-        color: c.card.withValues(alpha: c.isDark ? 0.42 : 0.58),
+        color: c.card.withValues(alpha: c.usesLightForeground ? 0.42 : 0.58),
         border: Border(
           bottom: BorderSide(color: c.border, width: AppDesign.hairline),
         ),
@@ -593,7 +593,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       decoration: BoxDecoration(
-        color: c.card.withValues(alpha: c.isDark ? 0.46 : 0.62),
+        color: c.card.withValues(alpha: c.usesLightForeground ? 0.46 : 0.62),
         border: Border(
           top: BorderSide(color: c.border, width: AppDesign.hairline),
         ),
@@ -680,7 +680,9 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: c.iconBg.withValues(alpha: c.isDark ? 0.52 : 0.62),
+              color: c.iconBg.withValues(
+                alpha: c.usesLightForeground ? 0.52 : 0.62,
+              ),
               borderRadius:
                   g.trainingGroupId == null
                       ? const BorderRadius.vertical(top: Radius.circular(19))

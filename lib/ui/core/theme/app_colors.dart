@@ -2,8 +2,8 @@ import 'package:flutter/widgets.dart';
 
 /// Full colour palette for one theme (light or dark). Read it from context via
 /// `context.colors` (see theme_controller.dart). The light palette uses a
-/// warm neutral scale inspired by ChatGPT's umber appearance. Surfaces use
-/// alpha rather than fake gradients so content feels layered and translucent.
+/// umber appearance. Surfaces use alpha rather than fake gradients so content
+/// feels layered and translucent.
 class AppColors {
   final bool isDark;
 
@@ -53,52 +53,61 @@ class AppColors {
     required this.invText,
   });
 
+  /// Whether system chrome and artwork need light foreground content.
+  ///
+  /// Theme selection and canvas luminance are deliberately separate: the
+  /// optional "light" appearance is the low-luminance umber treatment.
+  bool get usesLightForeground => bg.computeLuminance() < 0.45;
+
   /// A soft, background-tinted card shadow for gentle depth.
   List<BoxShadow> get cardShadow => [
     BoxShadow(
-      color: isDark ? const Color(0x260F0808) : const Color(0x160F0808),
-      blurRadius: isDark ? 20 : 16,
+      color:
+          usesLightForeground
+              ? const Color(0x260F0808)
+              : const Color(0x160F0808),
+      blurRadius: usesLightForeground ? 20 : 16,
       offset: const Offset(0, 6),
     ),
   ];
 
   static const light = AppColors(
     isDark: false,
-    bg: Color(0xFFF3ECE9),
-    bgTop: Color(0xFFF8F3F0),
-    bgBottom: Color(0xFFECE1DD),
-    card: Color(0xCCFFFFFF),
-    iconBg: Color(0x99FFFFFF),
-    border: Color(0x24705A55),
-    pillBorder: Color(0x38705A55),
-    textPrimary: Color(0xFF2C2422),
-    textSecondary: Color(0xFF756966),
+    bg: Color(0xFF573535),
+    bgTop: Color(0xFF573535),
+    bgBottom: Color(0xFF4F3030),
+    card: Color(0xDE664747),
+    iconBg: Color(0xB8705050),
+    border: Color(0x33FFFFFF),
+    pillBorder: Color(0x4AFFFFFF),
+    textPrimary: Color(0xFFF8F4F2),
+    textSecondary: Color(0xFFD2C2BF),
     textOnAccent: Color(0xFFFFFFFF),
-    accent: Color(0xFFB4473F),
-    accentPressed: Color(0xFF91372F),
-    ringTrack: Color(0x52705A55),
-    navInactive: Color(0xFF8B7D79),
-    invBg: Color(0xFF332927),
-    invText: Color(0xFFFFFFFF),
+    accent: Color(0xFFF0A09A),
+    accentPressed: Color(0xFFD9827B),
+    ringTrack: Color(0x42FFFFFF),
+    navInactive: Color(0xFFC0ADAA),
+    invBg: Color(0xFFF8F4F2),
+    invText: Color(0xFF3B2928),
   );
 
   static const dark = AppColors(
     isDark: true,
-    bg: Color(0xFF573535),
-    bgTop: Color(0xFF573535),
-    bgBottom: Color(0xFF4F3030),
-    card: Color(0xB85A3D3C),
-    iconBg: Color(0x80664747),
-    border: Color(0x1FFFFFFF),
-    pillBorder: Color(0x33FFFFFF),
-    textPrimary: Color(0xFFF8F4F2),
-    textSecondary: Color(0xFFBFAEAC),
+    bg: Color(0xFF0A0A0B),
+    bgTop: Color(0xFF0A0A0B),
+    bgBottom: Color(0xFF0A0A0B),
+    card: Color(0xFF141416),
+    iconBg: Color(0xFF1C1C20),
+    border: Color(0xFF232327),
+    pillBorder: Color(0xFF33333A),
+    textPrimary: Color(0xFFEDEDEF),
+    textSecondary: Color(0xFF8A8A93),
     textOnAccent: Color(0xFFFFFFFF),
-    accent: Color(0xFFF0A09A),
-    accentPressed: Color(0xFFD9827B),
-    ringTrack: Color(0x2EFFFFFF),
-    navInactive: Color(0xFFA99491),
-    invBg: Color(0xFFF8F4F2),
-    invText: Color(0xFF3B2928),
+    accent: Color(0xFFCE3630),
+    accentPressed: Color(0xFFA82A24),
+    ringTrack: Color(0xFF26262B),
+    navInactive: Color(0xFF6A6A73),
+    invBg: Color(0xFFEDEDEF),
+    invText: Color(0xFF121212),
   );
 }

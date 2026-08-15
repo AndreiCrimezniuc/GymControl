@@ -544,7 +544,9 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
         ),
         shadows: [
           BoxShadow(
-            color: c.accent.withValues(alpha: c.isDark ? 0.28 : 0.20),
+            color: c.accent.withValues(
+              alpha: c.usesLightForeground ? 0.28 : 0.20,
+            ),
             blurRadius: 16,
             offset: const Offset(0, 7),
           ),
