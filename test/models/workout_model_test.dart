@@ -23,6 +23,8 @@ void main() {
           'muscle_group': 'chest',
           'rest_seconds': 120,
           'comment': 'touch chest',
+          'is_optional': true,
+          'alternative_group_id': '18f96d91-3b70-4528-9675-f0d7afe51cd2',
           'sets': [
             {'difficulty': 'medium', 'weight_kg': 60, 'reps': 10},
             {'difficulty': 'hard', 'weight_kg': 70, 'reps': 8},
@@ -60,6 +62,9 @@ void main() {
       expect(ex.exerciseId, 10);
       expect(ex.restSeconds, 120);
       expect(ex.imageUrl2, '/img/b.png');
+      expect(ex.isOptional, isTrue);
+      expect(ex.alternativeGroupId, '18f96d91-3b70-4528-9675-f0d7afe51cd2');
+      expect(ex.toJson()['is_optional'], isTrue);
       expect(ex.sets, hasLength(2));
       expect(ex.setsFor('hard'), hasLength(1));
       expect(ex.setsFor('easy'), isEmpty);

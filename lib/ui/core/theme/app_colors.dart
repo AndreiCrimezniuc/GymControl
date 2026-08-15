@@ -25,6 +25,7 @@ class AppColors {
 
   // Accents / misc
   final Color accent;
+  final Color accentSecondary;
   final Color accentPressed;
   final Color ringTrack;
   final Color navInactive;
@@ -46,6 +47,7 @@ class AppColors {
     required this.textSecondary,
     required this.textOnAccent,
     required this.accent,
+    required this.accentSecondary,
     required this.accentPressed,
     required this.ringTrack,
     required this.navInactive,
@@ -83,8 +85,9 @@ class AppColors {
     textPrimary: Color(0xFFF8F4F2),
     textSecondary: Color(0xFFD2C2BF),
     textOnAccent: Color(0xFFFFFFFF),
-    accent: Color(0xFFF0A09A),
-    accentPressed: Color(0xFFD9827B),
+    accent: Color(0xFFF15B57),
+    accentSecondary: Color(0xFFFFB4AE),
+    accentPressed: Color(0xFFD94340),
     ringTrack: Color(0x42FFFFFF),
     navInactive: Color(0xFFC0ADAA),
     invBg: Color(0xFFF8F4F2),
@@ -104,6 +107,7 @@ class AppColors {
     textSecondary: Color(0xFF8A8A93),
     textOnAccent: Color(0xFFFFFFFF),
     accent: Color(0xFFCE3630),
+    accentSecondary: Color(0xFFF08A84),
     accentPressed: Color(0xFFA82A24),
     ringTrack: Color(0xFF26262B),
     navInactive: Color(0xFF6A6A73),

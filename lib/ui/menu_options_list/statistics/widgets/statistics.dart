@@ -126,7 +126,7 @@ class _StatisticsState extends State<Statistics> {
                         const SizedBox(height: 24),
                         _MetricsBlock(summary: _summary),
                         const SizedBox(height: 24),
-                        const _SectionLabel('Training Load'),
+                        const _SectionLabel('Training Workload'),
                         const SizedBox(height: 12),
                         _TrainingLoadCard(points: _activity),
                         const SizedBox(height: 24),
@@ -251,26 +251,78 @@ class _TrainingLoadCard extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              _LoadMetric(
+                label: 'Working sets',
+                value: '${current.workingSets}',
+                suffix: '',
+              ),
+              _LoadMetric(
+                label: 'Hard sets',
+                value: '${current.hardSets}',
+                suffix: '',
+                highlight: true,
+              ),
+              _LoadMetric(
+                label: current.distance > 0 ? 'Distance' : 'Avg RPE',
+                value:
+                    current.distance > 0
+                        ? current.distance.toStringAsFixed(1)
+                        : current.rpeSets > 0
+                        ? (current.rpeSum / current.rpeSets).toStringAsFixed(1)
+                        : '—',
+                suffix: current.distance > 0 ? 'km' : '',
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  ({double volume, int workouts, int seconds}) _totals(
-    DateTime start,
-    DateTime end,
-  ) {
+  ({
+    double volume,
+    int workouts,
+    int seconds,
+    int workingSets,
+    int hardSets,
+    double rpeSum,
+    int rpeSets,
+    double distance,
+  })
+  _totals(DateTime start, DateTime end) {
     var volume = 0.0;
     var workouts = 0;
     var seconds = 0;
+    var workingSets = 0;
+    var hardSets = 0;
+    var rpeSum = 0.0;
+    var rpeSets = 0;
+    var distance = 0.0;
     for (final point in points) {
       final date = DateTime.tryParse(point.date);
       if (date == null || date.isBefore(start) || !date.isBefore(end)) continue;
       volume += point.volumeKg;
       workouts += point.workouts;
       seconds += point.durationSeconds;
+      workingSets += point.workingSets;
+      hardSets += point.hardSets;
+      rpeSum += point.averageRpe * point.rpeSets;
+      rpeSets += point.rpeSets;
+      distance += point.distanceKm;
     }
-    return (volume: volume, workouts: workouts, seconds: seconds);
+    return (
+      volume: volume,
+      workouts: workouts,
+      seconds: seconds,
+      workingSets: workingSets,
+      hardSets: hardSets,
+      rpeSum: rpeSum,
+      rpeSets: rpeSets,
+      distance: distance,
+    );
   }
 
   String _compact(double value) =>
@@ -283,11 +335,13 @@ class _LoadMetric extends StatelessWidget {
   final String label;
   final String value;
   final String suffix;
+  final bool highlight;
 
   const _LoadMetric({
     required this.label,
     required this.value,
     required this.suffix,
+    this.highlight = false,
   });
 
   @override
@@ -311,7 +365,7 @@ class _LoadMetric extends StatelessWidget {
               ],
             ),
             style: TextStyle(
-              color: c.textPrimary,
+              color: highlight ? c.accentSecondary : c.textPrimary,
               fontSize: 18,
               fontWeight: FontWeight.w800,
             ),

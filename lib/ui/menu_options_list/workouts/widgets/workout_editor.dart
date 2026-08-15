@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
+import 'package:uuid/uuid.dart';
 import 'package:provider/provider.dart';
 import 'package:gymboss/data/repositories/exercises_repository.dart';
 import 'package:gymboss/data/repositories/workouts_repository.dart';
@@ -97,6 +98,31 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
     setState(() {
       final e = _exercises.removeAt(i);
       _exercises.insert(j, e);
+    });
+  }
+
+  void _setAlternativeToPrevious(int index, bool enabled) {
+    if (index <= 0) return;
+    setState(() {
+      final current = _exercises[index];
+      final previous = _exercises[index - 1];
+      if (enabled) {
+        final group = previous.alternativeGroupId ?? const Uuid().v4();
+        previous.alternativeGroupId = group;
+        current.alternativeGroupId = group;
+      } else {
+        final oldGroup = current.alternativeGroupId;
+        current.alternativeGroupId = null;
+        if (oldGroup != null &&
+            _exercises.where((e) => e.alternativeGroupId == oldGroup).length <
+                2) {
+          for (final exercise in _exercises) {
+            if (exercise.alternativeGroupId == oldGroup) {
+              exercise.alternativeGroupId = null;
+            }
+          }
+        }
+      }
     });
   }
 
@@ -278,6 +304,16 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
                         index: e.key,
                         last: e.key == _exercises.length - 1,
                         model: e.value,
+                        alternativeToPrevious:
+                            e.key > 0 &&
+                            e.value.alternativeGroupId != null &&
+                            e.value.alternativeGroupId ==
+                                _exercises[e.key - 1].alternativeGroupId,
+                        onAlternativeChanged:
+                            e.key == 0
+                                ? null
+                                : (enabled) =>
+                                    _setAlternativeToPrevious(e.key, enabled),
                         onRemove:
                             () => setState(() => _exercises.removeAt(e.key)),
                         onUp: () => _move(e.key, -1),
@@ -408,6 +444,8 @@ class _ExerciseEditor extends StatefulWidget {
   final VoidCallback onRemove;
   final VoidCallback onUp;
   final VoidCallback onDown;
+  final bool alternativeToPrevious;
+  final ValueChanged<bool>? onAlternativeChanged;
   const _ExerciseEditor({
     super.key,
     required this.index,
@@ -416,6 +454,8 @@ class _ExerciseEditor extends StatefulWidget {
     required this.onRemove,
     required this.onUp,
     required this.onDown,
+    required this.alternativeToPrevious,
+    required this.onAlternativeChanged,
   });
 
   @override
@@ -466,6 +506,21 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
             ],
           ),
           const SizedBox(height: 10),
+          _ProgrammingToggle(
+            title: 'Optional',
+            subtitle: 'Choose whether to include it when starting',
+            value: widget.model.isOptional,
+            onChanged:
+                (value) => setState(() => widget.model.isOptional = value),
+          ),
+          if (widget.onAlternativeChanged != null)
+            _ProgrammingToggle(
+              title: 'Alternative to previous',
+              subtitle: 'Pick one of the two when starting',
+              value: widget.alternativeToPrevious,
+              onChanged: widget.onAlternativeChanged!,
+            ),
+          const SizedBox(height: 8),
           Row(
             children: [
               _MiniField(
@@ -652,6 +707,56 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
   );
 }
 
+class _ProgrammingToggle extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  const _ProgrammingToggle({
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 44),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: c.textPrimary,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: TextStyle(fontSize: 11, color: c.textSecondary),
+                ),
+              ],
+            ),
+          ),
+          CupertinoSwitch(
+            value: value,
+            activeTrackColor: c.accent,
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _MiniField extends StatelessWidget {
   final String label;
   final TextEditingController controller;
@@ -709,12 +814,16 @@ class _EditExercise {
   final restCtrl = TextEditingController(text: '90');
   final commentCtrl = TextEditingController();
   final List<_PlannedSetDraft> sets;
+  bool isOptional;
+  String? alternativeGroupId;
 
   _EditExercise({
     required this.exerciseId,
     required this.name,
     required this.imageUrl,
     required this.muscleGroup,
+    this.isOptional = false,
+    this.alternativeGroupId,
     List<_PlannedSetDraft>? sets,
   }) : sets = sets ?? List.generate(3, (_) => _PlannedSetDraft());
 
@@ -734,6 +843,8 @@ class _EditExercise {
       name: ex.name,
       imageUrl: ex.imageUrl,
       muscleGroup: ex.muscleGroup,
+      isOptional: ex.isOptional,
+      alternativeGroupId: ex.alternativeGroupId,
     );
     m.restCtrl.text = '${ex.restSeconds}';
     m.commentCtrl.text = ex.comment;
@@ -761,6 +872,8 @@ class _EditExercise {
       name: name,
       imageUrl: imageUrl,
       muscleGroup: muscleGroup,
+      isOptional: isOptional,
+      alternativeGroupId: alternativeGroupId,
       restSeconds: rest,
       comment: commentCtrl.text.trim(),
       sets: sets.map((set) => set.toDomain(units)).toList(),

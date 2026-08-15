@@ -7,6 +7,7 @@ import 'package:gymboss/domain/models/workouts/workout.dart';
 import 'package:gymboss/ui/core/units/units_controller.dart';
 import 'package:gymboss/ui/core/input/numeric_limit_formatter.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/session/workout_calculators.dart';
+import 'package:gymboss/ui/menu_options_list/workouts/session/workout_live_activity.dart';
 import 'package:uuid/uuid.dart';
 
 /// One set within an active session. Entered weight/reps are kept as strings so
@@ -189,6 +190,12 @@ class WorkoutSessionController extends ChangeNotifier {
     _active = true;
     _startedAt = DateTime.now();
     _sessionId = const Uuid().v4();
+    unawaited(
+      WorkoutLiveActivity.start(
+        workoutName: workout.name,
+        totalSets: _totalSets,
+      ),
+    );
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (_active && !_finished) notifyListeners();
     });
@@ -297,6 +304,7 @@ class WorkoutSessionController extends ChangeNotifier {
     if (s.done) {
       _uncount(s);
       s.done = false;
+      unawaited(_updateLiveActivity());
       notifyListeners();
       return;
     }
@@ -311,6 +319,7 @@ class WorkoutSessionController extends ChangeNotifier {
       _loggedVolumeKg += w * r; // warmup excluded from working volume
     }
     notifyListeners();
+    unawaited(_updateLiveActivity());
     if (_shouldStartRest(s)) _startRest(s.restSeconds);
   }
 
@@ -587,6 +596,7 @@ class WorkoutSessionController extends ChangeNotifier {
     if (seconds <= 0) return;
     _resting = true;
     _restLeft = seconds;
+    unawaited(_updateLiveActivity(restSeconds: seconds));
     notifyListeners();
     _restTimer = Timer.periodic(const Duration(seconds: 1), (t) {
       if (_restLeft <= 1) {
@@ -603,23 +613,27 @@ class WorkoutSessionController extends ChangeNotifier {
     HapticFeedback.heavyImpact();
     SystemSound.play(SystemSoundType.alert);
     _resting = false;
+    unawaited(_updateLiveActivity());
     notifyListeners();
   }
 
   void adjustRest(int delta) {
     _restLeft = (_restLeft + delta).clamp(0, 3600);
+    unawaited(_updateLiveActivity(restSeconds: _restLeft));
     notifyListeners();
   }
 
   void skipRest() {
     _restTimer?.cancel();
     _resting = false;
+    unawaited(_updateLiveActivity());
     notifyListeners();
   }
 
   Future<void> finish({required bool save}) async {
     _cancelTimers();
     _resting = false;
+    unawaited(WorkoutLiveActivity.end());
     if (!save) {
       clear();
       return;
@@ -666,6 +680,7 @@ class WorkoutSessionController extends ChangeNotifier {
 
   /// Fully clears the session (after the summary is dismissed, or on quit).
   void clear() {
+    unawaited(WorkoutLiveActivity.end());
     _cancelTimers();
     _active = false;
     _minimized = false;
@@ -686,6 +701,13 @@ class WorkoutSessionController extends ChangeNotifier {
     _restTimer = null;
     _ticker = null;
   }
+
+  Future<void> _updateLiveActivity({int? restSeconds}) =>
+      WorkoutLiveActivity.update(
+        completedSets: _loggedSets,
+        totalSets: _totalSets,
+        restSeconds: restSeconds,
+      );
 
   @override
   void dispose() {

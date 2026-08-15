@@ -49,6 +49,8 @@ class WorkoutExercise {
   final String exerciseType;
   final String? trainingGroupId;
   final String trainingGroupType;
+  final bool isOptional;
+  final String? alternativeGroupId;
   final int restSeconds;
   final String comment;
   final List<WorkoutSet> sets;
@@ -62,6 +64,8 @@ class WorkoutExercise {
     this.exerciseType = 'weight_reps',
     this.trainingGroupId,
     this.trainingGroupType = '',
+    this.isOptional = false,
+    this.alternativeGroupId,
     required this.restSeconds,
     required this.comment,
     required this.sets,
@@ -76,6 +80,8 @@ class WorkoutExercise {
     exerciseType: (j['exercise_type'] as String?) ?? 'weight_reps',
     trainingGroupId: j['training_group_id'] as String?,
     trainingGroupType: (j['training_group_type'] as String?) ?? '',
+    isOptional: (j['is_optional'] as bool?) ?? false,
+    alternativeGroupId: j['alternative_group_id'] as String?,
     restSeconds: (j['rest_seconds'] as num?)?.toInt() ?? 90,
     comment: (j['comment'] as String?) ?? '',
     sets:
@@ -89,6 +95,8 @@ class WorkoutExercise {
     'exercise_type': exerciseType,
     'training_group_id': trainingGroupId,
     'training_group_type': trainingGroupType,
+    'is_optional': isOptional,
+    'alternative_group_id': alternativeGroupId,
     'rest_seconds': restSeconds,
     'comment': comment,
     'sets': sets.map((s) => s.toJson()).toList(),
@@ -110,6 +118,8 @@ class WorkoutExercise {
     exerciseType: exerciseType,
     trainingGroupId: trainingGroupId,
     trainingGroupType: trainingGroupType,
+    isOptional: isOptional,
+    alternativeGroupId: alternativeGroupId,
     restSeconds: restSeconds ?? this.restSeconds,
     comment: comment ?? this.comment,
     sets: sets ?? this.sets,
@@ -180,6 +190,22 @@ class Workout {
     }
     return out;
   }
+
+  Workout copyWith({List<WorkoutExercise>? exercises}) => Workout(
+    id: id,
+    name: name,
+    comment: comment,
+    type: type,
+    visibility: visibility,
+    owned: owned,
+    shareCode: shareCode,
+    exerciseCount: exercises?.length ?? exerciseCount,
+    timesPerformed: timesPerformed,
+    loveCoefficient: loveCoefficient,
+    deloadFactor: deloadFactor,
+    exercises: exercises ?? this.exercises,
+    folderId: folderId,
+  );
 }
 
 class WorkoutFolder {
@@ -276,6 +302,11 @@ class ActivityPoint {
   final int durationSeconds;
   final int reps;
   final double volumeKg;
+  final int workingSets;
+  final int hardSets;
+  final double averageRpe;
+  final int rpeSets;
+  final double distanceKm;
   final int workouts;
 
   const ActivityPoint({
@@ -283,6 +314,11 @@ class ActivityPoint {
     required this.durationSeconds,
     required this.reps,
     required this.volumeKg,
+    this.workingSets = 0,
+    this.hardSets = 0,
+    this.averageRpe = 0,
+    this.rpeSets = 0,
+    this.distanceKm = 0,
     required this.workouts,
   });
 
@@ -291,6 +327,11 @@ class ActivityPoint {
     durationSeconds: (json['duration_seconds'] as num?)?.toInt() ?? 0,
     reps: (json['reps'] as num?)?.toInt() ?? 0,
     volumeKg: (json['volume_kg'] as num?)?.toDouble() ?? 0,
+    workingSets: (json['working_sets'] as num?)?.toInt() ?? 0,
+    hardSets: (json['hard_sets'] as num?)?.toInt() ?? 0,
+    averageRpe: (json['average_rpe'] as num?)?.toDouble() ?? 0,
+    rpeSets: (json['rpe_sets'] as num?)?.toInt() ?? 0,
+    distanceKm: (json['distance_km'] as num?)?.toDouble() ?? 0,
     workouts: (json['workouts'] as num?)?.toInt() ?? 0,
   );
 }
