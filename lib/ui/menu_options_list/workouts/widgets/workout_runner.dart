@@ -1020,11 +1020,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                       border: Border.all(color: c.border),
                     ),
                     child: Text(
-                      s.rpe != null
-                          ? 'RPE ${s.rpe}'
-                          : s.rir != null
-                          ? 'RIR ${s.rir}'
-                          : 'RPE / RIR',
+                      s.rpe != null ? 'RPE ${s.rpe}' : 'RPE',
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
@@ -1239,28 +1235,23 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     SessionSet s,
   ) async {
     HapticFeedback.selectionClick();
-    final mode = await showCupertinoModalPopup<String>(
+    final value = await showCupertinoModalPopup<double>(
       context: context,
       builder:
           (ctx) => CupertinoActionSheet(
-            title: const Text('Effort'),
-            message: const Text(
-              'RPE measures effort from 6–10. RIR records estimated reps left.',
-            ),
+            title: const Text('Rate of perceived exertion'),
+            message: const Text('How hard did this set feel?'),
             actions: [
-              CupertinoActionSheetAction(
-                onPressed: () => Navigator.pop(ctx, 'rpe'),
-                child: const Text('Log RPE'),
-              ),
-              CupertinoActionSheetAction(
-                onPressed: () => Navigator.pop(ctx, 'rir'),
-                child: const Text('Log RIR'),
-              ),
-              if (s.rpe != null || s.rir != null)
+              for (final value in const [6, 7, 8, 8.5, 9, 9.5, 10])
+                CupertinoActionSheetAction(
+                  onPressed: () => Navigator.pop(ctx, value.toDouble()),
+                  child: Text('$value RPE'),
+                ),
+              if (s.rpe != null)
                 CupertinoActionSheetAction(
                   isDestructiveAction: true,
-                  onPressed: () => Navigator.pop(ctx, 'clear'),
-                  child: const Text('Clear effort'),
+                  onPressed: () => Navigator.pop(ctx, -1.0),
+                  child: const Text('Clear RPE'),
                 ),
             ],
             cancelButton: CupertinoActionSheetAction(
@@ -1269,52 +1260,8 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
             ),
           ),
     );
-    if (!mounted || mode == null) return;
-    if (mode == 'clear') {
-      session.setEffort(s);
-      return;
-    }
-    if (mode == 'rpe') {
-      final value = await showCupertinoModalPopup<double>(
-        context: context,
-        builder:
-            (ctx) => CupertinoActionSheet(
-              title: const Text('Rate of perceived exertion'),
-              actions: [
-                for (final value in const [6, 7, 8, 8.5, 9, 9.5, 10])
-                  CupertinoActionSheetAction(
-                    onPressed: () => Navigator.pop(ctx, value.toDouble()),
-                    child: Text('$value RPE'),
-                  ),
-              ],
-              cancelButton: CupertinoActionSheetAction(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel'),
-              ),
-            ),
-      );
-      if (value != null) session.setEffort(s, rpe: value);
-      return;
-    }
-    final value = await showCupertinoModalPopup<int>(
-      context: context,
-      builder:
-          (ctx) => CupertinoActionSheet(
-            title: const Text('Reps in reserve'),
-            actions: [
-              for (final value in const [0, 1, 2, 3, 4, 5])
-                CupertinoActionSheetAction(
-                  onPressed: () => Navigator.pop(ctx, value),
-                  child: Text('$value RIR'),
-                ),
-            ],
-            cancelButton: CupertinoActionSheetAction(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
-            ),
-          ),
-    );
-    if (value != null) session.setEffort(s, rir: value);
+    if (!mounted || value == null) return;
+    session.setEffort(s, rpe: value < 0 ? null : value);
   }
 
   // A themed bottom-sheet picker (grab handle, app surface, tap-to-select rows)

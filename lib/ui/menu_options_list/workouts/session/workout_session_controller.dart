@@ -25,7 +25,6 @@ class SessionSet {
   int? previousReps;
   double? previousRpe;
   double? rpe;
-  int? rir;
   bool done;
   final String operationId;
 
@@ -42,7 +41,6 @@ class SessionSet {
     this.previousReps,
     this.previousRpe,
     this.rpe,
-    this.rir,
     this.done = false,
     String? operationId,
   }) : operationId = operationId ?? const Uuid().v4();
@@ -371,10 +369,9 @@ class WorkoutSessionController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setEffort(SessionSet s, {double? rpe, int? rir}) {
+  void setEffort(SessionSet s, {double? rpe}) {
     if (s.done) return;
     s.rpe = rpe;
-    s.rir = rir;
     notifyListeners();
   }
 
@@ -651,7 +648,6 @@ class WorkoutSessionController extends ChangeNotifier {
           setType: set.type,
           progression: set.progression,
           rpe: set.rpe,
-          rir: set.rir,
           durationSeconds:
               group.exerciseType == 'duration' ||
                       group.exerciseType == 'distance_duration'

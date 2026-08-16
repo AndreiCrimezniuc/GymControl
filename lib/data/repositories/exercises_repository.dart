@@ -160,7 +160,6 @@ class ExercisesRepository {
     String setType = 'working',
     String progression = '',
     double? rpe,
-    int? rir,
     int durationSeconds = 0,
     double distanceKm = 0,
     String? operationId,
@@ -174,7 +173,6 @@ class ExercisesRepository {
       'set_type': setType,
       'progression': progression,
       'rpe': rpe,
-      'rir': rir,
       'duration_seconds': durationSeconds,
       'distance_km': distanceKm,
       'operation_id': operationId,
@@ -283,7 +281,6 @@ class ExercisesRepository {
           'set_type': args['set_type'],
           'progression': args['progression'] ?? '',
           if (args['rpe'] != null) 'rpe': args['rpe'],
-          if (args['rir'] != null) 'rir': args['rir'],
           if ((args['duration_seconds'] as int? ?? 0) > 0)
             'duration_seconds': args['duration_seconds'],
           if ((args['distance_km'] as double? ?? 0) > 0)
