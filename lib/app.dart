@@ -19,6 +19,7 @@ import 'package:gymboss/ui/core/ui/widgets/app_scaffold.dart';
 import 'package:gymboss/ui/core/subscription/pro_controller.dart';
 import 'package:gymboss/ui/home_screen/home_screen.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/session/resume_bar.dart';
+import 'package:gymboss/ui/menu_options_list/workouts/session/workout_live_activity.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/session/workout_session_controller.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/workout_runner.dart';
 
@@ -48,6 +49,14 @@ class _GymControlAppState extends State<GymControlApp> {
       AuthRepository(service: _authService, storage: _storage, client: _client),
     )..checkAuth();
     _pro = ProController(_client);
+
+    // ActivityKit can keep a Live Activity alive after Flutter is terminated
+    // or the app is upgraded. Workout sessions are currently memory-only, so
+    // a cold app start cannot have a legitimate session to resume. End any
+    // orphan after the native MethodChannel has been registered.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(WorkoutLiveActivity.end());
+    });
   }
 
   @override
