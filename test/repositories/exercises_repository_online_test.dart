@@ -54,7 +54,6 @@ void main() {
       'total_reps': 150,
       'max_weight_kg': 100.0,
       'max_volume_kg': 2000.0,
-      'love_coefficient': 0.4,
     });
     final c = client((req) => http.Response(body, 200));
     addTearDown(c.dispose);

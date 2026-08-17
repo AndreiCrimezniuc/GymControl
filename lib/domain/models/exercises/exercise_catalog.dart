@@ -96,7 +96,6 @@ class ExerciseStats {
   final double maxVolumeKg;
   final double estimatedOneRmKg;
   final double maxSetVolumeKg;
-  final double loveCoefficient; // 0..1
   final String? rank;
   final List<ExerciseProgressionPoint> progression;
   final List<ExerciseRecord> records;
@@ -111,7 +110,6 @@ class ExerciseStats {
     required this.maxVolumeKg,
     this.estimatedOneRmKg = 0,
     this.maxSetVolumeKg = 0,
-    required this.loveCoefficient,
     required this.rank,
     required this.progression,
     this.records = const [],
@@ -127,7 +125,6 @@ class ExerciseStats {
     maxVolumeKg: (j['max_volume_kg'] as num?)?.toDouble() ?? 0,
     estimatedOneRmKg: (j['estimated_one_rm_kg'] as num?)?.toDouble() ?? 0,
     maxSetVolumeKg: (j['max_set_volume_kg'] as num?)?.toDouble() ?? 0,
-    loveCoefficient: (j['love_coefficient'] as num?)?.toDouble() ?? 0,
     rank: j['rank'] as String?,
     progression:
         ((j['progression'] as List?) ?? [])
@@ -143,7 +140,6 @@ class ExerciseStats {
   );
 
   bool get hasData => totalSets > 0;
-  int get loveScore => (loveCoefficient * 10).round().clamp(0, 10); // 0..10
 }
 
 class ExerciseRecord {

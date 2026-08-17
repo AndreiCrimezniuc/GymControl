@@ -49,7 +49,6 @@ void main() {
         'share_code': '',
         'exercise_count': 1,
         'times_performed': 2,
-        'love_coefficient': 0.3,
         'exercises': [],
       },
     ]);
@@ -115,7 +114,6 @@ void main() {
   test('stats parses potential volume + history and caches', () async {
     final body = jsonEncode({
       'times_performed': 3,
-      'love_coefficient': 0.6,
       'potential_volume': {'easy': 10.0, 'medium': 20.0, 'hard': 30.0},
       'history': [
         {'date': '2026-07-01', 'difficulty': 'hard'},
@@ -149,7 +147,6 @@ void main() {
     'share_code': '',
     'exercise_count': 0,
     'times_performed': 0,
-    'love_coefficient': 0,
     'exercises': [],
   });
 

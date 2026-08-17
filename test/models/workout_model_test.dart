@@ -13,7 +13,6 @@ void main() {
       'folder_id': 'folder-1',
       'exercise_count': 2,
       'times_performed': 4,
-      'love_coefficient': 0.5,
       'exercises': [
         {
           'exercise_id': 10,
@@ -47,7 +46,6 @@ void main() {
       expect(w.owned, isTrue);
       expect(w.timesPerformed, 4);
       expect(w.folderId, 'folder-1');
-      expect(w.loveScore, 5); // 0.5 * 10
       expect(w.exercises, hasLength(2));
     });
 
@@ -116,7 +114,6 @@ void main() {
     test('parses potential volume, average duration and history', () {
       final s = WorkoutStats.fromJson({
         'times_performed': 3,
-        'love_coefficient': 0.8,
         'average_duration_seconds': 3720,
         'potential_volume': {'easy': 100.0, 'medium': 200.0, 'hard': 300.0},
         'history': [
@@ -124,7 +121,6 @@ void main() {
         ],
       });
       expect(s.timesPerformed, 3);
-      expect(s.loveScore, 8);
       expect(s.potentialVolume['hard'], 300.0);
       expect(s.averageDurationSeconds, 3720);
       expect(s.history, hasLength(1));

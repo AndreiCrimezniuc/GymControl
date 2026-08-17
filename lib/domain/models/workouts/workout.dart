@@ -136,7 +136,6 @@ class Workout {
   final String shareCode;
   final int exerciseCount;
   final int timesPerformed;
-  final double loveCoefficient; // 0..1
   final double deloadFactor; // deload weight multiplier vs Normal (e.g. 0.70)
   final List<WorkoutExercise> exercises;
   final String? folderId;
@@ -151,15 +150,12 @@ class Workout {
     required this.shareCode,
     required this.exerciseCount,
     required this.timesPerformed,
-    required this.loveCoefficient,
     this.deloadFactor = 0.70,
     required this.exercises,
     this.folderId,
   });
 
   bool get isPublic => visibility == 'public';
-  int get loveScore => (loveCoefficient * 10).round().clamp(0, 10);
-
   factory Workout.fromJson(Map<String, dynamic> j) => Workout(
     id: (j['id'] as String?) ?? '',
     name: (j['name'] as String?) ?? '',
@@ -170,7 +166,6 @@ class Workout {
     shareCode: (j['share_code'] as String?) ?? '',
     exerciseCount: (j['exercise_count'] as num?)?.toInt() ?? 0,
     timesPerformed: (j['times_performed'] as num?)?.toInt() ?? 0,
-    loveCoefficient: (j['love_coefficient'] as num?)?.toDouble() ?? 0,
     deloadFactor: (j['deload_factor'] as num?)?.toDouble() ?? 0.70,
     exercises:
         ((j['exercises'] as List?) ?? [])
@@ -201,7 +196,6 @@ class Workout {
     shareCode: shareCode,
     exerciseCount: exercises?.length ?? exerciseCount,
     timesPerformed: timesPerformed,
-    loveCoefficient: loveCoefficient,
     deloadFactor: deloadFactor,
     exercises: exercises ?? this.exercises,
     folderId: folderId,
@@ -374,26 +368,21 @@ class StatsSummary {
 
 class WorkoutStats {
   final int timesPerformed;
-  final double loveCoefficient;
   final Map<String, double> potentialVolume; // difficulty -> tonnage
   final List<WorkoutRunPoint> history;
   final int averageDurationSeconds;
 
   const WorkoutStats({
     required this.timesPerformed,
-    required this.loveCoefficient,
     required this.potentialVolume,
     required this.history,
     this.averageDurationSeconds = 0,
   });
 
-  int get loveScore => (loveCoefficient * 10).round().clamp(0, 10);
-
   factory WorkoutStats.fromJson(Map<String, dynamic> j) {
     final pv = (j['potential_volume'] as Map<String, dynamic>?) ?? const {};
     return WorkoutStats(
       timesPerformed: (j['times_performed'] as num?)?.toInt() ?? 0,
-      loveCoefficient: (j['love_coefficient'] as num?)?.toDouble() ?? 0,
       potentialVolume: {
         'easy': (pv['easy'] as num?)?.toDouble() ?? 0,
         'medium': (pv['medium'] as num?)?.toDouble() ?? 0,

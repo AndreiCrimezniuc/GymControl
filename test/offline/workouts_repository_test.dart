@@ -33,7 +33,6 @@ void main() {
         'share_code': '',
         'exercise_count': 0,
         'times_performed': 0,
-        'love_coefficient': 0,
         'exercises': <Object>[],
       });
       await store.putListIds('workouts:owned', ['w1']);

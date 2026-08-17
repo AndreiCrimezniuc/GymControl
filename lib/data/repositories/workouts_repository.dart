@@ -738,7 +738,6 @@ class WorkoutsRepository {
     'share_code': base?['share_code'] ?? '',
     'exercise_count': exercises.length,
     'times_performed': base?['times_performed'] ?? 0,
-    'love_coefficient': base?['love_coefficient'] ?? 0,
     'folder_id': base?['folder_id'],
     'exercises':
         exercises
