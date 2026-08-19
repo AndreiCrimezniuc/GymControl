@@ -4,8 +4,10 @@
 # stack's nginx serves (the `./webapp` volume in docker-compose.production.yml).
 # Backend and web live on the same host, so this mirrors the backend's deploy.
 #
-# Self-contained (analyze + build gate, then deploy) so it doesn't depend on the
-# separate `ci` workflow. Runs on push to main and can be triggered manually.
+# Pull requests are validated by the separate `ci` workflow. This workflow only
+# builds the already-validated main branch and deploys it. Set the repository
+# variable WEB_DEPLOY_ENABLED=true after configuring all four secrets; until
+# then GitHub skips the job before allocating a runner.
 #
 # Required repository secrets (same values as the backend repo's deploy):
 #   DEPLOY_HOST     server hostname / IP
@@ -19,6 +21,13 @@ name: deploy-web
 on:
   push:
     branches: [main, master]
+    paths:
+      - "lib/**"
+      - "web/**"
+      - "assets/**"
+      - "pubspec.yaml"
+      - "pubspec.lock"
+      - ".github/workflows/deploy-web.yml"
   workflow_dispatch:
 
 concurrency:
@@ -29,6 +38,7 @@ jobs:
   deploy:
     name: Build & deploy web
     runs-on: ubuntu-latest
+    if: vars.WEB_DEPLOY_ENABLED == 'true'
 
     steps:
       - uses: actions/checkout@v4
@@ -41,32 +51,10 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Analyze
-        run: flutter analyze
-
-      - name: Test
-        run: flutter test
-
       - name: Build web
         run: flutter build web --release
 
-      - name: Check deploy credentials
-        id: deploy
-        env:
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
-          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
-        run: |
-          if [ -n "$DEPLOY_HOST" ] && [ -n "$DEPLOY_USER" ] && [ -n "$DEPLOY_SSH_KEY" ] && [ -n "$DEPLOY_PATH" ]; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "::warning::Deploy secrets are not configured; release was verified but not uploaded"
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Deploy to server (rsync over SSH)
-        if: steps.deploy.outputs.enabled == 'true'
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
@@ -74,6 +62,10 @@ jobs:
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
         run: |
           set -euo pipefail
+          : "${DEPLOY_HOST:?DEPLOY_HOST secret is required}"
+          : "${DEPLOY_USER:?DEPLOY_USER secret is required}"
+          : "${DEPLOY_SSH_KEY:?DEPLOY_SSH_KEY secret is required}"
+          : "${DEPLOY_PATH:?DEPLOY_PATH secret is required}"
           mkdir -p ~/.ssh
           printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
