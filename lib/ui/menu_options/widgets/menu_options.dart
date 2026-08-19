@@ -205,7 +205,6 @@ class _MenuOptionsState extends State<MenuOptions> {
                 children: [
                   _MenuRow(
                     icon: Icons.view_list_rounded,
-                    accentTile: true,
                     title: 'Workouts',
                     subtitle: 'Programs and routines',
                     onTap: () => _pushAndReload(const Workouts()),
@@ -326,7 +325,6 @@ class _MenuRow extends StatelessWidget {
   final String title;
   final String subtitle;
   final VoidCallback onTap;
-  final bool accentTile;
   final bool last;
 
   const _MenuRow({
@@ -334,7 +332,6 @@ class _MenuRow extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.onTap,
-    this.accentTile = false,
     this.last = false,
   });
 
@@ -354,17 +351,10 @@ class _MenuRow extends StatelessWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color:
-                        accentTile
-                            ? c.accent.withValues(alpha: 0.12)
-                            : c.iconBg,
+                    color: c.accent.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: Icon(
-                    icon,
-                    size: 22,
-                    color: accentTile ? c.accent : c.textSecondary,
-                  ),
+                  child: Icon(icon, size: 22, color: c.accent),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
