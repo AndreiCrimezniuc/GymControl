@@ -2,8 +2,8 @@ import 'package:flutter/widgets.dart';
 
 /// Full colour palette for one theme (light or dark). Read it from context via
 /// `context.colors` (see theme_controller.dart). The light palette uses a
-/// umber appearance. Surfaces use alpha rather than fake gradients so content
-/// feels layered and translucent.
+/// warm neutral appearance. Surfaces use a restrained amount of transparency
+/// rather than fake gradients so content feels layered without looking faded.
 class AppColors {
   final bool isDark;
 
@@ -67,30 +67,30 @@ class AppColors {
       color:
           usesLightForeground
               ? const Color(0x260F0808)
-              : const Color(0x160F0808),
-      blurRadius: usesLightForeground ? 20 : 16,
+              : const Color(0x1F211B19),
+      blurRadius: usesLightForeground ? 20 : 18,
       offset: const Offset(0, 6),
     ),
   ];
 
   static const light = AppColors(
     isDark: false,
-    bg: Color(0xFFF5F3F0),
+    bg: Color(0xFFF2F0ED),
     bgTop: Color(0xFFF8F7F4),
-    bgBottom: Color(0xFFF0ECE8),
-    card: Color(0xEFFFFFFF),
-    iconBg: Color(0xFFF0ECE9),
-    border: Color(0x1F312927),
-    pillBorder: Color(0x2E312927),
-    textPrimary: Color(0xFF211D1C),
-    textSecondary: Color(0xFF706966),
+    bgBottom: Color(0xFFECE8E4),
+    card: Color(0xFAFFFFFF),
+    iconBg: Color(0xFFEAE4E1),
+    border: Color(0x33312927),
+    pillBorder: Color(0x45312927),
+    textPrimary: Color(0xFF1D1918),
+    textSecondary: Color(0xFF5F5855),
     textOnAccent: Color(0xFFFFFFFF),
-    accent: Color(0xFFB93A35),
-    accentSecondary: Color(0xFF7C4541),
-    accentPressed: Color(0xFF982E2A),
-    ringTrack: Color(0x18312927),
-    navInactive: Color(0xFF89817D),
-    invBg: Color(0xFF211D1C),
+    accent: Color(0xFFC93632),
+    accentSecondary: Color(0xFF833D39),
+    accentPressed: Color(0xFFA72B27),
+    ringTrack: Color(0x26312927),
+    navInactive: Color(0xFF716966),
+    invBg: Color(0xFF1D1918),
     invText: Color(0xFFFFFFFF),
   );
 
