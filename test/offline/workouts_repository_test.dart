@@ -84,4 +84,42 @@ void main() {
     expect(folders, hasLength(1));
     expect(folders.single.name, 'Strength');
   });
+
+  test(
+    'folder creation and assignment accumulate in the outbox offline',
+    () async {
+      await store.putDoc('workout', 'w1', {
+        'id': 'w1',
+        'name': 'Push',
+        'comment': '',
+        'visibility': 'private',
+        'owned': true,
+        'share_code': '',
+        'exercise_count': 0,
+        'times_performed': 0,
+        'exercises': <Object>[],
+      });
+      await store.putListIds('workouts:owned', ['w1']);
+      final client = AuthenticatedClient(
+        storage: TokenStorage(),
+        authService: AuthService(),
+        inner: MockClient((_) async => throw const SocketException('offline')),
+      );
+      addTearDown(client.dispose);
+      final repository = WorkoutsRepository(
+        client: client,
+        isOnline: () async => false,
+      );
+
+      final folder = await repository.createFolder('Strength');
+      await repository.assignFolder('w1', folder.id);
+
+      expect(folder.id, startsWith('local:'));
+      expect(store.getDoc('workout', 'w1')?['folder_id'], folder.id);
+      expect(store.pending().map((mutation) => mutation.kind), [
+        'folder.create',
+        'workout.assignFolder',
+      ]);
+    },
+  );
 }

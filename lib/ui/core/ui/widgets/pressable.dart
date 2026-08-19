@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 class Pressable extends StatefulWidget {
   final Widget child;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
   final double scale;
   final bool haptic;
   final String? semanticLabel;
@@ -16,6 +17,7 @@ class Pressable extends StatefulWidget {
     super.key,
     required this.child,
     this.onTap,
+    this.onLongPress,
     this.scale = 0.97,
     this.haptic = false,
     this.semanticLabel,
@@ -69,6 +71,7 @@ class _PressableState extends State<Pressable> {
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: widget.onTap == null ? null : _activate,
+          onLongPress: widget.onLongPress,
           onTapDown: (_) => _set(true),
           onTapUp: (_) => _set(false),
           onTapCancel: () => _set(false),

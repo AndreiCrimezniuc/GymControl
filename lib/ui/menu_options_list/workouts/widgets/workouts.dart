@@ -10,6 +10,7 @@ import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
 import 'package:gymboss/ui/core/ui/widgets/skeleton.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_dialog.dart';
+import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
 import 'package:gymboss/ui/core/subscription/pro_controller.dart';
 import 'package:gymboss/ui/subscription/paywall_screen.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/workout_editor.dart';
@@ -630,12 +631,11 @@ class _WorkoutCard extends StatelessWidget {
     return Semantics(
       button: true,
       label: 'Open ${w.name}',
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
+      child: Pressable(
         onTap: onTap,
         onLongPress: onLongPress,
         child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 14, 12, 13),
+          padding: const EdgeInsets.fromLTRB(14, 11, 10, 11),
           decoration: BoxDecoration(
             color: c.card,
             borderRadius: BorderRadius.circular(AppDesign.radiusCard),
@@ -653,7 +653,7 @@ class _WorkoutCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: 15.5,
                         fontWeight: FontWeight.w600,
                         letterSpacing: -0.25,
                         color: c.textPrimary,
@@ -695,61 +695,80 @@ class _WorkoutCard extends StatelessWidget {
                   ],
                 ],
               ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  _CardTag(
-                    icon:
-                        w.type == 'aerobic'
-                            ? CupertinoIcons.stopwatch
-                            : CupertinoIcons.square_stack_3d_up_fill,
-                    label:
-                        w.type == 'aerobic'
-                            ? 'Aerobic'
-                            : '${w.exerciseCount} exercise${w.exerciseCount == 1 ? '' : 's'}',
-                  ),
-                  for (final muscle in w.muscleGroups.take(2))
-                    _CardTag(label: muscle),
-                ],
-              ),
-              if (w.comment.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(
-                  w.comment,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: c.textSecondary,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 10),
+              const SizedBox(height: 5),
               Row(
                 children: [
-                  Icon(CupertinoIcons.flame, size: 13, color: c.textSecondary),
-                  const SizedBox(width: 4),
+                  Icon(
+                    w.type == 'aerobic'
+                        ? CupertinoIcons.stopwatch
+                        : CupertinoIcons.square_stack_3d_up_fill,
+                    size: 13,
+                    color: c.accent,
+                  ),
+                  const SizedBox(width: 5),
                   Text(
-                    w.timesPerformed == 0
-                        ? 'Not completed yet'
-                        : '${w.timesPerformed} session${w.timesPerformed == 1 ? '' : 's'}',
+                    w.type == 'aerobic'
+                        ? 'Aerobic'
+                        : '${w.exerciseCount} exercise${w.exerciseCount == 1 ? '' : 's'}',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 11.5,
                       fontWeight: FontWeight.w600,
                       color: c.textSecondary,
                     ),
                   ),
-                  const Spacer(),
+                  if (w.muscleGroups.isNotEmpty) ...[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 7),
+                      child: Container(
+                        width: 3,
+                        height: 3,
+                        decoration: BoxDecoration(
+                          color: c.textSecondary,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        w.muscleGroups.take(2).join(' · '),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          color: c.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ] else
+                    const Spacer(),
+                  const SizedBox(width: 6),
+                  Icon(CupertinoIcons.flame, size: 12, color: c.textSecondary),
+                  const SizedBox(width: 3),
+                  Text(
+                    '${w.timesPerformed}',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: c.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
                   Icon(
-                    CupertinoIcons.arrow_right,
-                    size: 15,
+                    CupertinoIcons.chevron_forward,
+                    size: 13,
                     color: c.textSecondary,
                   ),
                 ],
               ),
+              if (w.comment.isNotEmpty) ...[
+                const SizedBox(height: 5),
+                Text(
+                  w.comment,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 12, color: c.textSecondary),
+                ),
+              ],
             ],
           ),
         ),
@@ -843,43 +862,6 @@ class _LibraryCoachCard extends StatelessWidget {
                   ),
                 ),
             ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CardTag extends StatelessWidget {
-  final String label;
-  final IconData? icon;
-
-  const _CardTag({required this.label, this.icon});
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-      decoration: BoxDecoration(
-        color: c.iconBg.withValues(alpha: c.usesLightForeground ? 0.9 : 0.72),
-        borderRadius: BorderRadius.circular(9),
-        border: Border.all(color: c.border),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 12, color: c.accent),
-            const SizedBox(width: 4),
-          ],
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              color: c.textSecondary,
-            ),
           ),
         ],
       ),

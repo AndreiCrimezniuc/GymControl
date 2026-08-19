@@ -1,23 +1,48 @@
+import 'dart:async';
 import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+import 'package:uuid/uuid.dart';
 
 import 'package:gymboss/config/api_config.dart';
 import 'package:gymboss/data/local/local_store.dart';
+import 'package:gymboss/data/local/mutation.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
+import 'package:gymboss/data/sync/connectivity_service.dart';
 import 'package:gymboss/data/sync/network_failure.dart';
+import 'package:gymboss/data/sync/sync_service.dart';
 import 'package:gymboss/domain/models/measurements/body_measurement.dart';
 
 class MeasurementsRepository {
   static const _cacheCollection = 'body_measurements';
   static const _cacheKey = 'body_measurements:list';
+  static const _uuid = Uuid();
+  static bool _handlersRegistered = false;
 
   final AuthenticatedClient _client;
+  final Future<bool> Function() _isOnline;
   final LocalStore _store = LocalStore.instance;
   final String _base = '${ApiConfig.apiBaseUrl}/api/v1/measurements';
 
-  MeasurementsRepository({required AuthenticatedClient client})
-    : _client = client;
+  MeasurementsRepository({
+    required AuthenticatedClient client,
+    Future<bool> Function()? isOnline,
+  }) : _client = client,
+       _isOnline = isOnline ?? ConnectivityService.instance.isOnline {
+    _registerHandlers();
+  }
 
   Future<List<BodyMeasurement>> list() async {
+    if (_store.hasList(_cacheKey)) {
+      final cached = _cachedList();
+      if (await _isOnline()) unawaited(_refreshInBackground());
+      return cached;
+    }
+    if (!await _isOnline()) return const [];
+    return _refresh();
+  }
+
+  Future<List<BodyMeasurement>> _refresh() async {
     try {
       final response = await _client
           .get(Uri.parse(_base))
@@ -46,29 +71,146 @@ class MeasurementsRepository {
     }
   }
 
+  Future<void> _refreshInBackground() async {
+    try {
+      await _refresh();
+    } catch (_) {
+      // The durable snapshot remains usable until the next refresh.
+    }
+  }
+
+  List<BodyMeasurement> _cachedList() =>
+      _store
+          .getListDocs(_cacheCollection, _cacheKey)
+          .map(BodyMeasurement.fromJson)
+          .toList();
+
   Future<BodyMeasurement> save(BodyMeasurement measurement) async {
+    final tempId = 'local:${_uuid.v4()}';
+    final local = {...measurement.toJson(), 'id': tempId};
+    await _store.putDoc(_cacheCollection, tempId, local);
+    await _store.prependToList(_cacheKey, tempId);
+    if (await _isOnline()) {
+      try {
+        return await _createOnline(local, tempId);
+      } on Object catch (error) {
+        if (!isTransientNetworkFailure(error)) {
+          await _store.deleteDoc(_cacheCollection, tempId);
+          await _store.removeFromList(_cacheKey, tempId);
+          rethrow;
+        }
+      }
+    }
+    await _enqueue('measurement.create', {
+      'tempId': tempId,
+      ...measurement.toJson(),
+    });
+    return BodyMeasurement.fromJson(local);
+  }
+
+  Future<void> delete(String id) async {
+    await _store.deleteDoc(_cacheCollection, id);
+    await _store.removeFromList(_cacheKey, id);
+    if (id.startsWith('local:')) {
+      await _store.cancelPendingFor(id);
+      return;
+    }
+    if (await _isOnline()) {
+      try {
+        final response = await _client
+            .delete(Uri.parse('$_base/$id'))
+            .timeout(const Duration(seconds: 15));
+        if (response.statusCode != 204) {
+          throw Exception(
+            'DELETE /measurements/$id HTTP ${response.statusCode}',
+          );
+        }
+        return;
+      } on Object catch (error) {
+        if (!isTransientNetworkFailure(error)) rethrow;
+      }
+    }
+    await _enqueue('measurement.delete', {'id': id});
+  }
+
+  Future<BodyMeasurement> _createOnline(
+    Map<String, dynamic> local,
+    String tempId,
+  ) async {
+    final body = Map<String, dynamic>.from(local)..remove('id');
     final response = await _client
-        .post(Uri.parse(_base), body: jsonEncode(measurement.toJson()))
+        .post(Uri.parse(_base), body: jsonEncode(body))
         .timeout(const Duration(seconds: 15));
     if (response.statusCode != 201) {
       throw Exception('POST /measurements HTTP ${response.statusCode}');
     }
-    final json = jsonDecode(response.body) as Map<String, dynamic>;
-    final saved = BodyMeasurement.fromJson(json);
-    await _store.putDoc(_cacheCollection, saved.id, json);
-    final ids = _store.getListIds(_cacheKey).toList()..remove(saved.id);
-    await _store.putListIds(_cacheKey, [saved.id, ...ids]);
-    return saved;
+    final fresh = jsonDecode(response.body) as Map<String, dynamic>;
+    await _store.remapId(
+      _cacheCollection,
+      tempId,
+      fresh['id'] as String,
+      fresh,
+    );
+    return BodyMeasurement.fromJson(fresh);
   }
 
-  Future<void> delete(String id) async {
-    final response = await _client
-        .delete(Uri.parse('$_base/$id'))
-        .timeout(const Duration(seconds: 15));
-    if (response.statusCode != 204) {
-      throw Exception('DELETE /measurements/$id HTTP ${response.statusCode}');
-    }
-    await _store.deleteDoc(_cacheCollection, id);
-    await _store.removeFromList(_cacheKey, id);
+  Future<void> _enqueue(String kind, Map<String, dynamic> args) async {
+    await _store.enqueue(
+      Mutation(id: _uuid.v4(), seq: _store.nextSeq(), kind: kind, args: args),
+    );
+    SyncService.instance.flushSoon();
   }
+
+  void _registerHandlers() {
+    if (_handlersRegistered) return;
+    _handlersRegistered = true;
+    SyncService.instance.registerHandler('measurement.create', (
+      client,
+      mutation,
+    ) async {
+      try {
+        final body = Map<String, dynamic>.from(mutation.args)..remove('tempId');
+        final response = await client
+            .post(Uri.parse(_base), body: jsonEncode(body))
+            .timeout(const Duration(seconds: 15));
+        if (response.statusCode == 201) {
+          final fresh = jsonDecode(response.body) as Map<String, dynamic>;
+          return SyncOutcome.done(
+            collection: _cacheCollection,
+            remapFromId: mutation.args['tempId'] as String,
+            remapToId: fresh['id'] as String,
+            realDoc: fresh,
+          );
+        }
+        return _outcomeFor(response);
+      } on Object catch (error) {
+        return isTransientNetworkFailure(error)
+            ? const SyncOutcome.retry()
+            : const SyncOutcome.drop();
+      }
+    });
+    SyncService.instance.registerHandler('measurement.delete', (
+      client,
+      mutation,
+    ) async {
+      try {
+        final response = await client
+            .delete(Uri.parse('$_base/${mutation.args['id']}'))
+            .timeout(const Duration(seconds: 15));
+        if (response.statusCode == 204 || response.statusCode == 404) {
+          return const SyncOutcome.done();
+        }
+        return _outcomeFor(response);
+      } on Object catch (error) {
+        return isTransientNetworkFailure(error)
+            ? const SyncOutcome.retry()
+            : const SyncOutcome.drop();
+      }
+    });
+  }
+
+  static SyncOutcome _outcomeFor(http.Response response) =>
+      response.statusCode >= 400 && response.statusCode < 500
+          ? const SyncOutcome.drop()
+          : const SyncOutcome.retry();
 }

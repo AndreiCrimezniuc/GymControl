@@ -7,6 +7,7 @@ import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/data/services/auth/google_sign_in_service.dart';
 import 'package:gymboss/data/services/auth/token_storage.dart';
 import 'package:gymboss/data/local/local_store.dart';
+import 'package:gymboss/data/sync/sync_service.dart';
 import 'package:gymboss/domain/models/auth/user.dart';
 
 class AuthRepository {
@@ -128,6 +129,9 @@ class AuthRepository {
         throw const FormatException('JWT sub is missing');
       }
       await LocalStore.instance.setScope(subject);
+      // Scope activation happens after app-level sync binding on a cold start.
+      // Retry the newly selected user's durable outbox immediately.
+      SyncService.instance.flushSoon();
     } on Object catch (error) {
       throw AppError(
         AppErrorCode.authTokenExpired,

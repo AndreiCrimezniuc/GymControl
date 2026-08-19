@@ -102,54 +102,105 @@ class WorkoutsRepository {
           .toList();
 
   Future<WorkoutFolder> createFolder(String name) async {
-    final response = await _client.post(
-      Uri.parse('${ApiConfig.apiBaseUrl}/api/v1/workout-folders'),
-      body: jsonEncode({'name': name}),
-    );
-    if (response.statusCode != 201) {
-      throw Exception(_err(response.body, response.statusCode));
+    final tempId = 'local:${_uuid.v4()}';
+    final doc = {
+      'id': tempId,
+      'name': name,
+      'position': _store.getListIds(_foldersKey).length,
+    };
+    await _store.putDoc(_folderCollection, tempId, doc);
+    await _store.putListIds(_foldersKey, [
+      ..._store.getListIds(_foldersKey),
+      tempId,
+    ]);
+    if (await _isOnline()) {
+      try {
+        final response = await _client
+            .post(
+              Uri.parse('${ApiConfig.apiBaseUrl}/api/v1/workout-folders'),
+              body: jsonEncode({'name': name}),
+            )
+            .timeout(const Duration(seconds: 15));
+        if (response.statusCode != 201) {
+          throw Exception(_err(response.body, response.statusCode));
+        }
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        await _store.remapId(
+          _folderCollection,
+          tempId,
+          body['id'] as String,
+          body,
+        );
+        return WorkoutFolder.fromJson(body);
+      } on Object catch (error) {
+        if (!isTransientNetworkFailure(error)) {
+          await _store.deleteDoc(_folderCollection, tempId);
+          await _store.removeFromList(_foldersKey, tempId);
+          rethrow;
+        }
+      }
     }
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
-    final folder = WorkoutFolder.fromJson(body);
-    await _store.putDoc(_folderCollection, folder.id, body);
-    final ids = _store.getListIds(_foldersKey).toList()..remove(folder.id);
-    await _store.putListIds(_foldersKey, [...ids, folder.id]);
-    return folder;
+    await _enqueue('folder.create', {'tempId': tempId, 'name': name});
+    return WorkoutFolder.fromJson(doc);
   }
 
   Future<void> renameFolder(String id, String name) async {
-    final response = await _client.put(
-      Uri.parse('${ApiConfig.apiBaseUrl}/api/v1/workout-folders/$id'),
-      body: jsonEncode({'name': name}),
-    );
-    if (response.statusCode != 204) {
-      throw Exception(_err(response.body, response.statusCode));
-    }
     final cached = _store.getDoc(_folderCollection, id);
     if (cached != null) {
       await _store.putDoc(_folderCollection, id, {...cached, 'name': name});
     }
+    if (!id.startsWith('local:') && await _isOnline()) {
+      try {
+        final response = await _client
+            .put(
+              Uri.parse('${ApiConfig.apiBaseUrl}/api/v1/workout-folders/$id'),
+              body: jsonEncode({'name': name}),
+            )
+            .timeout(const Duration(seconds: 15));
+        if (response.statusCode != 204) {
+          throw Exception(_err(response.body, response.statusCode));
+        }
+        return;
+      } on Object catch (error) {
+        if (!isTransientNetworkFailure(error)) rethrow;
+      }
+    }
+    await _enqueue('folder.rename', {'id': id, 'name': name});
   }
 
   Future<void> deleteFolder(String id) async {
-    final response = await _client.delete(
-      Uri.parse('${ApiConfig.apiBaseUrl}/api/v1/workout-folders/$id'),
-    );
-    if (response.statusCode != 204) {
-      throw Exception(_err(response.body, response.statusCode));
-    }
     await _store.deleteDoc(_folderCollection, id);
     await _store.removeFromList(_foldersKey, id);
+    for (final workoutId in _store.getListIds(_ownedKey).toList()) {
+      final workout = _store.getDoc(_collection, workoutId);
+      if (workout?['folder_id'] == id) {
+        await _store.deleteDoc(_collection, workoutId);
+        await _store.removeFromList(_ownedKey, workoutId);
+      }
+    }
+    if (id.startsWith('local:')) {
+      await _store.cancelPendingFor(id);
+      return;
+    }
+    if (await _isOnline()) {
+      try {
+        final response = await _client
+            .delete(
+              Uri.parse('${ApiConfig.apiBaseUrl}/api/v1/workout-folders/$id'),
+            )
+            .timeout(const Duration(seconds: 15));
+        if (response.statusCode != 204) {
+          throw Exception(_err(response.body, response.statusCode));
+        }
+        return;
+      } on Object catch (error) {
+        if (!isTransientNetworkFailure(error)) rethrow;
+      }
+    }
+    await _enqueue('folder.delete', {'id': id});
   }
 
   Future<void> assignFolder(String workoutId, String? folderId) async {
-    final response = await _client.put(
-      Uri.parse('${ApiConfig.apiBaseUrl}/api/v1/workouts/$workoutId/folder'),
-      body: jsonEncode({'folder_id': folderId}),
-    );
-    if (response.statusCode != 204) {
-      throw Exception(_err(response.body, response.statusCode));
-    }
     final cached = _store.getDoc(_collection, workoutId);
     if (cached != null) {
       await _store.putDoc(_collection, workoutId, {
@@ -157,6 +208,28 @@ class WorkoutsRepository {
         'folder_id': folderId,
       });
     }
+    if (!workoutId.startsWith('local:') && await _isOnline()) {
+      try {
+        final response = await _client
+            .put(
+              Uri.parse(
+                '${ApiConfig.apiBaseUrl}/api/v1/workouts/$workoutId/folder',
+              ),
+              body: jsonEncode({'folder_id': folderId}),
+            )
+            .timeout(const Duration(seconds: 15));
+        if (response.statusCode != 204) {
+          throw Exception(_err(response.body, response.statusCode));
+        }
+        return;
+      } on Object catch (error) {
+        if (!isTransientNetworkFailure(error)) rethrow;
+      }
+    }
+    await _enqueue('workout.assignFolder', {
+      'id': workoutId,
+      'folderId': folderId,
+    });
   }
 
   Future<List<Workout>> _cachedList(
@@ -318,17 +391,35 @@ class WorkoutsRepository {
   }
 
   Future<List<PerformedExerciseLog>> runDetail(String id, String date) async {
-    final resp = await _client
-        .get(Uri.parse('$_base/$id/history/$date'))
-        .timeout(const Duration(seconds: 15));
-    if (resp.statusCode != 200) {
-      throw Exception('GET run detail HTTP ${resp.statusCode}');
+    final cacheId = '$id:$date';
+    final cached = _store.getDoc('workout_run_detail', cacheId);
+    if (!await _isOnline() && cached != null) {
+      return _runDetailFromCache(cached);
     }
-    final list = jsonDecode(resp.body) as List<dynamic>;
-    return list
-        .map((e) => PerformedExerciseLog.fromJson(e as Map<String, dynamic>))
-        .toList();
+    try {
+      final resp = await _client
+          .get(Uri.parse('$_base/$id/history/$date'))
+          .timeout(const Duration(seconds: 15));
+      if (resp.statusCode != 200) {
+        throw Exception('GET run detail HTTP ${resp.statusCode}');
+      }
+      final list = jsonDecode(resp.body) as List<dynamic>;
+      await _store.putDoc('workout_run_detail', cacheId, {'items': list});
+      return list
+          .map((e) => PerformedExerciseLog.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } on Object catch (error) {
+      if (isTransientNetworkFailure(error) && cached != null) {
+        return _runDetailFromCache(cached);
+      }
+      rethrow;
+    }
   }
+
+  List<PerformedExerciseLog> _runDetailFromCache(Map<String, dynamic> cached) =>
+      ((cached['items'] as List?) ?? const [])
+          .map((e) => PerformedExerciseLog.fromJson(e as Map<String, dynamic>))
+          .toList();
 
   // ── Writes (optimistic + outbox) ───────────────────────────────────────────
 
@@ -354,7 +445,7 @@ class WorkoutsRepository {
     await _store.putDoc(_collection, tempId, doc);
     await _store.prependToList(_ownedKey, tempId);
 
-    if (await ConnectivityService.instance.isOnline()) {
+    if (await _isOnline()) {
       try {
         return await _networkCreate(
           name,
@@ -406,8 +497,7 @@ class WorkoutsRepository {
     doc['deload_factor'] = deloadFactor;
     await _store.putDoc(_collection, id, doc);
 
-    if (!id.startsWith('local:') &&
-        await ConnectivityService.instance.isOnline()) {
+    if (!id.startsWith('local:') && await _isOnline()) {
       try {
         final resp = await _client
             .put(
@@ -452,7 +542,7 @@ class WorkoutsRepository {
       await _store.cancelPendingFor(id);
       return;
     }
-    if (await ConnectivityService.instance.isOnline()) {
+    if (await _isOnline()) {
       try {
         final resp = await _client
             .delete(Uri.parse('$_base/$id'))
@@ -477,8 +567,7 @@ class WorkoutsRepository {
     String? sessionId,
   }) async {
     final operationId = _uuid.v4();
-    if (!id.startsWith('local:') &&
-        await ConnectivityService.instance.isOnline()) {
+    if (!id.startsWith('local:') && await _isOnline()) {
       try {
         final resp = await _client
             .post(
@@ -516,8 +605,7 @@ class WorkoutsRepository {
       doc['visibility'] = visibility;
       await _store.putDoc(_collection, id, doc);
     }
-    if (!id.startsWith('local:') &&
-        await ConnectivityService.instance.isOnline()) {
+    if (!id.startsWith('local:') && await _isOnline()) {
       try {
         final resp = await _client
             .put(
@@ -620,6 +708,58 @@ class WorkoutsRepository {
     _handlersRegistered = true;
     final s = SyncService.instance;
     final base = _base;
+    final folderBase = '${ApiConfig.apiBaseUrl}/api/v1/workout-folders';
+
+    s.registerHandler('folder.create', (client, m) async {
+      try {
+        final response = await client
+            .post(
+              Uri.parse(folderBase),
+              body: jsonEncode({'name': m.args['name']}),
+            )
+            .timeout(const Duration(seconds: 15));
+        if (response.statusCode == 201) {
+          final fresh = jsonDecode(response.body) as Map<String, dynamic>;
+          return SyncOutcome.done(
+            collection: _folderCollection,
+            remapFromId: m.args['tempId'] as String,
+            remapToId: fresh['id'] as String,
+            realDoc: fresh,
+          );
+        }
+        return _isClientError(response.statusCode)
+            ? const SyncOutcome.drop()
+            : const SyncOutcome.retry();
+      } on Object catch (error) {
+        return isTransientNetworkFailure(error)
+            ? const SyncOutcome.retry()
+            : const SyncOutcome.drop();
+      }
+    });
+
+    s.registerHandler('folder.rename', (client, m) async {
+      final id = m.args['id'] as String;
+      if (id.startsWith('local:')) return const SyncOutcome.retry();
+      return _replay(
+        () => client
+            .put(
+              Uri.parse('$folderBase/$id'),
+              body: jsonEncode({'name': m.args['name']}),
+            )
+            .timeout(const Duration(seconds: 15)),
+        ok: 204,
+      );
+    });
+
+    s.registerHandler('folder.delete', (client, m) async {
+      final id = m.args['id'] as String;
+      return _replay(
+        () => client
+            .delete(Uri.parse('$folderBase/$id'))
+            .timeout(const Duration(seconds: 15)),
+        ok: 204,
+      );
+    });
 
     s.registerHandler('workout.create', (client, m) async {
       try {
@@ -695,6 +835,24 @@ class WorkoutsRepository {
             .put(
               Uri.parse('$base/$id/visibility'),
               body: jsonEncode({'visibility': m.args['visibility']}),
+            )
+            .timeout(const Duration(seconds: 15)),
+        ok: 204,
+      );
+    });
+
+    s.registerHandler('workout.assignFolder', (client, m) async {
+      final id = m.args['id'] as String;
+      final folderId = m.args['folderId'] as String?;
+      if (id.startsWith('local:') ||
+          (folderId?.startsWith('local:') ?? false)) {
+        return const SyncOutcome.retry();
+      }
+      return _replay(
+        () => client
+            .put(
+              Uri.parse('$base/$id/folder'),
+              body: jsonEncode({'folder_id': folderId}),
             )
             .timeout(const Duration(seconds: 15)),
         ok: 204,

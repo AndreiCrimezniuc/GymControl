@@ -44,9 +44,10 @@ class LocalStore {
 
   Future<void> setScope(String userID, {bool migrateLegacy = true}) async {
     final normalized = userID.trim();
-    final next = normalized.isEmpty || normalized == 'anonymous'
-        ? 'anonymous'
-        : 'user:$normalized';
+    final next =
+        normalized.isEmpty || normalized == 'anonymous'
+            ? 'anonymous'
+            : 'user:$normalized';
     if (_scope == next) return;
     _scope = next;
     if (!migrateLegacy) return;
@@ -56,10 +57,8 @@ class LocalStore {
   }
 
   Future<void> _migrateLegacyBox(Box<String> box) async {
-    final keys = box.keys
-        .cast<String>()
-        .where((key) => !key.contains('|'))
-        .toList();
+    final keys =
+        box.keys.cast<String>().where((key) => !key.contains('|')).toList();
     for (final key in keys) {
       if (!box.containsKey(_scoped(key))) {
         await box.put(_scoped(key), box.get(key)!);
@@ -124,12 +123,15 @@ class LocalStore {
   Future<void> removeMutation(String id) => _outbox.delete(_scoped(id));
 
   List<Mutation> _mutations() {
-    final list = _outbox.keys
-        .cast<String>()
-        .where((key) => key.startsWith(_prefix))
-        .map((key) => _outbox.get(key)!)
-        .map((s) => Mutation.fromJson(jsonDecode(s) as Map<String, dynamic>))
-        .toList();
+    final list =
+        _outbox.keys
+            .cast<String>()
+            .where((key) => key.startsWith(_prefix))
+            .map((key) => _outbox.get(key)!)
+            .map(
+              (s) => Mutation.fromJson(jsonDecode(s) as Map<String, dynamic>),
+            )
+            .toList();
     list.sort((a, b) => a.seq.compareTo(b.seq));
     return list;
   }
@@ -161,6 +163,20 @@ class LocalStore {
   ) async {
     await deleteDoc(collection, fromId);
     await putDoc(collection, toId, realDoc);
+    // Reconcile foreign-key references as well (for example a workout assigned
+    // to an offline-created folder). Values are JSON primitives, so replacing
+    // exact string matches cannot alter unrelated partial values.
+    for (final scopedKey in _docs.keys.cast<String>().where(
+      (key) => key.startsWith(_prefix),
+    )) {
+      final raw = _docs.get(scopedKey);
+      if (raw == null) continue;
+      final decoded = jsonDecode(raw);
+      final replaced = _replaceReference(decoded, fromId, toId);
+      if (replaced.changed) {
+        await _docs.put(scopedKey, jsonEncode(replaced.value));
+      }
+    }
     for (final scopedKey in _lists.keys.cast<String>().where(
       (key) => key.startsWith(_prefix),
     )) {
@@ -171,18 +187,50 @@ class LocalStore {
       }
     }
     for (final m in pending()) {
-      if (m.args['id'] == fromId) {
-        m.args['id'] = toId;
+      final replaced = _replaceReference(m.args, fromId, toId);
+      if (replaced.changed) {
+        m.args
+          ..clear()
+          ..addAll(replaced.value as Map<String, dynamic>);
         await updateMutation(m);
       }
     }
+  }
+
+  ({Object? value, bool changed}) _replaceReference(
+    Object? value,
+    String fromId,
+    String toId,
+  ) {
+    if (value == fromId) return (value: toId, changed: true);
+    if (value is List) {
+      var changed = false;
+      final result =
+          value.map((item) {
+            final replacement = _replaceReference(item, fromId, toId);
+            changed = changed || replacement.changed;
+            return replacement.value;
+          }).toList();
+      return (value: result, changed: changed);
+    }
+    if (value is Map) {
+      var changed = false;
+      final result = <String, dynamic>{};
+      for (final entry in value.entries) {
+        final replacement = _replaceReference(entry.value, fromId, toId);
+        changed = changed || replacement.changed;
+        result['${entry.key}'] = replacement.value;
+      }
+      return (value: result, changed: changed);
+    }
+    return (value: value, changed: false);
   }
 
   /// Cancels every pending mutation targeting a temp id (used when an
   /// offline-created entity is deleted before it ever reached the server).
   Future<void> cancelPendingFor(String tempId) async {
     for (final m in pending()) {
-      if (m.args['id'] == tempId || m.args['tempId'] == tempId) {
+      if (m.args.values.contains(tempId)) {
         await removeMutation(m.id);
       }
     }

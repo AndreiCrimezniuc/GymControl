@@ -138,4 +138,36 @@ void main() {
     expect(store.getDoc('workout', 'w1')?['name'], 'Private A');
     expect(store.pending().single.id, 'a1');
   });
+
+  test(
+    'remapId updates foreign-key references in docs and mutations',
+    () async {
+      await store.putDoc('workout-folder', 'local:folder', {
+        'id': 'local:folder',
+        'name': 'Strength',
+      });
+      await store.putListIds('workout-folders', ['local:folder']);
+      await store.putDoc('workout', 'w1', {
+        'id': 'w1',
+        'folder_id': 'local:folder',
+      });
+      await store.enqueue(
+        Mutation(
+          id: 'assign',
+          seq: 1,
+          kind: 'workout.assignFolder',
+          args: {'id': 'w1', 'folderId': 'local:folder'},
+        ),
+      );
+
+      await store.remapId('workout-folder', 'local:folder', 'folder-1', {
+        'id': 'folder-1',
+        'name': 'Strength',
+      });
+
+      expect(store.getDoc('workout', 'w1')?['folder_id'], 'folder-1');
+      expect(store.pending().single.args['folderId'], 'folder-1');
+      expect(store.getListIds('workout-folders'), ['folder-1']);
+    },
+  );
 }

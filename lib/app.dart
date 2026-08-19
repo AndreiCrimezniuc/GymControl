@@ -2,6 +2,11 @@ import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:gymboss/data/repositories/auth_repository.dart';
+import 'package:gymboss/data/repositories/exercises_repository.dart';
+import 'package:gymboss/data/repositories/measurements_repository.dart';
+import 'package:gymboss/data/repositories/ranking_repository.dart';
+import 'package:gymboss/data/repositories/sessions_repository.dart';
+import 'package:gymboss/data/repositories/workouts_repository.dart';
 import 'package:gymboss/data/diagnostics/diagnostic_service.dart';
 import 'package:gymboss/data/services/auth/auth_service.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
@@ -42,6 +47,14 @@ class _GymControlAppState extends State<GymControlApp> {
   void initState() {
     super.initState();
     _client = AuthenticatedClient(storage: _storage, authService: _authService);
+    // Register every mutation handler eagerly. Repositories are otherwise
+    // created lazily by screens, which could leave durable changes blocked
+    // after a cold start until the user happened to revisit that screen.
+    WorkoutsRepository(client: _client);
+    ExercisesRepository(client: _client);
+    MeasurementsRepository(client: _client);
+    RankingRepository(client: _client);
+    SessionsRepository(client: _client);
     // Drain any queued offline mutations once we have an authenticated client
     // and whenever connectivity returns.
     SyncService.instance.bind(_client);

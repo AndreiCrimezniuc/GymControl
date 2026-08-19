@@ -50,7 +50,10 @@ void main() {
       }),
     );
     addTearDown(client.dispose);
-    final repository = MeasurementsRepository(client: client);
+    final repository = MeasurementsRepository(
+      client: client,
+      isOnline: () async => true,
+    );
 
     final items = await repository.list();
     expect(items.single.weightKg, 82.5);
@@ -63,5 +66,30 @@ void main() {
       ),
     );
     expect(saved.id, 'm1');
+  });
+
+  test('save is optimistic and queued while offline', () async {
+    final client = AuthenticatedClient(
+      storage: TokenStorage(),
+      authService: AuthService(),
+      inner: MockClient((_) async => throw const SocketException('offline')),
+    );
+    addTearDown(client.dispose);
+    final repository = MeasurementsRepository(
+      client: client,
+      isOnline: () async => false,
+    );
+
+    final saved = await repository.save(
+      const BodyMeasurement(id: '', measuredAt: '2026-08-19', weightKg: 81),
+    );
+
+    expect(saved.id, startsWith('local:'));
+    expect((await repository.list()).single.weightKg, 81);
+    expect(store.pending().single.kind, 'measurement.create');
+
+    await repository.delete(saved.id);
+    expect(await repository.list(), isEmpty);
+    expect(store.pending(), isEmpty);
   });
 }
