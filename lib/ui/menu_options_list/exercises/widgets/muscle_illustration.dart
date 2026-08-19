@@ -67,13 +67,15 @@ class ExerciseVisual extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final effectiveAnimate =
+        animate && !(MediaQuery.maybeOf(context)?.disableAnimations ?? false);
     final mannequin = ExerciseMannequin(
       pattern: patternFor(
         name: name,
         muscle: muscleGroup,
         equipment: equipment,
       ),
-      animate: animate,
+      animate: effectiveAnimate,
     );
 
     Widget child;
@@ -94,7 +96,7 @@ class ExerciseVisual extends StatelessWidget {
         child: _TwoFrame(
           url1: imageUrl,
           url2: imageUrl2,
-          animate: animate,
+          animate: effectiveAnimate,
           fallback: mannequin,
         ),
       );

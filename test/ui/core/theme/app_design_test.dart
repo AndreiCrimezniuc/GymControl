@@ -4,13 +4,15 @@ import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/app_design.dart';
 
 void main() {
-  test('light selection owns the high-contrast umber appearance', () {
+  test('light selection uses a warm high-contrast canvas', () {
     expect(AppColors.light.isDark, isFalse);
-    expect(AppColors.light.bg, const Color(0xFF573535));
-    expect(AppColors.light.usesLightForeground, isTrue);
+    expect(AppColors.light.bg, const Color(0xFFF5F3F0));
+    expect(AppColors.light.usesLightForeground, isFalse);
     expect(AppColors.light.card.a, lessThan(1));
-    expect(AppColors.light.iconBg.a, lessThan(1));
-    expect(AppColors.light.border.a, greaterThanOrEqualTo(0.2));
+    // Controls use an opaque secondary material so translucent layers are not
+    // stacked on top of one another.
+    expect(AppColors.light.iconBg.a, 1);
+    expect(AppColors.light.border.a, greaterThanOrEqualTo(0.1));
     expect(
       _contrast(AppColors.light.accent, AppColors.light.bg),
       greaterThanOrEqualTo(4.5),

@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/theme/app_design.dart';
+import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
 
 /// Small moon/sun button that toggles the app theme. Shows the icon of the
 /// mode you'll switch *to* (moon in light mode, sun in dark mode).
@@ -10,8 +11,9 @@ class ThemeToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
+    return Pressable(
+      semanticLabel: c.isDark ? 'Use light appearance' : 'Use dark appearance',
+      haptic: true,
       onTap: () => context.themeController.toggle(),
       child: Container(
         width: 38,
