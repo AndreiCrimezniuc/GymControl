@@ -175,6 +175,7 @@ class _AuthGateState extends State<_AuthGate> {
   bool _slow = false;
   bool _stalled = false;
   bool _diagnosticUploadStarted = false;
+  bool _proLoadStarted = false;
 
   @override
   void initState() {
@@ -271,7 +272,16 @@ class _AuthGateState extends State<_AuthGate> {
         _slowTimer?.cancel();
         _stalledTimer?.cancel();
         if (vm.status == AuthStatus.authenticated) {
-          context.read<ProController>().load();
+          if (!_proLoadStarted) {
+            _proLoadStarted = true;
+            // ProController notifies listeners as loading begins. Starting it
+            // after this frame avoids mutating Provider state during build.
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                unawaited(context.read<ProController>().load());
+              }
+            });
+          }
           if (!_diagnosticUploadStarted) {
             _diagnosticUploadStarted = true;
             unawaited(
@@ -282,6 +292,7 @@ class _AuthGateState extends State<_AuthGate> {
           }
           return const HomeScreen();
         }
+        _proLoadStarted = false;
         _diagnosticUploadStarted = false;
         return const _AuthFlow();
       },

@@ -146,20 +146,23 @@ class _MenuOptionsState extends State<MenuOptions> {
   Widget build(BuildContext context) {
     final c = context.colors;
     final weeks = _streak.currentStreakWeeks;
-    final milestonePct = weeks <= 0 ? 0 : ((weeks % 4) / 4 * 100).round();
+    final weeksToGoal = 4 - (weeks % 4);
 
     return AppScaffold(
-      child: Column(
-        children: [
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
+      child: MediaQuery.withClampedTextScaling(
+        maxScaleFactor: 2,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 18),
+          children: [
+            Row(
               children: [
-                // ── Header ──────────────────────────────────────────────
-                Row(
-                  children: [
-                    Text(
+                Expanded(
+                  child: MediaQuery.withClampedTextScaling(
+                    maxScaleFactor: 1.5,
+                    child: Text(
                       'GymControl',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 25,
                         fontWeight: FontWeight.w600,
@@ -167,120 +170,78 @@ class _MenuOptionsState extends State<MenuOptions> {
                         color: c.textPrimary,
                       ),
                     ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 7,
-                      ),
-                      decoration: BoxDecoration(
-                        color: c.iconBg,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: c.border),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 7,
-                            height: 7,
-                            decoration: BoxDecoration(
-                              color: c.accent,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Ready',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: c.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    const ThemeToggle(),
-                  ],
-                ),
-
-                const SizedBox(height: 22),
-
-                // ── Stats strip ─────────────────────────────────────────
-                GestureDetector(
-                  onTap: () => _showYearCalendar(context),
-                  child: _StatStrip(
-                    segments: [
-                      ('$weeks', weeks == 1 ? 'WEEK\nSTREAK' : 'WEEK\nSTREAK'),
-                      ('$milestonePct%', 'TO\nMILESTONE'),
-                      ('$_workouts', 'ROUTINES'),
-                    ],
                   ),
                 ),
-
-                const SizedBox(height: 28),
-
-                // ── Menu ────────────────────────────────────────────────
-                Text(
-                  'Your training',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: c.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                AppGlassSurface(
-                  radius: AppDesign.radiusCard,
-                  blur: true,
-                  child: Column(
-                    children: [
-                      _MenuRow(
-                        icon: Icons.emoji_events_rounded,
-                        accentTile: true,
-                        title: 'My Workouts',
-                        subtitle: 'Programs & routines',
-                        onTap: () => _pushAndReload(const Workouts()),
-                      ),
-                      _MenuRow(
-                        icon: Icons.bar_chart_rounded,
-                        title: 'Statistics',
-                        subtitle: 'Track progress',
-                        onTap: () => _push(const Statistics()),
-                      ),
-                      _MenuRow(
-                        icon: Icons.emoji_events_outlined,
-                        title: 'Rank',
-                        subtitle: 'See where you stand',
-                        onTap: () => _push(const Ranking()),
-                      ),
-                      _MenuRow(
-                        icon: Icons.fitness_center_rounded,
-                        title: 'Exercises',
-                        subtitle: 'Browse library',
-                        onTap: () => _push(const Exercises()),
-                      ),
-                      _MenuRow(
-                        icon: Icons.wb_sunny_outlined,
-                        title: 'Settings',
-                        subtitle: 'Customize app',
-                        onTap: () => _push(const Settings()),
-                        last: true,
-                      ),
-                    ],
-                  ),
-                ),
+                const SizedBox(width: 12),
+                const ThemeToggle(),
               ],
             ),
-          ),
-
-          // ── Start workout ───────────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-            child: _StartButton(onTap: () => _pushAndReload(const Workouts())),
-          ),
-        ],
+            const SizedBox(height: 22),
+            AppGlassSurface(
+              onTap: () => _showYearCalendar(context),
+              child: _StatStrip(
+                segments: [
+                  ('$weeks', 'WEEK STREAK'),
+                  ('$weeksToGoal wk', 'NEXT GOAL'),
+                  ('$_workouts', 'ROUTINES'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 26),
+            Text(
+              'Explore',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.1,
+                color: c.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 10),
+            AppGlassSurface(
+              radius: AppDesign.radiusCard,
+              blur: true,
+              child: Column(
+                children: [
+                  _MenuRow(
+                    icon: Icons.view_list_rounded,
+                    accentTile: true,
+                    title: 'Workouts',
+                    subtitle: 'Programs and routines',
+                    onTap: () => _pushAndReload(const Workouts()),
+                  ),
+                  _MenuRow(
+                    icon: Icons.insights_rounded,
+                    title: 'Progress',
+                    subtitle: 'History and personal records',
+                    onTap: () => _push(const Statistics()),
+                  ),
+                  _MenuRow(
+                    icon: Icons.military_tech_rounded,
+                    title: 'Achievements',
+                    subtitle: 'Ranks and milestones',
+                    onTap: () => _push(const Ranking()),
+                  ),
+                  _MenuRow(
+                    icon: Icons.fitness_center_rounded,
+                    title: 'Exercises',
+                    subtitle: 'Movement library',
+                    onTap: () => _push(const Exercises()),
+                  ),
+                  _MenuRow(
+                    icon: Icons.settings_rounded,
+                    title: 'Settings',
+                    subtitle: 'Preferences and account',
+                    onTap: () => _push(const Settings()),
+                    last: true,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            _StartButton(onTap: () => _pushAndReload(const Workouts())),
+          ],
+        ),
       ),
     );
   }
@@ -302,55 +263,59 @@ class _StatStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return AppGlassSurface(
-      radius: AppDesign.radiusCard,
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: SizedBox(
-        height: 104,
-        child: Row(
+    final largeText = MediaQuery.textScalerOf(context).scale(1) > 1.3;
+    final items = [
+      for (var i = 0; i < segments.length; i++)
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  segments[i].$1,
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w600,
+                    height: 1,
+                    letterSpacing: -0.8,
+                    color: c.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  segments[i].$2,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                    height: 1.25,
+                    color: c.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+    ];
+    return largeText
+        ? Column(
+          children: [
+            for (var i = 0; i < segments.length; i++) ...[
+              if (i > 0) Container(height: 1, color: c.border),
+              Row(children: [items[i]]),
+            ],
+          ],
+        )
+        : Row(
           children: [
             for (var i = 0; i < segments.length; i++) ...[
               if (i > 0) Container(width: 1, height: 54, color: c.border),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 18,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      Text(
-                        segments[i].$1,
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w600,
-                          height: 1,
-                          letterSpacing: -0.8,
-                          color: c.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        segments[i].$2,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 0.5,
-                          height: 1.25,
-                          color: c.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              items[i],
             ],
           ],
-        ),
-      ),
-    );
+        );
   }
 }
 
@@ -376,8 +341,8 @@ class _MenuRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
+    return Pressable(
+      semanticLabel: '$title, $subtitle',
       onTap: onTap,
       child: Column(
         children: [
@@ -448,6 +413,8 @@ class _StartButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return Pressable(
+      semanticLabel: 'Choose a workout',
+      haptic: true,
       onTap: onTap,
       child: Container(
         height: 56,
@@ -460,7 +427,7 @@ class _StartButton extends StatelessWidget {
           shadows: c.cardShadow,
         ),
         child: Text(
-          'Start workout',
+          'Choose a workout',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,

@@ -59,10 +59,15 @@ class _SkeletonListState extends State<SkeletonList>
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return AnimatedBuilder(
+    final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    return TickerMode(
+      enabled: !reduceMotion,
+      child: AnimatedBuilder(
       animation: _ctrl,
       builder: (_, __) {
-        final o = 0.55 + 0.45 * Curves.easeInOut.transform(_ctrl.value);
+        final o = reduceMotion
+            ? 0.78
+            : 0.55 + 0.45 * Curves.easeInOut.transform(_ctrl.value);
         return ListView.separated(
           padding: const EdgeInsets.fromLTRB(20, 6, 20, 20),
           physics: const NeverScrollableScrollPhysics(),
@@ -106,6 +111,7 @@ class _SkeletonListState extends State<SkeletonList>
           ),
         );
       },
+      ),
     );
   }
 }

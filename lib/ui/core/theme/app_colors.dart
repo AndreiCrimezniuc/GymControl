@@ -58,7 +58,7 @@ class AppColors {
   /// Whether system chrome and artwork need light foreground content.
   ///
   /// Theme selection and canvas luminance are deliberately separate: the
-  /// optional "light" appearance is the low-luminance umber treatment.
+  /// light appearance is a warm, neutral canvas with restrained signal red.
   bool get usesLightForeground => bg.computeLuminance() < 0.45;
 
   /// A soft, background-tinted card shadow for gentle depth.
@@ -75,23 +75,23 @@ class AppColors {
 
   static const light = AppColors(
     isDark: false,
-    bg: Color(0xFF573535),
-    bgTop: Color(0xFF573535),
-    bgBottom: Color(0xFF4F3030),
-    card: Color(0xDE664747),
-    iconBg: Color(0xB8705050),
-    border: Color(0x33FFFFFF),
-    pillBorder: Color(0x4AFFFFFF),
-    textPrimary: Color(0xFFF8F4F2),
-    textSecondary: Color(0xFFD2C2BF),
-    textOnAccent: Color(0xFF1C1010),
-    accent: Color(0xFFFF8E86),
-    accentSecondary: Color(0xFFA9C3D0),
-    accentPressed: Color(0xFFFF746E),
-    ringTrack: Color(0x42FFFFFF),
-    navInactive: Color(0xFFC0ADAA),
-    invBg: Color(0xFFF8F4F2),
-    invText: Color(0xFF3B2928),
+    bg: Color(0xFFF5F3F0),
+    bgTop: Color(0xFFF8F7F4),
+    bgBottom: Color(0xFFF0ECE8),
+    card: Color(0xEFFFFFFF),
+    iconBg: Color(0xFFF0ECE9),
+    border: Color(0x1F312927),
+    pillBorder: Color(0x2E312927),
+    textPrimary: Color(0xFF211D1C),
+    textSecondary: Color(0xFF706966),
+    textOnAccent: Color(0xFFFFFFFF),
+    accent: Color(0xFFB93A35),
+    accentSecondary: Color(0xFF7C4541),
+    accentPressed: Color(0xFF982E2A),
+    ringTrack: Color(0x18312927),
+    navInactive: Color(0xFF89817D),
+    invBg: Color(0xFF211D1C),
+    invText: Color(0xFFFFFFFF),
   );
 
   static const dark = AppColors(

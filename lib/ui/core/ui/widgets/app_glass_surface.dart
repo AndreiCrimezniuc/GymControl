@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/widgets.dart';
 import 'package:gymboss/ui/core/theme/app_design.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
+import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
 
 /// A restrained frosted surface: translucent fill, hairline border and the
 /// shallow shadow used by ChatGPT's floating panels.
@@ -29,10 +30,14 @@ class AppGlassSurface extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final highContrast = MediaQuery.maybeOf(context)?.highContrast ?? false;
+    final reduceMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final fill = color ?? colors.card;
     final content = Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: color ?? colors.card,
+        color: highContrast ? fill.withValues(alpha: 1) : fill,
         borderRadius: BorderRadius.circular(radius),
         border: Border.all(color: colors.border, width: AppDesign.hairline),
         boxShadow: colors.cardShadow,
@@ -42,7 +47,7 @@ class AppGlassSurface extends StatelessWidget {
     final clipped = ClipRRect(
       borderRadius: BorderRadius.circular(radius),
       child:
-          blur
+          blur && !highContrast
               ? BackdropFilter(
                 filter: ImageFilter.blur(
                   sigmaX: AppDesign.glassBlur,
@@ -57,9 +62,9 @@ class AppGlassSurface extends StatelessWidget {
       child:
           onTap == null
               ? clipped
-              : GestureDetector(
-                behavior: HitTestBehavior.opaque,
+              : Pressable(
                 onTap: onTap,
+                scale: reduceMotion ? 1 : 0.985,
                 child: clipped,
               ),
     );
