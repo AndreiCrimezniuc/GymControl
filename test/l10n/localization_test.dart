@@ -13,6 +13,10 @@ void main() {
     expect(ru.settingsTitle, 'Настройки');
     expect(en.labelDarkMode, 'Dark Mode');
     expect(ru.labelDarkMode, 'Тёмная тема');
+    expect(en.labelAccentColor, 'Accent Color');
+    expect(ru.labelAccentColor, 'Цвет акцента');
+    expect(en.accentPurple, 'Purple');
+    expect(ru.accentGreen, 'Зелёный');
     expect(en.logOut, 'Log Out');
     expect(ru.logOut, 'Выйти');
     expect(en.strengthPassport, 'Strength Passport');

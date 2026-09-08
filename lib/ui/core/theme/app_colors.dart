@@ -1,5 +1,42 @@
 import 'package:flutter/widgets.dart';
 
+enum AppAccent { blue, red, purple, green }
+
+extension AppAccentColors on AppAccent {
+  Color color({required bool isDark}) => switch ((this, isDark)) {
+    (AppAccent.blue, false) => const Color(0xFF3156D9),
+    (AppAccent.blue, true) => const Color(0xFF4161C8),
+    (AppAccent.red, false) => const Color(0xFFB83B36),
+    (AppAccent.red, true) => const Color(0xFFCE3630),
+    (AppAccent.purple, false) => const Color(0xFF6946BD),
+    (AppAccent.purple, true) => const Color(0xFF7546C7),
+    (AppAccent.green, false) => const Color(0xFF19724B),
+    (AppAccent.green, true) => const Color(0xFF217A52),
+  };
+
+  Color pressedColor({required bool isDark}) => switch ((this, isDark)) {
+    (AppAccent.blue, false) => const Color(0xFF2444B7),
+    (AppAccent.blue, true) => const Color(0xFF3450AA),
+    (AppAccent.red, false) => const Color(0xFF962E2A),
+    (AppAccent.red, true) => const Color(0xFFA82A24),
+    (AppAccent.purple, false) => const Color(0xFF53349D),
+    (AppAccent.purple, true) => const Color(0xFF5F35A8),
+    (AppAccent.green, false) => const Color(0xFF115C3B),
+    (AppAccent.green, true) => const Color(0xFF176441),
+  };
+
+  Color secondaryColor({required bool isDark}) => switch ((this, isDark)) {
+    (AppAccent.blue, false) => const Color(0xFF3E566F),
+    (AppAccent.blue, true) => const Color(0xFF91A7F4),
+    (AppAccent.red, false) => const Color(0xFF72504F),
+    (AppAccent.red, true) => const Color(0xFFF08A84),
+    (AppAccent.purple, false) => const Color(0xFF625674),
+    (AppAccent.purple, true) => const Color(0xFFB99BEF),
+    (AppAccent.green, false) => const Color(0xFF45665A),
+    (AppAccent.green, true) => const Color(0xFF76C69C),
+  };
+}
+
 /// Full colour palette for one theme (light or dark). Read it from context via
 /// `context.colors` (see theme_controller.dart). The light palette uses a
 /// architectural neutral appearance. Surfaces use restrained transparency and
@@ -55,6 +92,27 @@ class AppColors {
     required this.invBg,
     required this.invText,
   });
+
+  AppColors withAccent(AppAccent selected) => AppColors(
+    isDark: isDark,
+    bg: bg,
+    bgTop: bgTop,
+    bgBottom: bgBottom,
+    card: card,
+    iconBg: iconBg,
+    border: border,
+    pillBorder: pillBorder,
+    textPrimary: textPrimary,
+    textSecondary: textSecondary,
+    textOnAccent: textOnAccent,
+    accent: selected.color(isDark: isDark),
+    accentSecondary: selected.secondaryColor(isDark: isDark),
+    accentPressed: selected.pressedColor(isDark: isDark),
+    ringTrack: ringTrack,
+    navInactive: navInactive,
+    invBg: invBg,
+    invText: invText,
+  );
 
   /// Whether system chrome and artwork need light foreground content.
   ///

@@ -8,30 +8,80 @@ import 'app_colors.dart';
 /// so the whole app rebuilds on toggle.
 class ThemeController extends ChangeNotifier {
   static const _prefsKey = 'app_theme_dark';
+  static const _lightAccentPrefsKey = 'app_theme_accent_light';
+  static const _darkAccentPrefsKey = 'app_theme_accent_dark';
 
   bool _isDark = false;
+  AppAccent _lightAccent = AppAccent.blue;
+  AppAccent _darkAccent = AppAccent.red;
+  var _localChangeRevision = 0;
+  late final Future<void> restored;
 
   ThemeController() {
-    _restore();
+    restored = _restore();
   }
 
   bool get isDark => _isDark;
-  AppColors get colors => _isDark ? AppColors.dark : AppColors.light;
+  AppAccent get accent => _isDark ? _darkAccent : _lightAccent;
+  AppColors get colors =>
+      (_isDark ? AppColors.dark : AppColors.light).withAccent(accent);
 
   Future<void> _restore() async {
+    final revision = _localChangeRevision;
     final prefs = await SharedPreferences.getInstance();
     final stored = prefs.getBool(_prefsKey);
-    if (stored != null && stored != _isDark) {
-      _isDark = stored;
+    final lightAccent = _parseAccent(prefs.getString(_lightAccentPrefsKey));
+    final darkAccent = _parseAccent(prefs.getString(_darkAccentPrefsKey));
+    if (revision != _localChangeRevision) return;
+
+    final nextIsDark = stored ?? _isDark;
+    final nextLightAccent = lightAccent ?? _lightAccent;
+    final nextDarkAccent = darkAccent ?? _darkAccent;
+    if (nextIsDark != _isDark ||
+        nextLightAccent != _lightAccent ||
+        nextDarkAccent != _darkAccent) {
+      _isDark = nextIsDark;
+      _lightAccent = nextLightAccent;
+      _darkAccent = nextDarkAccent;
       notifyListeners();
     }
   }
 
   Future<void> toggle() async {
+    _localChangeRevision++;
     _isDark = !_isDark;
+    final value = _isDark;
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_prefsKey, _isDark);
+    if (_isDark == value) await prefs.setBool(_prefsKey, value);
+  }
+
+  Future<void> setAccent(AppAccent value) async {
+    if (value == accent) return;
+    _localChangeRevision++;
+    final changingDarkAccent = _isDark;
+    if (changingDarkAccent) {
+      _darkAccent = value;
+    } else {
+      _lightAccent = value;
+    }
+    notifyListeners();
+
+    final prefs = await SharedPreferences.getInstance();
+    final current = changingDarkAccent ? _darkAccent : _lightAccent;
+    if (current == value) {
+      await prefs.setString(
+        changingDarkAccent ? _darkAccentPrefsKey : _lightAccentPrefsKey,
+        value.name,
+      );
+    }
+  }
+
+  static AppAccent? _parseAccent(String? value) {
+    for (final accent in AppAccent.values) {
+      if (accent.name == value) return accent;
+    }
+    return null;
   }
 }
 

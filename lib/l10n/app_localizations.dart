@@ -152,6 +152,36 @@ abstract class AppLocalizations {
   /// **'Dark Mode'**
   String get labelDarkMode;
 
+  /// No description provided for @labelAccentColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Accent Color'**
+  String get labelAccentColor;
+
+  /// No description provided for @accentBlue.
+  ///
+  /// In en, this message translates to:
+  /// **'Cobalt'**
+  String get accentBlue;
+
+  /// No description provided for @accentRed.
+  ///
+  /// In en, this message translates to:
+  /// **'Red'**
+  String get accentRed;
+
+  /// No description provided for @accentPurple.
+  ///
+  /// In en, this message translates to:
+  /// **'Purple'**
+  String get accentPurple;
+
+  /// No description provided for @accentGreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Green'**
+  String get accentGreen;
+
   /// No description provided for @labelNotifications.
   ///
   /// In en, this message translates to:

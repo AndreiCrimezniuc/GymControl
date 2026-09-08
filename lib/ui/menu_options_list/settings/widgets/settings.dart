@@ -12,6 +12,7 @@ import 'package:gymboss/domain/models/ranking/rank_data.dart';
 import 'package:gymboss/l10n/app_localizations.dart';
 import 'package:gymboss/ui/auth/view_model/auth_view_model.dart';
 import 'package:gymboss/ui/core/locale/locale_controller.dart';
+import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/units/units_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_dialog.dart';
@@ -216,6 +217,7 @@ class _SettingsState extends State<Settings> {
                 value: theme.isDark,
                 onChanged: (_) => theme.toggle(),
               ),
+              const _AccentColorTile(),
               const _UnitsTile(),
             ],
           ),
@@ -575,6 +577,137 @@ class _SwitchTile extends StatelessWidget {
             onChanged: onChanged,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _AccentColorTile extends StatelessWidget {
+  const _AccentColorTile();
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final l = AppLocalizations.of(context);
+    final theme = context.watch<ThemeController>();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Icon(CupertinoIcons.paintbrush_fill, size: 18, color: c.accent),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  l.labelAccentColor,
+                  style: TextStyle(fontSize: 15, color: c.textPrimary),
+                ),
+              ),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 160),
+                child: Text(
+                  _name(l, theme.accent),
+                  key: ValueKey(theme.accent),
+                  style: TextStyle(fontSize: 13, color: c.textSecondary),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.only(left: 26),
+            child: Row(
+              children: [
+                for (final option in AppAccent.values)
+                  Expanded(
+                    child: _AccentSwatch(
+                      accent: option,
+                      selected: option == theme.accent,
+                      label: _name(l, option),
+                      isDark: c.isDark,
+                      onTap: () => theme.setAccent(option),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _name(AppLocalizations l, AppAccent accent) => switch (accent) {
+    AppAccent.blue => l.accentBlue,
+    AppAccent.red => l.accentRed,
+    AppAccent.purple => l.accentPurple,
+    AppAccent.green => l.accentGreen,
+  };
+}
+
+class _AccentSwatch extends StatelessWidget {
+  final AppAccent accent;
+  final bool selected;
+  final String label;
+  final bool isDark;
+  final VoidCallback onTap;
+
+  const _AccentSwatch({
+    required this.accent,
+    required this.selected,
+    required this.label,
+    required this.isDark,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final color = accent.color(isDark: isDark);
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: SizedBox(
+          height: 44,
+          child: Center(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOutCubic,
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: selected ? color.withValues(alpha: 0.12) : null,
+                border: Border.all(
+                  color: selected ? color : c.border,
+                  width: selected ? 2 : 1,
+                ),
+              ),
+              child: Center(
+                child: Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                  ),
+                  child: selected
+                      ? const Icon(
+                          CupertinoIcons.check_mark,
+                          color: CupertinoColors.white,
+                          size: 12,
+                        )
+                      : null,
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -36,6 +36,21 @@ class AppLocalizationsRu extends AppLocalizations {
   String get labelDarkMode => 'Тёмная тема';
 
   @override
+  String get labelAccentColor => 'Цвет акцента';
+
+  @override
+  String get accentBlue => 'Кобальт';
+
+  @override
+  String get accentRed => 'Красный';
+
+  @override
+  String get accentPurple => 'Фиолетовый';
+
+  @override
+  String get accentGreen => 'Зелёный';
+
+  @override
   String get labelNotifications => 'Уведомления';
 
   @override

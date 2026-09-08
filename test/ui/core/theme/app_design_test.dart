@@ -35,6 +35,30 @@ void main() {
     expect(AppColors.dark.usesLightForeground, isTrue);
   });
 
+  test('every selectable accent keeps controls and text legible', () {
+    for (final base in [AppColors.light, AppColors.dark]) {
+      for (final accent in AppAccent.values) {
+        final colors = base.withAccent(accent);
+        expect(
+          _contrast(colors.accent, colors.bg),
+          greaterThanOrEqualTo(3),
+          reason: '${accent.name} accent on ${base.isDark ? 'dark' : 'light'}',
+        );
+        expect(
+          _contrast(colors.textOnAccent, colors.accent),
+          greaterThanOrEqualTo(4.5),
+          reason: 'text on ${accent.name}',
+        );
+        expect(
+          _contrast(colors.accentSecondary, colors.bg),
+          greaterThanOrEqualTo(4.5),
+          reason:
+              '${accent.name} secondary on ${base.isDark ? 'dark' : 'light'}',
+        );
+      }
+    }
+  });
+
   test('surface geometry follows the shared rounded hierarchy', () {
     expect(AppDesign.radiusSmall, lessThan(AppDesign.radiusControl));
     expect(AppDesign.radiusControl, lessThan(AppDesign.radiusCard));
