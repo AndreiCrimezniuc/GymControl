@@ -40,8 +40,8 @@ extension AppAccentColors on AppAccent {
 /// Full colour palette for one theme (light or dark). Read it from context via
 /// `context.colors` (see theme_controller.dart). The light palette uses a
 /// architectural neutral appearance. Surfaces use restrained transparency and
-/// a precise cobalt signal colour: strict enough for training data, but with a
-/// subtle near-future edge.
+/// a precise selectable signal colour: strict enough for training data, but
+/// with a subtle near-future edge.
 class AppColors {
   final bool isDark;
 
@@ -143,9 +143,9 @@ class AppColors {
     textPrimary: Color(0xFF111820),
     textSecondary: Color(0xFF526071),
     textOnAccent: Color(0xFFFFFFFF),
-    accent: Color(0xFF3156D9),
-    accentSecondary: Color(0xFF3E566F),
-    accentPressed: Color(0xFF2444B7),
+    accent: Color(0xFFB83B36),
+    accentSecondary: Color(0xFF72504F),
+    accentPressed: Color(0xFF962E2A),
     ringTrack: Color(0x30243246),
     navInactive: Color(0xFF697585),
     invBg: Color(0xFF121A24),

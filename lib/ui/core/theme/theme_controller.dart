@@ -12,7 +12,7 @@ class ThemeController extends ChangeNotifier {
   static const _darkAccentPrefsKey = 'app_theme_accent_dark';
 
   bool _isDark = false;
-  AppAccent _lightAccent = AppAccent.blue;
+  AppAccent _lightAccent = AppAccent.red;
   AppAccent _darkAccent = AppAccent.red;
   var _localChangeRevision = 0;
   late final Future<void> restored;

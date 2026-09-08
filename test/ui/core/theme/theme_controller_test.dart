@@ -13,7 +13,7 @@ void main() {
     await theme.restored;
 
     expect(theme.isDark, isFalse);
-    expect(theme.accent, AppAccent.blue);
+    expect(theme.accent, AppAccent.red);
 
     await theme.toggle();
     expect(theme.accent, AppAccent.red);
@@ -22,7 +22,7 @@ void main() {
     expect(theme.colors.accent, AppAccent.green.color(isDark: true));
 
     await theme.toggle();
-    expect(theme.accent, AppAccent.blue);
+    expect(theme.accent, AppAccent.red);
 
     await theme.setAccent(AppAccent.purple);
     expect(theme.colors.accent, AppAccent.purple.color(isDark: false));
@@ -47,7 +47,7 @@ void main() {
     final theme = ThemeController();
     await theme.restored;
 
-    expect(theme.accent, AppAccent.blue);
+    expect(theme.accent, AppAccent.red);
     theme.dispose();
   });
 }
