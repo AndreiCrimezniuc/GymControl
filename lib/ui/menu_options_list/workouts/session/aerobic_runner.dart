@@ -97,11 +97,13 @@ class AerobicRunnerScreen extends StatefulWidget {
 
 class _AerobicRunnerScreenState extends State<AerobicRunnerScreen> {
   final _c = AerobicSessionController();
+  late final DateTime _startedAt;
   bool _finishing = false;
 
   @override
   void initState() {
     super.initState();
+    _startedAt = DateTime.now();
     _c.addListener(_onChange);
     _c.start();
   }
@@ -125,8 +127,9 @@ class _AerobicRunnerScreenState extends State<AerobicRunnerScreen> {
         widget.workoutId,
         'normal',
         durationSeconds: _c.totalSeconds,
+        performedAt: _startedAt,
       );
-      await widget.sessions.recordSession();
+      await widget.sessions.recordSession(performedAt: _startedAt);
     } catch (_) {}
     if (mounted) Navigator.of(context).pop(true);
   }

@@ -1,18 +1,15 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:uuid/uuid.dart';
 import 'package:gymboss/config/api_config.dart';
 import 'package:gymboss/core/errors/app_error.dart';
 import 'package:gymboss/data/local/local_store.dart';
 import 'package:gymboss/data/local/mutation.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/data/sync/connectivity_service.dart';
-import 'package:gymboss/data/sync/network_failure.dart';
 import 'package:gymboss/data/sync/sync_service.dart';
 import 'package:gymboss/domain/models/streak/streak_data.dart';
 
 class SessionsRepository {
-  static const _uuid = Uuid();
   static const _streakCollection = 'session_stats';
   static const _streakId = 'streak';
   static bool _handlersRegistered = false;
@@ -29,19 +26,20 @@ class SessionsRepository {
     _registerHandlers();
   }
 
-  Future<void> recordSession() async {
-    // A session is a completed workout, never an app-open heartbeat. One
-    // pending record is enough because the server stores at most one active
-    // day for the weekly streak and POST /sessions is idempotent per day.
-    if (_store.pending().any((mutation) => mutation.kind == 'session.record')) {
-      return;
-    }
+  Future<void> recordSession({DateTime? performedAt}) async {
+    final now = performedAt ?? DateTime.now();
+    final sessionDate =
+        '${now.year.toString().padLeft(4, '0')}-'
+        '${now.month.toString().padLeft(2, '0')}-'
+        '${now.day.toString().padLeft(2, '0')}';
+    // The deterministic id deduplicates one streak marker per local day in O(1)
+    // without scanning a potentially large offline outbox.
     await _store.enqueue(
       Mutation(
-        id: _uuid.v4(),
+        id: 'session:$sessionDate',
         seq: _store.nextSeq(),
         kind: 'session.record',
-        args: const {},
+        args: {'session_date': sessionDate},
       ),
     );
     SyncService.instance.flushSoon();
@@ -88,16 +86,11 @@ class SessionsRepository {
     ) async {
       try {
         final response = await client
-            .post(Uri.parse('$_base/sessions'))
+            .post(Uri.parse('$_base/sessions'), body: jsonEncode(mutation.args))
             .timeout(const Duration(seconds: 10));
-        if (response.statusCode == 204) return const SyncOutcome.done();
-        return response.statusCode >= 500
-            ? const SyncOutcome.retry()
-            : const SyncOutcome.drop();
-      } on Object catch (error) {
-        return isTransientNetworkFailure(error)
-            ? const SyncOutcome.retry()
-            : const SyncOutcome.drop();
+        return syncOutcomeForStatus(response.statusCode, success: 204);
+      } on Object {
+        return const SyncOutcome.retry();
       }
     });
   }

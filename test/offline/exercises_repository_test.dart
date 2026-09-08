@@ -91,6 +91,45 @@ void main() {
     expect((history.single as Map)['workout_name'], 'Push');
   });
 
+  test(
+    'offline exercise stats aggregate by day and count distinct sessions',
+    () async {
+      final date = DateTime(2026, 9, 7);
+      await repository.logSet(
+        42,
+        weightKg: 100,
+        reps: 5,
+        sessionId: 'session-1',
+        performedAt: date,
+      );
+      await repository.logSet(
+        42,
+        weightKg: 110,
+        reps: 3,
+        sessionId: 'session-1',
+        performedAt: date,
+      );
+      await repository.logSet(
+        42,
+        weightKg: 80,
+        reps: 10,
+        sessionId: 'session-2',
+        performedAt: date,
+      );
+
+      final stats = store.getDoc('exercise_stats', '42')!;
+      expect(stats['times_performed'], 2);
+      expect(stats['total_sets'], 3);
+      expect(stats['max_volume_kg'], 1630);
+      final progression = stats['progression'] as List;
+      expect(progression, hasLength(1));
+      expect((progression.single as Map)['top_weight_kg'], 110);
+      expect((progression.single as Map)['top_reps'], 10);
+      expect((progression.single as Map)['volume_kg'], 1630);
+      expect(store.getDoc('exercise_history', '42')!['items'], hasLength(2));
+    },
+  );
+
   test('cached stats do not wait for a stalled network check', () async {
     await store.putDoc('exercise_stats', '42', {
       'exercise_id': 42,
@@ -123,6 +162,8 @@ void main() {
     expect(store.getDoc('exercise', '${item.id}')?['name'], 'Cable chaos');
     final mutation = store.pending().single;
     expect(mutation.kind, 'exercise.createCustom');
+    expect(mutation.args['client_request_id'], isA<String>());
+    expect((mutation.args['client_request_id'] as String), isNotEmpty);
     expect(mutation.args['tempId'], '${item.id}');
   });
 }

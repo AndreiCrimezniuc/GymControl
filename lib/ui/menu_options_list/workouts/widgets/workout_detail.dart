@@ -376,13 +376,14 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
     if (saved == true) _load();
   }
 
-  void _openRunDetail(String date, String difficulty) {
+  void _openRunDetail(WorkoutRunPoint run) {
     Navigator.of(context, rootNavigator: true).push(
       CupertinoPageRoute(
         builder: (_) => _RunDetailScreen(
           workoutId: _w!.id,
-          date: date,
-          difficulty: difficulty,
+          date: run.date,
+          difficulty: run.difficulty,
+          sessionId: run.sessionId,
           repo: widget.repo,
         ),
       ),
@@ -1322,7 +1323,7 @@ const _runDiffLabels = {'easy': 'Easy', 'medium': 'Medium', 'hard': 'Hard'};
 
 class _WorkoutHistoryScreen extends StatefulWidget {
   final List<WorkoutRunPoint> history;
-  final void Function(String date, String difficulty) onOpen;
+  final ValueChanged<WorkoutRunPoint> onOpen;
 
   const _WorkoutHistoryScreen({required this.history, required this.onOpen});
 
@@ -1353,9 +1354,10 @@ class _WorkoutHistoryScreenState extends State<_WorkoutHistoryScreen> {
   @override
   void initState() {
     super.initState();
-    _sessionsByDate = {
-      for (final session in widget.history) session.date: session,
-    };
+    _sessionsByDate = {};
+    for (final session in widget.history) {
+      _sessionsByDate.putIfAbsent(session.date, () => session);
+    }
     final latest = widget.history
         .map((session) => DateTime.tryParse(session.date))
         .whereType<DateTime>()
@@ -1475,8 +1477,7 @@ class _WorkoutHistoryScreenState extends State<_WorkoutHistoryScreen> {
                       session: session,
                       onTap: session == null
                           ? null
-                          : () =>
-                                widget.onOpen(session.date, session.difficulty),
+                          : () => widget.onOpen(session),
                     );
                   },
                 ),
@@ -1568,11 +1569,13 @@ class _RunDetailScreen extends StatefulWidget {
   final String workoutId;
   final String date;
   final String difficulty;
+  final String sessionId;
   final WorkoutsRepository repo;
   const _RunDetailScreen({
     required this.workoutId,
     required this.date,
     required this.difficulty,
+    required this.sessionId,
     required this.repo,
   });
 
@@ -1592,7 +1595,11 @@ class _RunDetailScreenState extends State<_RunDetailScreen> {
 
   Future<void> _load() async {
     try {
-      final items = await widget.repo.runDetail(widget.workoutId, widget.date);
+      final items = await widget.repo.runDetail(
+        widget.workoutId,
+        widget.date,
+        sessionId: widget.sessionId,
+      );
       if (mounted) {
         setState(() {
           _items = items;

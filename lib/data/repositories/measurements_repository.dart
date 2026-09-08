@@ -136,10 +136,8 @@ class MeasurementsRepository {
           );
         }
         return _outcomeFor(response);
-      } on Object catch (error) {
-        return isTransientNetworkFailure(error)
-            ? const SyncOutcome.retry()
-            : const SyncOutcome.drop();
+      } on Object {
+        return const SyncOutcome.retry();
       }
     });
     SyncService.instance.registerHandler('measurement.delete', (
@@ -154,16 +152,12 @@ class MeasurementsRepository {
           return const SyncOutcome.done();
         }
         return _outcomeFor(response);
-      } on Object catch (error) {
-        return isTransientNetworkFailure(error)
-            ? const SyncOutcome.retry()
-            : const SyncOutcome.drop();
+      } on Object {
+        return const SyncOutcome.retry();
       }
     });
   }
 
   static SyncOutcome _outcomeFor(http.Response response) =>
-      response.statusCode >= 400 && response.statusCode < 500
-      ? const SyncOutcome.drop()
-      : const SyncOutcome.retry();
+      syncOutcomeForStatus(response.statusCode, success: -1);
 }

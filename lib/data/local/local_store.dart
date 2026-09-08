@@ -20,6 +20,7 @@ class LocalStore {
   late Box<String> _outbox;
   bool _ready = false;
   String _scope = 'anonymous';
+  int _lastSeq = 0;
 
   bool get isReady => _ready;
 
@@ -49,20 +50,25 @@ class LocalStore {
         : 'user:$normalized';
     if (_scope == next) return;
     _scope = next;
-    if (!migrateLegacy) return;
-    await _migrateLegacyBox(_docs);
-    await _migrateLegacyBox(_lists);
-    await _migrateLegacyBox(_outbox);
+    if (migrateLegacy) {
+      await _migrateLegacyBox(_docs);
+      await _migrateLegacyBox(_lists);
+      await _migrateLegacyBox(_outbox);
+    }
+    for (final mutation in _mutations()) {
+      if (mutation.seq > _lastSeq) _lastSeq = mutation.seq;
+    }
   }
 
   Future<void> _migrateLegacyBox(Box<String> box) async {
     final keys = box.keys
-        .cast<String>()
+        .whereType<String>()
         .where((key) => !key.contains('|'))
         .toList();
     for (final key in keys) {
-      if (!box.containsKey(_scoped(key))) {
-        await box.put(_scoped(key), box.get(key)!);
+      final value = box.get(key);
+      if (value != null && !box.containsKey(_scoped(key))) {
+        await box.put(_scoped(key), value);
       }
       await box.delete(key);
     }
@@ -72,7 +78,15 @@ class LocalStore {
 
   Map<String, dynamic>? getDoc(String collection, String id) {
     final s = _docs.get(_docKey(collection, id));
-    return s == null ? null : jsonDecode(s) as Map<String, dynamic>;
+    if (s == null) return null;
+    try {
+      final decoded = jsonDecode(s);
+      return decoded is Map ? Map<String, dynamic>.from(decoded) : null;
+    } on Object {
+      // A partial disk write must not prevent the rest of the offline cache or
+      // outbox from loading. The next successful refresh replaces this entry.
+      return null;
+    }
   }
 
   Future<void> putDoc(
@@ -90,7 +104,14 @@ class LocalStore {
 
   List<String> getListIds(String key) {
     final s = _lists.get(_scoped(key));
-    return s == null ? const [] : (jsonDecode(s) as List).cast<String>();
+    if (s == null) return const [];
+    try {
+      final decoded = jsonDecode(s);
+      if (decoded is! List) return const [];
+      return decoded.whereType<String>().toSet().toList();
+    } on Object {
+      return const [];
+    }
   }
 
   Future<void> putListIds(String key, List<String> ids) =>
@@ -124,12 +145,22 @@ class LocalStore {
   Future<void> removeMutation(String id) => _outbox.delete(_scoped(id));
 
   List<Mutation> _mutations() {
-    final list = _outbox.keys
-        .cast<String>()
-        .where((key) => key.startsWith(_prefix))
-        .map((key) => _outbox.get(key)!)
-        .map((s) => Mutation.fromJson(jsonDecode(s) as Map<String, dynamic>))
-        .toList();
+    final list = <Mutation>[];
+    for (final key in _outbox.keys.whereType<String>().where(
+      (key) => key.startsWith(_prefix),
+    )) {
+      final raw = _outbox.get(key);
+      if (raw == null) continue;
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is Map) {
+          list.add(Mutation.fromJson(Map<String, dynamic>.from(decoded)));
+        }
+      } on Object {
+        // Keep the raw value on disk for diagnostics/recovery, but isolate it
+        // so one corrupt mutation cannot stop every later valid mutation.
+      }
+    }
     list.sort((a, b) => a.seq.compareTo(b.seq));
     return list;
   }
@@ -158,7 +189,11 @@ class LocalStore {
   }
 
   /// Monotonic sequence for ordering new mutations.
-  int nextSeq() => DateTime.now().microsecondsSinceEpoch;
+  int nextSeq() {
+    final now = DateTime.now().microsecondsSinceEpoch;
+    _lastSeq = now > _lastSeq ? now : _lastSeq + 1;
+    return _lastSeq;
+  }
 
   // ── Temp-id reconciliation ───────────────────────────────────────────────
 
@@ -176,18 +211,23 @@ class LocalStore {
     // Reconcile foreign-key references as well (for example a workout assigned
     // to an offline-created folder). Values are JSON primitives, so replacing
     // exact string matches cannot alter unrelated partial values.
-    for (final scopedKey in _docs.keys.cast<String>().where(
+    for (final scopedKey in _docs.keys.whereType<String>().where(
       (key) => key.startsWith(_prefix),
     )) {
       final raw = _docs.get(scopedKey);
       if (raw == null) continue;
-      final decoded = jsonDecode(raw);
-      final replaced = _replaceReference(decoded, fromId, toId);
-      if (replaced.changed) {
-        await _docs.put(scopedKey, jsonEncode(replaced.value));
+      try {
+        final decoded = jsonDecode(raw);
+        final replaced = _replaceReference(decoded, fromId, toId);
+        if (replaced.changed) {
+          await _docs.put(scopedKey, jsonEncode(replaced.value));
+        }
+      } on Object {
+        // Leave an unrelated corrupt document isolated. A remap must still
+        // reconcile every healthy cache entry and, most importantly, outbox.
       }
     }
-    for (final scopedKey in _lists.keys.cast<String>().where(
+    for (final scopedKey in _lists.keys.whereType<String>().where(
       (key) => key.startsWith(_prefix),
     )) {
       final key = scopedKey.substring(_prefix.length);
@@ -270,6 +310,6 @@ class LocalStore {
   }
 
   Future<void> _deleteScope(Box<String> box) => box.deleteAll(
-    box.keys.cast<String>().where((key) => key.startsWith(_prefix)),
+    box.keys.whereType<String>().where((key) => key.startsWith(_prefix)),
   );
 }

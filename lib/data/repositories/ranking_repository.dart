@@ -8,7 +8,6 @@ import 'package:gymboss/data/local/local_store.dart';
 import 'package:gymboss/data/local/mutation.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/data/sync/connectivity_service.dart';
-import 'package:gymboss/data/sync/network_failure.dart';
 import 'package:gymboss/data/sync/sync_service.dart';
 import 'package:gymboss/domain/models/ranking/rank_data.dart';
 
@@ -170,14 +169,9 @@ class RankingRepository {
   }) async {
     try {
       final response = await call();
-      if (response.statusCode == ok) return const SyncOutcome.done();
-      return response.statusCode >= 500
-          ? const SyncOutcome.retry()
-          : const SyncOutcome.drop();
-    } on Object catch (error) {
-      return isTransientNetworkFailure(error)
-          ? const SyncOutcome.retry()
-          : const SyncOutcome.drop();
+      return syncOutcomeForStatus(response.statusCode, success: ok);
+    } on Object {
+      return const SyncOutcome.retry();
     }
   }
 }

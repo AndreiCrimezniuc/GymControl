@@ -7,14 +7,12 @@ import 'package:gymboss/data/repositories/measurements_repository.dart';
 import 'package:gymboss/data/repositories/ranking_repository.dart';
 import 'package:gymboss/data/repositories/sessions_repository.dart';
 import 'package:gymboss/data/repositories/workouts_repository.dart';
-import 'package:gymboss/data/local/exercise_media_cache.dart';
 import 'package:gymboss/data/diagnostics/diagnostic_service.dart';
 import 'package:gymboss/data/services/auth/auth_service.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/data/services/auth/token_storage.dart';
 import 'package:gymboss/data/sync/sync_service.dart';
 import 'package:gymboss/domain/models/workouts/workout.dart';
-import 'package:gymboss/domain/models/exercises/exercise_catalog.dart';
 import 'package:gymboss/ui/auth/login_screen.dart';
 import 'package:gymboss/ui/auth/register_screen.dart';
 import 'package:gymboss/ui/auth/widgets/gym_logo.dart';
@@ -143,6 +141,21 @@ class _GymControlAppState extends State<GymControlApp>
       }
     }
 
+    Future<void> bounded<T>(
+      Iterable<T> items,
+      int concurrency,
+      Future<void> Function(T item) run,
+    ) async {
+      final iterator = items.iterator;
+      Future<void> worker() async {
+        while (iterator.moveNext()) {
+          await run(iterator.current);
+        }
+      }
+
+      await Future.wait(List.generate(concurrency, (_) => worker()));
+    }
+
     final results = await Future.wait([
       safe(() => _workouts.listOwned(forceRefresh: true)),
       safe(() => _workouts.listFolders(forceRefresh: true)),
@@ -157,39 +170,46 @@ class _GymControlAppState extends State<GymControlApp>
       safe(() => _workouts.activity(period: 'year', forceRefresh: true)),
       safe(() => _pro.load(force: true)),
     ]);
-    final catalog = results[2];
-    if (catalog is List<ExerciseCatalogItem>) {
-      await safe(() => ExerciseMediaCache.warm(catalog));
-    }
     final owned = results.first;
     if (owned is! List<Workout>) return;
-    // Full routines, aggregates and recorded run details become available
-    // offline after the first successful sign-in.
-    for (final workout in owned) {
+    // Warm each routine once with bounded concurrency. Exercise analytics are
+    // deduplicated across routines; otherwise a large library can issue the
+    // same two requests hundreds of times and trip its own rate limit.
+    final fullWorkouts = <Workout>[];
+    await bounded<Workout>(owned, 3, (workout) async {
       final full = await safe(
         () => _workouts.get(workout.id, forceRefresh: true),
       );
-      if (full != null) {
-        final ids = full.exercises
-            .map((exercise) => exercise.exerciseId)
-            .toSet();
-        await Future.wait([
-          for (final id in ids) ...[
-            safe(() => _exercises.getStats(id, forceRefresh: true)),
-            safe(() => _exercises.getHistory(id, forceRefresh: true)),
-          ],
-        ]);
-      }
+      if (full != null) fullWorkouts.add(full);
+    });
+    final exerciseIds = fullWorkouts
+        .expand((workout) => workout.exercises)
+        .map((exercise) => exercise.exerciseId)
+        .toSet();
+    await bounded<int>(exerciseIds, 4, (id) async {
+      await Future.wait([
+        safe(() => _exercises.getStats(id, forceRefresh: true)),
+        safe(() => _exercises.getHistory(id, forceRefresh: true)),
+      ]);
+    });
+    await bounded<Workout>(fullWorkouts, 3, (workout) async {
       final stats = await safe(
         () => _workouts.stats(workout.id, forceRefresh: true),
       );
-      if (stats == null) continue;
-      for (final run in stats.history) {
+      if (stats == null) return;
+      // Five exact recent sessions are enough to train for weeks offline while
+      // keeping first-sign-in bandwidth bounded for long-lived accounts.
+      for (final run in stats.history.take(5)) {
         await safe(
-          () => _workouts.runDetail(workout.id, run.date, forceRefresh: true),
+          () => _workouts.runDetail(
+            workout.id,
+            run.date,
+            sessionId: run.sessionId,
+            forceRefresh: true,
+          ),
         );
       }
-    }
+    });
   }
 
   @override

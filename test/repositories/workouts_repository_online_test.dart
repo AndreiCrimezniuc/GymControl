@@ -227,17 +227,29 @@ void main() {
         ],
       },
     ]);
-    final client = clientReturning(
-      () => {'/history/': http.Response(body, 200)},
+    Uri? requested;
+    final client = AuthenticatedClient(
+      storage: TokenStorage(),
+      authService: AuthService(),
+      inner: MockClient((request) async {
+        requested = request.url;
+        return http.Response(body, 200);
+      }),
     );
     addTearDown(client.dispose);
 
-    final detail = await WorkoutsRepository(
-      client: client,
-    ).runDetail('w1', '2026-07-01');
+    final detail = await WorkoutsRepository(client: client).runDetail(
+      'w1',
+      '2026-07-01',
+      sessionId: '11111111-1111-4111-8111-111111111111',
+    );
     expect(detail, hasLength(1));
     expect(detail.single.name, 'Squat');
     expect(detail.single.sets.single.progression, 'amplitude');
+    expect(
+      requested?.queryParameters['session_id'],
+      '11111111-1111-4111-8111-111111111111',
+    );
   });
 
   test('folder CRUD and assignment use the expected API contract', () async {

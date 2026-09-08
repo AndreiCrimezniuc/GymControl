@@ -100,6 +100,22 @@ void main() {
         'workout.run',
         'session.record',
       ]);
+      final dated = store.pending().where(
+        (mutation) =>
+            mutation.kind == 'exercise.logSet' ||
+            mutation.kind == 'workout.run' ||
+            mutation.kind == 'session.record',
+      );
+      expect(
+        dated
+            .map(
+              (mutation) =>
+                  mutation.args['performed_at'] ??
+                  mutation.args['session_date'],
+            )
+            .toSet(),
+        hasLength(1),
+      );
     },
   );
 }

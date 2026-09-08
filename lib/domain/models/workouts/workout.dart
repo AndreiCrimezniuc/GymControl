@@ -241,11 +241,17 @@ class WorkoutFolder {
 class WorkoutRunPoint {
   final String date;
   final String difficulty;
-  const WorkoutRunPoint({required this.date, required this.difficulty});
+  final String sessionId;
+  const WorkoutRunPoint({
+    required this.date,
+    required this.difficulty,
+    this.sessionId = '',
+  });
 
   factory WorkoutRunPoint.fromJson(Map<String, dynamic> j) => WorkoutRunPoint(
     date: (j['date'] as String?) ?? '',
     difficulty: (j['difficulty'] as String?) ?? '',
+    sessionId: (j['session_id'] as String?) ?? '',
   );
 }
 

@@ -84,9 +84,11 @@ void main() {
 
   test('logSet commits locally, then syncs through the outbox', () async {
     var posted = false;
+    Map<String, dynamic>? postedBody;
     final c = client((req) {
       if (req.method == 'POST' && req.url.path.contains('/log')) {
         posted = true;
+        postedBody = jsonDecode(req.body) as Map<String, dynamic>;
         return http.Response('', 204);
       }
       return http.Response('{}', 404);
@@ -98,6 +100,7 @@ void main() {
       reps: 5,
       setType: 'working',
       progression: 'amplitude',
+      performedAt: DateTime(2026, 7, 1),
     );
     expect(posted, isFalse);
     expect(store.pending().single.kind, 'exercise.logSet');
@@ -106,6 +109,7 @@ void main() {
     await SyncService.instance.flush();
 
     expect(posted, isTrue);
+    expect(postedBody?['performed_at'], '2026-07-01');
     expect(store.pending(), isEmpty);
   });
 }

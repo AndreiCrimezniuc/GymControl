@@ -118,5 +118,38 @@ void main() {
       );
       expect(c.groups.single.exerciseType, 'distance_duration');
     });
+
+    test('live edits cannot grow a durable session beyond server limits', () {
+      final c = WorkoutSessionController();
+      for (var id = 1; id <= 100; id++) {
+        c.addExercise(exerciseId: id, name: 'Exercise $id', muscleGroup: 'all');
+      }
+      expect(c.groups, hasLength(WorkoutSessionController.maxExercises));
+
+      final first = c.groups.first;
+      for (var index = 0; index < 150; index++) {
+        c.addSet(first);
+      }
+      expect(
+        first.sets,
+        hasLength(WorkoutSessionController.maxSetsPerExercise),
+      );
+      expect(
+        c.totalSets,
+        lessThanOrEqualTo(WorkoutSessionController.maxTotalSets),
+      );
+    });
+
+    test('invalid RPE and oversized notes are normalized locally', () {
+      final c = WorkoutSessionController();
+      c.addExercise(exerciseId: 1, name: 'Bench', muscleGroup: 'chest');
+      final exercise = c.groups.single;
+      final set = exercise.sets.single;
+
+      c.setEffort(set, rpe: 11);
+      expect(set.rpe, isNull);
+      c.setExerciseNote(exercise, List.filled(1200, 'x').join());
+      expect(exercise.note.runes.length, 1000);
+    });
   });
 }

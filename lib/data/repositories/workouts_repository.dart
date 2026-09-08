@@ -113,7 +113,12 @@ class WorkoutsRepository {
       ..._store.getListIds(_foldersKey),
       tempId,
     ]);
-    await _enqueue('folder.create', {'tempId': tempId, 'name': name});
+    final clientRequestId = _uuid.v4();
+    await _enqueue('folder.create', {
+      'tempId': tempId,
+      'name': name,
+      'client_request_id': clientRequestId,
+    });
     return WorkoutFolder.fromJson(doc);
   }
 
@@ -174,13 +179,35 @@ class WorkoutsRepository {
 
   Future<List<Workout>> _refreshWorkoutList(String url, String key) async {
     try {
-      final resp = await _client
-          .get(Uri.parse(url))
-          .timeout(const Duration(seconds: 20));
-      if (resp.statusCode != 200) {
-        throw Exception('GET $url HTTP ${resp.statusCode}');
-      }
-      final raw = (jsonDecode(resp.body) as List).cast<Map<String, dynamic>>();
+      final raw = <Map<String, dynamic>>[];
+      var cursor = '';
+      final seenCursors = <String>{};
+      do {
+        final baseUri = Uri.parse(url);
+        final pageUri = baseUri.replace(
+          queryParameters: {
+            ...baseUri.queryParameters,
+            'limit': '100',
+            if (cursor.isNotEmpty) 'cursor': cursor,
+          },
+        );
+        final resp = await _client
+            .get(pageUri)
+            .timeout(const Duration(seconds: 20));
+        if (resp.statusCode != 200) {
+          throw Exception('GET $pageUri HTTP ${resp.statusCode}');
+        }
+        raw.addAll(
+          (jsonDecode(resp.body) as List).cast<Map<String, dynamic>>(),
+        );
+        final next = resp.headers['x-next-cursor'] ?? '';
+        if (next.isEmpty || !seenCursors.add(next)) {
+          cursor = '';
+        } else {
+          cursor = next;
+        }
+      } while (cursor.isNotEmpty);
+
       for (final doc in raw) {
         final id = doc['id'] as String?;
         if (id != null) await _store.putDoc(_collection, id, doc);
@@ -378,27 +405,30 @@ class WorkoutsRepository {
   Future<List<PerformedExerciseLog>> runDetail(
     String id,
     String date, {
+    String sessionId = '',
     bool forceRefresh = false,
   }) async {
-    final cacheId = '$id:$date';
+    final cacheId = '$id:$date:${sessionId.isEmpty ? 'legacy' : sessionId}';
     final cached = _store.getDoc('workout_run_detail', cacheId);
     if (!forceRefresh && cached != null) {
-      unawaited(_refreshRunDetailInBackground(id, date));
+      unawaited(_refreshRunDetailInBackground(id, date, sessionId));
       return _runDetailFromCache(cached);
     }
     if (!await _isOnline()) return const [];
-    return _refreshRunDetail(id, date);
+    return _refreshRunDetail(id, date, sessionId);
   }
 
   Future<List<PerformedExerciseLog>> _refreshRunDetail(
     String id,
     String date,
+    String sessionId,
   ) async {
-    final cacheId = '$id:$date';
+    final cacheId = '$id:$date:${sessionId.isEmpty ? 'legacy' : sessionId}';
     try {
-      final resp = await _client
-          .get(Uri.parse('$_base/$id/history/$date'))
-          .timeout(const Duration(seconds: 15));
+      final uri = Uri.parse('$_base/$id/history/$date').replace(
+        queryParameters: sessionId.isEmpty ? null : {'session_id': sessionId},
+      );
+      final resp = await _client.get(uri).timeout(const Duration(seconds: 15));
       if (resp.statusCode != 200) {
         throw Exception('GET run detail HTTP ${resp.statusCode}');
       }
@@ -416,9 +446,13 @@ class WorkoutsRepository {
     }
   }
 
-  Future<void> _refreshRunDetailInBackground(String id, String date) async {
+  Future<void> _refreshRunDetailInBackground(
+    String id,
+    String date,
+    String sessionId,
+  ) async {
     try {
-      if (await _isOnline()) await _refreshRunDetail(id, date);
+      if (await _isOnline()) await _refreshRunDetail(id, date, sessionId);
     } catch (_) {}
   }
 
@@ -522,9 +556,14 @@ class WorkoutsRepository {
     String difficulty, {
     int durationSeconds = 0,
     String? sessionId,
+    DateTime? performedAt,
   }) async {
     final operationId = _uuid.v4();
-    final now = DateTime.now().toUtc().toIso8601String();
+    final localNow = performedAt ?? DateTime.now();
+    final now =
+        '${localNow.year.toString().padLeft(4, '0')}-'
+        '${localNow.month.toString().padLeft(2, '0')}-'
+        '${localNow.day.toString().padLeft(2, '0')}';
     final cachedStats = _store.getDoc('workout_stats', id);
     if (cachedStats != null) {
       final history = List<Map<String, dynamic>>.from(
@@ -532,7 +571,12 @@ class WorkoutsRepository {
           (item) => Map<String, dynamic>.from(item as Map),
         ),
       );
-      history.insert(0, {'date': now, 'difficulty': difficulty});
+      history.insert(0, {
+        'date': now,
+        'difficulty': difficulty,
+        'session_id': sessionId ?? '',
+      });
+      if (history.length > 30) history.removeRange(30, history.length);
       await _store.putDoc('workout_stats', id, {
         ...cachedStats,
         'times_performed':
@@ -554,6 +598,7 @@ class WorkoutsRepository {
       'duration_seconds': durationSeconds,
       'operation_id': operationId,
       'session_id': sessionId,
+      'performed_at': now,
     });
   }
 
@@ -620,7 +665,10 @@ class WorkoutsRepository {
         final response = await client
             .post(
               Uri.parse(folderBase),
-              body: jsonEncode({'name': m.args['name']}),
+              body: jsonEncode({
+                'name': m.args['name'],
+                'client_request_id': m.args['client_request_id'],
+              }),
             )
             .timeout(const Duration(seconds: 15));
         if (response.statusCode == 201) {
@@ -632,13 +680,11 @@ class WorkoutsRepository {
             realDoc: fresh,
           );
         }
-        return _isClientError(response.statusCode)
+        return isPermanentSyncStatus(response.statusCode)
             ? const SyncOutcome.drop()
             : const SyncOutcome.retry();
-      } on Object catch (error) {
-        return isTransientNetworkFailure(error)
-            ? const SyncOutcome.retry()
-            : const SyncOutcome.drop();
+      } on Object {
+        return const SyncOutcome.retry();
       }
     });
 
@@ -680,13 +726,11 @@ class WorkoutsRepository {
             realDoc: fresh,
           );
         }
-        return _isClientError(resp.statusCode)
+        return isPermanentSyncStatus(resp.statusCode)
             ? const SyncOutcome.drop()
             : const SyncOutcome.retry();
-      } on Object catch (e) {
-        return isTransientNetworkFailure(e)
-            ? const SyncOutcome.retry()
-            : const SyncOutcome.drop();
+      } on Object {
+        return const SyncOutcome.retry();
       }
     });
 
@@ -725,6 +769,7 @@ class WorkoutsRepository {
                 'duration_seconds': m.args['duration_seconds'] ?? 0,
                 'operation_id': m.args['operation_id'],
                 'session_id': m.args['session_id'],
+                'performed_at': m.args['performed_at'],
               }),
             )
             .timeout(const Duration(seconds: 15)),
@@ -771,14 +816,9 @@ class WorkoutsRepository {
   }) async {
     try {
       final resp = await call();
-      if (resp.statusCode == ok) return const SyncOutcome.done();
-      return _isClientError(resp.statusCode)
-          ? const SyncOutcome.drop()
-          : const SyncOutcome.retry();
-    } on Object catch (e) {
-      return isTransientNetworkFailure(e)
-          ? const SyncOutcome.retry()
-          : const SyncOutcome.drop();
+      return syncOutcomeForStatus(resp.statusCode, success: ok);
+    } on Object {
+      return const SyncOutcome.retry();
     }
   }
 
@@ -826,8 +866,6 @@ class WorkoutsRepository {
     if (args['type'] != null) 'type': args['type'],
     'client_request_id': args['client_request_id'],
   });
-
-  static bool _isClientError(int code) => code >= 400 && code < 500;
 
   /// A failure caused by the network being unavailable (as opposed to an HTTP
   /// status error the server actually returned). Kept dart:io-free for web.

@@ -200,8 +200,14 @@ class ExercisesRepository {
     String? sessionId,
     String? workoutId,
     String? workoutName,
+    DateTime? performedAt,
   }) async {
     operationId ??= _uuid.v4();
+    final date = performedAt ?? DateTime.now();
+    final performedDate =
+        '${date.year.toString().padLeft(4, '0')}-'
+        '${date.month.toString().padLeft(2, '0')}-'
+        '${date.day.toString().padLeft(2, '0')}';
     final args = {
       'exerciseId': id,
       'weight_kg': weightKg,
@@ -213,6 +219,7 @@ class ExercisesRepository {
       'distance_km': distanceKm,
       'operation_id': operationId,
       'session_id': sessionId,
+      'performed_at': performedDate,
     };
     await _cacheLoggedSet(
       id,
@@ -241,8 +248,9 @@ class ExercisesRepository {
     String? workoutName,
   }) async {
     final sessionId = set['session_id'] as String? ?? _uuid.v4();
-    final now = DateTime.now().toUtc();
-    final date = now.toIso8601String().split('T').first;
+    final date =
+        set['performed_at'] as String? ??
+        DateTime.now().toIso8601String().split('T').first;
     final history =
         _store.getDoc('exercise_history', '$exerciseId') ??
         {'items': <Map<String, dynamic>>[]};
@@ -254,6 +262,7 @@ class ExercisesRepository {
     var sessionIndex = items.indexWhere(
       (item) => item['session_id'] == sessionId,
     );
+    final wasExistingSession = sessionIndex >= 0;
     if (sessionIndex < 0) {
       items.insert(0, {
         'date': date,
@@ -262,6 +271,7 @@ class ExercisesRepository {
         'session_id': sessionId,
         'sets': <Map<String, dynamic>>[],
       });
+      if (items.length > 100) items.removeRange(100, items.length);
       sessionIndex = 0;
     }
     final historySets =
@@ -290,25 +300,52 @@ class ExercisesRepository {
     final weight = (set['weight_kg'] as num?)?.toDouble() ?? 0;
     final reps = (set['reps'] as num?)?.toInt() ?? 0;
     final oneRm = reps <= 1 ? weight : weight * (1 + reps / 30);
-    final previousSession = stats['_local_session_id'] == sessionId;
-    final progression =
-        List<Map<String, dynamic>>.from(
-          (stats['progression'] as List? ?? const []).map(
-            (item) => Map<String, dynamic>.from(item as Map),
-          ),
-        )..add({
-          'date': date,
-          'top_weight_kg': weight,
-          'top_reps': reps,
-          'volume_kg': weight * reps,
-        });
+    final progression = List<Map<String, dynamic>>.from(
+      (stats['progression'] as List? ?? const []).map(
+        (item) => Map<String, dynamic>.from(item as Map),
+      ),
+    );
+    final dayIndex = progression.indexWhere((item) => item['date'] == date);
+    if (dayIndex < 0) {
+      progression.add({
+        'date': date,
+        'top_weight_kg': weight,
+        'top_reps': reps,
+        'volume_kg': weight * reps,
+      });
+    } else {
+      final day = progression[dayIndex];
+      progression[dayIndex] = {
+        ...day,
+        'top_weight_kg': math.max(
+          (day['top_weight_kg'] as num?)?.toDouble() ?? 0,
+          weight,
+        ),
+        'top_reps': math.max((day['top_reps'] as num?)?.toInt() ?? 0, reps),
+        'volume_kg':
+            ((day['volume_kg'] as num?)?.toDouble() ?? 0) + weight * reps,
+      };
+    }
+    progression.sort((a, b) => '${a['date']}'.compareTo('${b['date']}'));
+    if (progression.length > 1000) {
+      progression.removeRange(0, progression.length - 1000);
+    }
+    final dayVolume = progression
+        .where((item) => item['date'] == date)
+        .map((item) => (item['volume_kg'] as num?)?.toDouble() ?? 0)
+        .fold<double>(0, math.max);
+    final timesPerformed =
+        ((stats['times_performed'] as num?)?.toInt() ?? 0) +
+        (wasExistingSession ? 0 : 1);
+    final totalSets = ((stats['total_sets'] as num?)?.toInt() ?? 0) + 1;
     await _store.putDoc('exercise_stats', '$exerciseId', {
       ...stats,
       'exercise_id': exerciseId,
-      'times_performed':
-          ((stats['times_performed'] as num?)?.toInt() ?? 0) +
-          (previousSession ? 0 : 1),
-      'total_sets': ((stats['total_sets'] as num?)?.toInt() ?? 0) + 1,
+      'times_performed': timesPerformed,
+      'total_sets': totalSets,
+      'avg_sets_per_workout': timesPerformed == 0
+          ? 0
+          : totalSets / timesPerformed,
       'total_reps': ((stats['total_reps'] as num?)?.toInt() ?? 0) + reps,
       'max_weight_kg': math.max(
         (stats['max_weight_kg'] as num?)?.toDouble() ?? 0,
@@ -317,6 +354,10 @@ class ExercisesRepository {
       'max_set_volume_kg': math.max(
         (stats['max_set_volume_kg'] as num?)?.toDouble() ?? 0,
         weight * reps,
+      ),
+      'max_volume_kg': math.max(
+        (stats['max_volume_kg'] as num?)?.toDouble() ?? 0,
+        dayVolume,
       ),
       'estimated_one_rm_kg': math.max(
         (stats['estimated_one_rm_kg'] as num?)?.toDouble() ?? 0,
@@ -336,6 +377,7 @@ class ExercisesRepository {
     String exerciseType = 'weight_reps',
     List<String> secondaryMuscles = const [],
   }) async {
+    final clientRequestId = _uuid.v4();
     final body = <String, dynamic>{
       'name': name,
       'description': description,
@@ -344,10 +386,15 @@ class ExercisesRepository {
       'equipment': equipment,
       'exercise_type': exerciseType,
       'secondary_muscles': secondaryMuscles,
+      'client_request_id': clientRequestId,
     };
     // Negative ids can be used everywhere an exercise id is expected while
-    // remaining disjoint from server-issued positive ids.
-    final tempId = -DateTime.now().microsecondsSinceEpoch;
+    // remaining disjoint from server-issued positive ids. A random 60-bit value
+    // avoids collisions when several creates happen inside one clock tick.
+    final tempId = -int.parse(
+      clientRequestId.replaceAll('-', '').substring(0, 15),
+      radix: 16,
+    );
     final doc = <String, dynamic>{
       'id': tempId,
       ...body,
@@ -392,13 +439,9 @@ class ExercisesRepository {
         if (resp.statusCode == 204 || resp.statusCode == 200) {
           return const SyncOutcome.done();
         }
-        return resp.statusCode >= 400 && resp.statusCode < 500
-            ? const SyncOutcome.drop()
-            : const SyncOutcome.retry();
-      } on Object catch (error) {
-        return isTransientNetworkFailure(error)
-            ? const SyncOutcome.retry()
-            : const SyncOutcome.drop();
+        return syncOutcomeForStatus(resp.statusCode, success: -1);
+      } on Object {
+        return const SyncOutcome.retry();
       }
     });
     SyncService.instance.registerHandler('exercise.createCustom', (
@@ -417,13 +460,9 @@ class ExercisesRepository {
           );
           return const SyncOutcome.done();
         }
-        return resp.statusCode >= 400 && resp.statusCode < 500
-            ? const SyncOutcome.drop()
-            : const SyncOutcome.retry();
-      } on Object catch (error) {
-        return isTransientNetworkFailure(error)
-            ? const SyncOutcome.retry()
-            : const SyncOutcome.drop();
+        return syncOutcomeForStatus(resp.statusCode, success: 201);
+      } on Object {
+        return const SyncOutcome.retry();
       }
     });
   }
@@ -442,6 +481,7 @@ class ExercisesRepository {
           'equipment': args['equipment'] ?? '',
           'exercise_type': args['exercise_type'] ?? 'weight_reps',
           'secondary_muscles': args['secondary_muscles'] ?? const <String>[],
+          'client_request_id': args['client_request_id'],
         }),
       )
       .timeout(const Duration(seconds: 15));
@@ -466,6 +506,7 @@ class ExercisesRepository {
             'distance_km': args['distance_km'],
           'operation_id': args['operation_id'],
           'session_id': args['session_id'],
+          'performed_at': args['performed_at'],
         }),
       )
       .timeout(const Duration(seconds: 15));

@@ -106,6 +106,9 @@ class SessionExercise {
 /// runner state so the session survives navigation — the user can minimize the
 /// runner, do something else, and resume with everything intact.
 class WorkoutSessionController extends ChangeNotifier {
+  static const maxExercises = 75;
+  static const maxSetsPerExercise = 100;
+  static const maxTotalSets = 500;
   static const _storageKey = 'active_workout_session_v1';
   static const _snapshotVersion = 2;
   Workout? _workout;
@@ -470,6 +473,7 @@ class WorkoutSessionController extends ChangeNotifier {
 
   void setEffort(SessionSet s, {double? rpe}) {
     if (s.done) return;
+    if (rpe != null && (!rpe.isFinite || rpe < 6 || rpe > 10)) return;
     s.rpe = rpe;
     notifyListeners();
   }
@@ -485,7 +489,7 @@ class WorkoutSessionController extends ChangeNotifier {
   }
 
   void setExerciseNote(SessionExercise exercise, String note) {
-    exercise.note = note.trim();
+    exercise.note = String.fromCharCodes(note.trim().runes.take(1000));
     _routineChanged = true;
     notifyListeners();
   }
@@ -528,6 +532,9 @@ class WorkoutSessionController extends ChangeNotifier {
 
   /// Append a new (empty) set to an exercise, seeded from its last set.
   void addSet(SessionExercise g) {
+    if (g.sets.length >= maxSetsPerExercise || _totalSets >= maxTotalSets) {
+      return;
+    }
     final last = g.sets.isNotEmpty ? g.sets.last : null;
     g.sets.add(
       SessionSet(
@@ -546,6 +553,12 @@ class WorkoutSessionController extends ChangeNotifier {
 
   void prependWarmupSets(SessionExercise group, List<WarmupSetPlan> plans) {
     if (plans.isEmpty) return;
+    final available = [
+      maxSetsPerExercise - group.sets.length,
+      maxTotalSets - _totalSets,
+    ].reduce((a, b) => a < b ? a : b);
+    if (available <= 0) return;
+    plans = plans.take(available).toList();
     group.sets.insertAll(0, [
       for (final plan in plans)
         SessionSet(
@@ -583,6 +596,7 @@ class WorkoutSessionController extends ChangeNotifier {
     String imageUrl2 = '',
     int restSeconds = 90,
   }) {
+    if (_groups.length >= maxExercises || _totalSets >= maxTotalSets) return;
     _groups.add(
       SessionExercise(
         exerciseId: exerciseId,
@@ -762,6 +776,7 @@ class WorkoutSessionController extends ChangeNotifier {
           sessionId: _sessionId,
           workoutId: _workout!.id,
           workoutName: _workout!.name,
+          performedAt: _startedAt,
         );
       }
     }
@@ -771,8 +786,9 @@ class WorkoutSessionController extends ChangeNotifier {
       _difficulty,
       durationSeconds: durationSeconds,
       sessionId: _sessionId,
+      performedAt: _startedAt,
     );
-    await _sessions.recordSession();
+    await _sessions.recordSession(performedAt: _startedAt);
     HapticFeedback.heavyImpact();
     _finished = true;
     _minimized = false;

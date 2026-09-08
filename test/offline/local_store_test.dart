@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gymboss/data/local/local_store.dart';
 import 'package:gymboss/data/local/mutation.dart';
+import 'package:hive/hive.dart';
 
 void main() {
   final store = LocalStore.instance;
@@ -46,6 +47,39 @@ void main() {
     expect(store.pending().map((m) => m.id), ['m1', 'm2']);
     await store.removeMutation('m1');
     expect(store.pending().map((m) => m.id), ['m2']);
+  });
+
+  test('sequence ids stay unique during a burst', () {
+    final values = List.generate(10000, (_) => store.nextSeq());
+    expect(values.toSet(), hasLength(values.length));
+    for (var index = 1; index < values.length; index++) {
+      expect(values[index], greaterThan(values[index - 1]));
+    }
+  });
+
+  test('one corrupt cache entry does not poison documents or lists', () async {
+    final docs = Hive.box<String>('docs');
+    final lists = Hive.box<String>('lists');
+    await docs.put('anonymous|workout/broken', '{not json');
+    await lists.put('anonymous|workouts:broken', '{not json');
+
+    expect(store.getDoc('workout', 'broken'), isNull);
+    expect(store.getListIds('workouts:broken'), isEmpty);
+  });
+
+  test('one corrupt outbox entry does not block later mutations', () async {
+    final outbox = Hive.box<String>('outbox');
+    await outbox.put('anonymous|broken', '{not json');
+    await store.enqueue(
+      Mutation(
+        id: 'healthy',
+        seq: store.nextSeq(),
+        kind: 'workout.update',
+        args: const {'id': 'w1'},
+      ),
+    );
+
+    expect(store.pending().map((mutation) => mutation.id), ['healthy']);
   });
 
   test('dead letters are durable but excluded from the replay queue', () async {

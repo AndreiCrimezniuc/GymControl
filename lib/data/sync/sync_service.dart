@@ -47,6 +47,21 @@ class SyncOutcome {
   const SyncOutcome.drop() : this._(false, true);
 }
 
+/// Only responses that cannot become valid without changing the payload are
+/// quarantined. Authentication expiry, contention and rate limiting are
+/// recoverable and must never discard durable workout data.
+bool isPermanentSyncStatus(int status) {
+  if (status < 400 || status >= 500) return false;
+  return !const {401, 408, 409, 423, 425, 429}.contains(status);
+}
+
+SyncOutcome syncOutcomeForStatus(int status, {required int success}) {
+  if (status == success) return const SyncOutcome.done();
+  return isPermanentSyncStatus(status)
+      ? const SyncOutcome.drop()
+      : const SyncOutcome.retry();
+}
+
 typedef MutationHandler =
     Future<SyncOutcome> Function(AuthenticatedClient client, Mutation m);
 
@@ -103,6 +118,7 @@ class SyncService {
   Completer<void>? _flushCompleter;
   bool _online = true;
   Timer? _retryTimer;
+  Timer? _flushSoonTimer;
   int _retryAttempt = 0;
 
   /// Reactive sync health for the UI (online state + pending-change count).
@@ -160,11 +176,22 @@ class SyncService {
   }
 
   /// Fire-and-forget flush (used right after enqueuing a mutation).
-  void flushSoon() => unawaited(flush());
+  void flushSoon() {
+    // Completing one workout can enqueue hundreds of sets. Coalesce that burst
+    // so an offline device does not decode the growing durable queue once per
+    // set (quadratic work); the outbox itself is already safely on disk.
+    if (_flushSoonTimer?.isActive ?? false) return;
+    _flushSoonTimer = Timer(const Duration(milliseconds: 200), () {
+      _flushSoonTimer = null;
+      unawaited(flush());
+    });
+  }
 
   /// Replays pending mutations in order. Stops at the first transient failure so
   /// ordering and idempotency are preserved; drops permanent failures.
   Future<void> flush() async {
+    _flushSoonTimer?.cancel();
+    _flushSoonTimer = null;
     final client = _client;
     // Keep the UI's pending count fresh even when we can't drain right now
     // (offline, or an enqueue happened while another flush is in flight).
@@ -254,6 +281,8 @@ class SyncService {
     _sub = null;
     _retryTimer?.cancel();
     _retryTimer = null;
+    _flushSoonTimer?.cancel();
+    _flushSoonTimer = null;
     status.dispose();
   }
 }
