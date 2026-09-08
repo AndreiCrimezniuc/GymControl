@@ -402,6 +402,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get passportGuideTitle => 'HOW THE PASSPORT WORKS';
 
   @override
+  String get strengthConstellation => 'Strength Constellation';
+
+  @override
+  String constellationSignals(int active, int total) {
+    return '$active/$total SIGNALS';
+  }
+
+  @override
+  String get constellationBody =>
+      'Every ranked lift shapes your personal strength signature. Brightness reflects its median class.';
+
+  @override
+  String get constellationEmptyBody =>
+      'The faint coordinates preview the strength signature your first benchmark lifts will reveal.';
+
+  @override
   String get passportStepLiftTitle => 'A lift earns an entry';
 
   @override
@@ -509,6 +525,149 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get done => 'DONE';
+
+  @override
+  String get missionDebrief => 'MISSION DEBRIEF';
+
+  @override
+  String get sealed => 'SEALED';
+
+  @override
+  String get baselineEstablished => 'Baseline established';
+
+  @override
+  String get baselineEstablishedBody =>
+      'This session is now the reference point for your next comparison.';
+
+  @override
+  String get outputRising => 'Output rising';
+
+  @override
+  String outputRisingBody(int percent) {
+    return 'Working volume is $percent% above the comparable sets from your previous session.';
+  }
+
+  @override
+  String get outputSteady => 'Signal stable';
+
+  @override
+  String get outputSteadyBody =>
+      'Your comparable working sets stayed inside a controlled range.';
+
+  @override
+  String get recoverySignal => 'Recovery signal';
+
+  @override
+  String get recoverySignalBody =>
+      'Volume eased from the previous session. Treat it as context, not a failed streak.';
+
+  @override
+  String get sessionDuration => 'DURATION';
+
+  @override
+  String get shareRecord => 'SHARE';
+
+  @override
+  String get shareFailed => 'Could not prepare the training card';
+
+  @override
+  String get trainingRecord => 'Training Record';
+
+  @override
+  String get personalRecord => 'Personal Record';
+
+  @override
+  String get strongestSignal => 'STRONGEST SET';
+
+  @override
+  String get estimatedOneRmShort => 'EST. 1RM';
+
+  @override
+  String get passportEntries => 'PASSPORT';
+
+  @override
+  String get signalTrail => 'Signal Trail';
+
+  @override
+  String get signalBaseline => 'Building signal';
+
+  @override
+  String get signalRising => 'Strength signal rising';
+
+  @override
+  String get signalStable => 'Training signal stable';
+
+  @override
+  String get signalEasing => 'Load signal eased';
+
+  @override
+  String signalDelta(int percent) {
+    return '$percent% from the first point in this view.';
+  }
+
+  @override
+  String get signalPlateauBody =>
+      'Recent points form a plateau — a useful cue to vary load, reps or recovery.';
+
+  @override
+  String get signalBaselineBody =>
+      'More sessions will reveal the direction of this training signal.';
+
+  @override
+  String get notEnoughSignalData => 'Not enough signal data for this period';
+
+  @override
+  String get recoveryOrbit => 'Recovery Orbit';
+
+  @override
+  String get recoveryOrbitBaseline => 'Awaiting first orbit';
+
+  @override
+  String get recoveryOrbitBaselineBody =>
+      'Your training rhythm will appear here after the first completed session.';
+
+  @override
+  String get recoveryOrbitRecovery => 'Recovery window';
+
+  @override
+  String get recoveryOrbitRecoveryBody =>
+      'Your recent output rose sharply. A quieter day may help consolidate it.';
+
+  @override
+  String get recoveryOrbitReady => 'Orbit is active';
+
+  @override
+  String get recoveryOrbitReadyBody =>
+      'Recent training is close. Keep the next session intentional.';
+
+  @override
+  String get recoveryOrbitBalanced => 'Rhythm looks balanced';
+
+  @override
+  String get recoveryOrbitBalancedBody =>
+      'Training and space between sessions are moving in a measured rhythm.';
+
+  @override
+  String get recoveryOrbitReturning => 'Return vector';
+
+  @override
+  String get recoveryOrbitReturningBody =>
+      'The orbit has gone quiet. Restart with a controlled session, not a test.';
+
+  @override
+  String orbitActiveDays(int count) {
+    return '$count/14 ACTIVE';
+  }
+
+  @override
+  String get daysSinceTraining => 'DAYS SINCE TRAINING';
+
+  @override
+  String get recoveryOrbitDisclaimer =>
+      'A training-rhythm signal based on logged sessions, not a medical readiness score.';
+
+  @override
+  String get usePreviousSet => 'Use previous set values';
 
   @override
   String get difficultyNormal => 'Normal';

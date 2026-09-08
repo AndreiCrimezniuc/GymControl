@@ -1,4 +1,7 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:gymboss/ui/core/theme/app_colors.dart';
@@ -10,11 +13,13 @@ import 'package:gymboss/ui/core/ui/widgets/app_dialog.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_scaffold.dart';
 import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
 import 'package:gymboss/domain/models/exercises/exercise_catalog.dart';
+import 'package:gymboss/domain/models/workouts/workout_debrief.dart';
 import 'package:gymboss/ui/menu_options_list/exercises/widgets/muscle_illustration.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/session/workout_session_controller.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/session/workout_calculators.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/exercise_picker.dart';
 import 'package:gymboss/l10n/app_localizations.dart';
+import 'package:share_plus/share_plus.dart';
 
 /// A view over the global [WorkoutSessionController]. Holds no session state of
 /// its own (so the session survives minimize/resume) — only the text
@@ -362,8 +367,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
             ? _DoneView(
                 workoutName: session.workout?.name ?? '',
                 difficulty: session.difficulty,
-                sets: session.loggedSets,
-                volumeKg: session.loggedVolumeKg,
+                debrief: session.debrief!,
                 onClose: () {
                   session.clear();
                   Navigator.of(context).pop();
@@ -977,35 +981,48 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
             const SizedBox(width: 6),
             if (s.previousReps != null) ...[
               Flexible(
-                child: Pressable(
-                  onTap: s.done
-                      ? null
-                      : () {
-                          session.usePrevious(s);
-                          _wc(s).text = s.weight;
-                          _rc(s).text = s.reps;
-                          HapticFeedback.selectionClick();
-                        },
-                  child: Container(
-                    constraints: const BoxConstraints(minWidth: 42),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 7,
-                    ),
-                    decoration: BoxDecoration(
-                      color: c.card,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: c.border),
-                    ),
-                    child: Text(
-                      _compactPreviousLabel(g.exerciseType, units, s),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w700,
-                        color: c.accentSecondary,
+                child: Semantics(
+                  button: true,
+                  enabled: !s.done,
+                  label: AppLocalizations.of(context).usePreviousSet,
+                  child: Pressable(
+                    onTap: s.done
+                        ? null
+                        : () {
+                            session.usePrevious(s);
+                            _wc(s).text = s.weight;
+                            _rc(s).text = s.reps;
+                            HapticFeedback.selectionClick();
+                          },
+                    child: Container(
+                      constraints: const BoxConstraints(
+                        minWidth: 42,
+                        maxWidth: 70,
+                      ),
+                      padding: const EdgeInsets.fromLTRB(7, 7, 5, 7),
+                      decoration: BoxDecoration(
+                        color: c.accent.withValues(alpha: s.done ? .03 : .06),
+                        borderRadius: BorderRadius.circular(7),
+                        border: Border(
+                          left: BorderSide(
+                            color: c.accent.withValues(
+                              alpha: s.done ? .28 : .75,
+                            ),
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                      child: Text(
+                        _compactPreviousLabel(g.exerciseType, units, s),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: .15,
+                          color: c.accent.withValues(alpha: s.done ? .52 : .9),
+                        ),
                       ),
                     ),
                   ),
@@ -1578,164 +1595,274 @@ class _RestPill extends StatelessWidget {
   );
 }
 
-class _DoneView extends StatelessWidget {
+class _DoneView extends StatefulWidget {
   final String workoutName;
   final String difficulty;
-  final int sets;
-  final double volumeKg;
+  final WorkoutDebrief debrief;
   final VoidCallback onClose;
   const _DoneView({
     required this.workoutName,
     required this.difficulty,
-    required this.sets,
-    required this.volumeKg,
+    required this.debrief,
     required this.onClose,
   });
+
+  @override
+  State<_DoneView> createState() => _DoneViewState();
+}
+
+class _DoneViewState extends State<_DoneView>
+    with SingleTickerProviderStateMixin {
+  final _recordKey = GlobalKey();
+  late final AnimationController _stampController;
+  late final DateTime _issuedAt;
+  bool _sharing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _issuedAt = DateTime.now();
+    _stampController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 620),
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _stampController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _shareRecord() async {
+    if (_sharing) return;
+    setState(() => _sharing = true);
+    try {
+      final boundary =
+          _recordKey.currentContext?.findRenderObject()
+              as RenderRepaintBoundary?;
+      if (boundary == null) throw StateError('Record card is not ready');
+      final image = await boundary.toImage(pixelRatio: 3);
+      final data = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (data == null) throw StateError('Could not render record card');
+      if (!mounted) return;
+      final renderBox = context.findRenderObject() as RenderBox?;
+      final origin = renderBox == null
+          ? null
+          : renderBox.localToGlobal(Offset.zero) & renderBox.size;
+      await SharePlus.instance.share(
+        ShareParams(
+          title: 'GymControl · ${widget.workoutName}',
+          text: _shareText(),
+          files: [
+            XFile.fromData(data.buffer.asUint8List(), mimeType: 'image/png'),
+          ],
+          fileNameOverrides: [
+            'gymcontrol-${_issuedAt.millisecondsSinceEpoch}.png',
+          ],
+          sharePositionOrigin: origin,
+        ),
+      );
+    } catch (_) {
+      if (mounted) {
+        await showAppDialog<void>(
+          context,
+          title: AppLocalizations.of(context).shareFailed,
+          actions: [
+            AppDialogAction('OK', onPressed: () => Navigator.pop(context)),
+          ],
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _sharing = false);
+    }
+  }
+
+  String _shareText() {
+    final d = widget.debrief;
+    final record = d.personalRecords == 1 ? '1 PR' : '${d.personalRecords} PRs';
+    return '${widget.workoutName} · ${d.completedSets} sets · $record · GymControl';
+  }
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
     final l10n = AppLocalizations.of(context);
-    final difficultyLabel = difficulty == 'deload'
+    final difficultyLabel = widget.difficulty == 'deload'
         ? l10n.difficultyDeload
         : l10n.difficultyNormal;
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        children: [
-          const Spacer(),
-          Container(
-            width: 84,
-            height: 84,
-            decoration: BoxDecoration(
-              color: c.accent.withValues(alpha: 0.14),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              CupertinoIcons.checkmark_alt,
-              size: 44,
-              color: c.accent,
-            ),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            l10n.workoutComplete,
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              color: c.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '$workoutName  ·  $difficultyLabel',
-            style: TextStyle(fontSize: 13, color: c.textSecondary),
-          ),
-          const SizedBox(height: 28),
-          Row(
-            children: [
-              _stat(c, '$sets', l10n.setLogged(sets)),
-              const SizedBox(width: 12),
-              _stat(
-                c,
-                context.watch<UnitsController>().formatVolume(volumeKg),
-                l10n.volumeLifted,
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: c.card,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: c.accent.withValues(alpha: .42)),
-            ),
-            child: Row(
+    final d = widget.debrief;
+    return Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+            child: Column(
               children: [
-                Icon(CupertinoIcons.doc_text, size: 20, color: c.accent),
-                const SizedBox(width: 11),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.sessionSealed,
-                        style: TextStyle(
-                          color: c.accent,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        l10n.sessionSealedBody,
-                        style: TextStyle(
-                          color: c.textSecondary,
-                          fontSize: 11,
-                          height: 1.35,
-                        ),
-                      ),
-                    ],
+                Text(
+                  l10n.missionDebrief,
+                  style: TextStyle(
+                    color: c.accent,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.8,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                _PassportStamp(
+                  animation: CurvedAnimation(
+                    parent: _stampController,
+                    curve: Curves.easeOutBack,
+                  ),
+                  recordCount: d.personalRecords,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  l10n.workoutComplete,
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                    color: c.textPrimary,
+                    letterSpacing: -0.6,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  '${widget.workoutName}  ·  $difficultyLabel',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 13, color: c.textSecondary),
+                ),
+                const SizedBox(height: 20),
+                _DebriefSignal(debrief: d),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    _stat(c, '${d.workingSets}', l10n.workingSets),
+                    const SizedBox(width: 8),
+                    _stat(
+                      c,
+                      context.watch<UnitsController>().formatVolume(d.volumeKg),
+                      l10n.volumeLifted,
+                    ),
+                    const SizedBox(width: 8),
+                    _stat(
+                      c,
+                      _formatDuration(d.durationSeconds),
+                      l10n.sessionDuration,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                RepaintBoundary(
+                  key: _recordKey,
+                  child: _PersonalRecordCard(
+                    workoutName: widget.workoutName,
+                    debrief: d,
+                    issuedAt: _issuedAt,
                   ),
                 ),
               ],
             ),
           ),
-          const Spacer(),
-          SizedBox(
-            width: double.infinity,
-            child: Pressable(
-              onTap: onClose,
-              child: Container(
-                height: 54,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: c.accent,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Text(
-                  l10n.done,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 2,
-                    color: c.textOnAccent,
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+          child: Row(
+            children: [
+              Expanded(
+                child: Pressable(
+                  onTap: _sharing ? null : _shareRecord,
+                  child: Container(
+                    height: 54,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: c.card,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: c.border),
+                    ),
+                    child: _sharing
+                        ? const CupertinoActivityIndicator()
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                CupertinoIcons.share,
+                                size: 17,
+                                color: c.accent,
+                              ),
+                              const SizedBox(width: 7),
+                              Text(
+                                l10n.shareRecord,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                  color: c.textPrimary,
+                                ),
+                              ),
+                            ],
+                          ),
                   ),
                 ),
               ),
-            ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Pressable(
+                  onTap: widget.onClose,
+                  child: Container(
+                    height: 54,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: c.accent,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Text(
+                      l10n.done,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.4,
+                        color: c.textOnAccent,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   Widget _stat(AppColors c, String value, String label) => Expanded(
     child: Container(
-      padding: const EdgeInsets.symmetric(vertical: 18),
+      constraints: const BoxConstraints(minHeight: 84),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 14),
       decoration: BoxDecoration(
         color: c.card,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: c.border),
       ),
       child: Column(
         children: [
           Text(
             value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
+              fontSize: 17,
+              fontWeight: FontWeight.w900,
               color: c.textPrimary,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             label,
+            maxLines: 2,
+            textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 10,
+              fontSize: 8,
+              fontWeight: FontWeight.w700,
               letterSpacing: 0.5,
               color: c.textSecondary,
             ),
@@ -1744,6 +1871,329 @@ class _DoneView extends StatelessWidget {
       ),
     ),
   );
+
+  String _formatDuration(int seconds) {
+    final hours = seconds ~/ 3600;
+    final minutes = (seconds % 3600) ~/ 60;
+    return hours > 0 ? '${hours}h ${minutes}m' : '${minutes}m';
+  }
+}
+
+class _PassportStamp extends StatelessWidget {
+  final Animation<double> animation;
+  final int recordCount;
+
+  const _PassportStamp({required this.animation, required this.recordCount});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final l = AppLocalizations.of(context);
+    return Semantics(
+      label: l.sessionSealed,
+      child: FadeTransition(
+        opacity: animation,
+        child: ScaleTransition(
+          scale: animation,
+          child: RotationTransition(
+            turns: Tween(begin: -.025, end: 0.0).animate(animation),
+            child: Container(
+              width: 92,
+              height: 92,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: c.accent.withValues(alpha: .08),
+                border: Border.all(color: c.accent, width: 2.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: c.accent.withValues(alpha: .18),
+                    blurRadius: 22,
+                  ),
+                ],
+              ),
+              child: Container(
+                margin: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: c.accent.withValues(alpha: .45)),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(CupertinoIcons.rosette, size: 25, color: c.accent),
+                    const SizedBox(height: 3),
+                    Text(
+                      recordCount > 0 ? '+$recordCount PR' : l.sealed,
+                      style: TextStyle(
+                        color: c.accent,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: .8,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DebriefSignal extends StatelessWidget {
+  final WorkoutDebrief debrief;
+  const _DebriefSignal({required this.debrief});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final l = AppLocalizations.of(context);
+    final (title, body, icon) = switch (debrief.momentum) {
+      DebriefMomentum.baseline => (
+        l.baselineEstablished,
+        l.baselineEstablishedBody,
+        CupertinoIcons.scope,
+      ),
+      DebriefMomentum.rising => (
+        l.outputRising,
+        l.outputRisingBody(debrief.volumeChangePercent!.round()),
+        CupertinoIcons.arrow_up_right,
+      ),
+      DebriefMomentum.steady => (
+        l.outputSteady,
+        l.outputSteadyBody,
+        CupertinoIcons.equal_circle,
+      ),
+      DebriefMomentum.easing => (
+        l.recoverySignal,
+        l.recoverySignalBody,
+        CupertinoIcons.waveform_path_ecg,
+      ),
+    };
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: c.invBg,
+        borderRadius: BorderRadius.circular(17),
+        border: Border.all(color: c.accent.withValues(alpha: .4)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: c.accent.withValues(alpha: .16),
+              borderRadius: BorderRadius.circular(13),
+            ),
+            child: Icon(icon, size: 20, color: c.accent),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: c.invText,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  body,
+                  style: TextStyle(
+                    color: c.invText.withValues(alpha: .64),
+                    fontSize: 10,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (debrief.personalRecords > 0)
+            Text(
+              '+${debrief.personalRecords}',
+              style: TextStyle(
+                color: c.accent,
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PersonalRecordCard extends StatelessWidget {
+  final String workoutName;
+  final WorkoutDebrief debrief;
+  final DateTime issuedAt;
+
+  const _PersonalRecordCard({
+    required this.workoutName,
+    required this.debrief,
+    required this.issuedAt,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final l = AppLocalizations.of(context);
+    final units = context.units;
+    final hasStrength = debrief.strongestExercise.isNotEmpty;
+    final title = debrief.personalRecords > 0
+        ? l.personalRecord
+        : l.trainingRecord;
+    final date =
+        '${issuedAt.day.toString().padLeft(2, '0')}.'
+        '${issuedAt.month.toString().padLeft(2, '0')}.${issuedAt.year}';
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(17),
+      decoration: BoxDecoration(
+        color: c.invBg,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: c.accent.withValues(alpha: .48)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'GYMCONTROL',
+                style: TextStyle(
+                  color: c.invText,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.5,
+                ),
+              ),
+              const Spacer(),
+              Container(width: 22, height: 3, color: c.accent),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Text(
+            title.toUpperCase(),
+            style: TextStyle(
+              color: c.accent,
+              fontSize: 9,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.4,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            hasStrength ? debrief.strongestExercise : workoutName,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: c.invText,
+              fontSize: 21,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -.5,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              _RecordDatum(
+                value: hasStrength
+                    ? '${units.format(debrief.strongestWeightKg)} ${units.label} × ${debrief.strongestReps}'
+                    : '${debrief.completedSets}',
+                label: hasStrength ? l.strongestSignal : l.workingSets,
+              ),
+              _RecordDatum(
+                value: hasStrength
+                    ? '${units.format(debrief.strongestEstimateKg)} ${units.label}'
+                    : units.formatVolume(debrief.volumeKg),
+                label: hasStrength ? l.estimatedOneRmShort : l.volume,
+              ),
+              _RecordDatum(
+                value: debrief.personalRecords > 0
+                    ? '+${debrief.personalRecords}'
+                    : '${debrief.passportEntries}',
+                label: debrief.personalRecords > 0 ? 'PR' : l.passportEntries,
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Container(height: 1, color: c.invText.withValues(alpha: .13)),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  workoutName,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: c.invText.withValues(alpha: .62),
+                    fontSize: 10,
+                  ),
+                ),
+              ),
+              Text(
+                '$date · GC-${issuedAt.millisecondsSinceEpoch.toString().substring(7)}',
+                style: TextStyle(
+                  color: c.invText.withValues(alpha: .48),
+                  fontSize: 8,
+                  letterSpacing: .5,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecordDatum extends StatelessWidget {
+  final String value;
+  final String label;
+  const _RecordDatum({required this.value, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: c.invText,
+              fontSize: 13,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            label.toUpperCase(),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: c.invText.withValues(alpha: .45),
+              fontSize: 7,
+              fontWeight: FontWeight.w800,
+              letterSpacing: .7,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // A single option in the themed picker sheet (set type / progression).

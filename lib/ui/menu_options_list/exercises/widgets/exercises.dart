@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:gymboss/data/repositories/exercises_repository.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/domain/models/exercises/exercise_catalog.dart';
+import 'package:gymboss/domain/models/insights/training_signal.dart';
 import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
@@ -753,7 +755,7 @@ class _StatsBlock extends StatelessWidget {
         ],
         if (s.progression.length >= 2) ...[
           const SizedBox(height: 16),
-          _SectionLabel('Progression'),
+          _SectionLabel(AppLocalizations.of(context).signalTrail),
           const SizedBox(height: 10),
           _ProgressionChart(points: s.progression),
         ],
@@ -1149,6 +1151,19 @@ class _ProgressionChartState extends State<_ProgressionChart> {
           },
         )
         .toList();
+    final insight = SignalTrailInsight.analyze(values);
+    final l10n = AppLocalizations.of(context);
+    final signalTitle = switch (insight.trend) {
+      SignalTrend.baseline => l10n.signalBaseline,
+      SignalTrend.rising => l10n.signalRising,
+      SignalTrend.stable => l10n.signalStable,
+      SignalTrend.easing => l10n.signalEasing,
+    };
+    final signalBody = insight.plateau
+        ? l10n.signalPlateauBody
+        : insight.changePercent == null
+        ? l10n.signalBaselineBody
+        : l10n.signalDelta(insight.changePercent!.round());
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
       decoration: BoxDecoration(
@@ -1157,6 +1172,7 @@ class _ProgressionChartState extends State<_ProgressionChart> {
         border: Border.all(color: c.border),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           CupertinoSlidingSegmentedControl<String>(
             groupValue: _metric,
@@ -1172,21 +1188,74 @@ class _ProgressionChartState extends State<_ProgressionChart> {
                 setState(() => _metric = value ?? 'weight'),
           ),
           const SizedBox(height: 16),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 3,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: c.accent,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      signalTitle,
+                      style: TextStyle(
+                        color: c.textPrimary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      signalBody,
+                      style: TextStyle(
+                        color: c.textSecondary,
+                        fontSize: 11,
+                        height: 1.25,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (insight.changePercent != null)
+                Text(
+                  '${insight.changePercent! >= 0 ? '+' : ''}'
+                  '${insight.changePercent!.round()}%',
+                  style: TextStyle(
+                    color: insight.changePercent! >= 0
+                        ? c.accent
+                        : c.textSecondary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
           SizedBox(
             height: 130,
             width: double.infinity,
             child: values.length < 2
                 ? Center(
                     child: Text(
-                      'Not enough data for this period',
+                      l10n.notEnoughSignalData,
                       style: TextStyle(color: c.textSecondary),
                     ),
                   )
                 : CustomPaint(
-                    painter: _LineChartPainter(
+                    painter: _SignalTrailPainter(
                       values: values,
                       lineColor: c.accent,
                       gridColor: c.border,
+                      fillColor: c.accent.withValues(alpha: 0.18),
+                      plateau: insight.plateau,
                     ),
                   ),
           ),
@@ -1207,15 +1276,19 @@ class _ProgressionChartState extends State<_ProgressionChart> {
   }
 }
 
-class _LineChartPainter extends CustomPainter {
+class _SignalTrailPainter extends CustomPainter {
   final List<double> values;
   final Color lineColor;
   final Color gridColor;
+  final Color fillColor;
+  final bool plateau;
 
-  const _LineChartPainter({
+  const _SignalTrailPainter({
     required this.values,
     required this.lineColor,
     required this.gridColor,
+    required this.fillColor,
+    required this.plateau,
   });
 
   @override
@@ -1232,17 +1305,40 @@ class _LineChartPainter extends CustomPainter {
     final range = (maxValue - minValue).abs() < 0.001
         ? 1.0
         : maxValue - minValue;
-    final path = Path();
+    final points = <Offset>[];
     for (var i = 0; i < values.length; i++) {
       final x = size.width * i / (values.length - 1);
       final y =
-          size.height - ((values[i] - minValue) / range * (size.height - 12));
-      if (i == 0) {
-        path.moveTo(x, y);
-      } else {
-        path.lineTo(x, y);
-      }
+          size.height -
+          6 -
+          ((values[i] - minValue) / range * (size.height - 18));
+      points.add(Offset(x, y));
     }
+    if (plateau) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTRB(size.width * .62, 0, size.width, size.height),
+          const Radius.circular(10),
+        ),
+        Paint()..color = lineColor.withValues(alpha: .06),
+      );
+    }
+    final path = Path()..moveTo(points.first.dx, points.first.dy);
+    for (final point in points.skip(1)) {
+      path.lineTo(point.dx, point.dy);
+    }
+    final area = Path.from(path)
+      ..lineTo(points.last.dx, size.height)
+      ..lineTo(points.first.dx, size.height)
+      ..close();
+    canvas.drawPath(
+      area,
+      Paint()
+        ..shader = ui.Gradient.linear(Offset.zero, Offset(0, size.height), [
+          fillColor,
+          fillColor.withValues(alpha: 0),
+        ]),
+    );
     final paint = Paint()
       ..color = lineColor
       ..strokeWidth = 3
@@ -1250,19 +1346,22 @@ class _LineChartPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
     canvas.drawPath(path, paint);
-    for (var i = 0; i < values.length; i++) {
-      final x = size.width * i / (values.length - 1);
-      final y =
-          size.height - ((values[i] - minValue) / range * (size.height - 12));
-      canvas.drawCircle(Offset(x, y), 4, Paint()..color = lineColor);
-    }
+    canvas.drawCircle(
+      points.last,
+      9,
+      Paint()..color = lineColor.withValues(alpha: .14),
+    );
+    canvas.drawCircle(points.first, 3, Paint()..color = lineColor);
+    canvas.drawCircle(points.last, 4.5, Paint()..color = lineColor);
   }
 
   @override
-  bool shouldRepaint(covariant _LineChartPainter oldDelegate) =>
+  bool shouldRepaint(covariant _SignalTrailPainter oldDelegate) =>
       oldDelegate.values != values ||
       oldDelegate.lineColor != lineColor ||
-      oldDelegate.gridColor != gridColor;
+      oldDelegate.gridColor != gridColor ||
+      oldDelegate.fillColor != fillColor ||
+      oldDelegate.plateau != plateau;
 }
 
 class _Chip extends StatelessWidget {

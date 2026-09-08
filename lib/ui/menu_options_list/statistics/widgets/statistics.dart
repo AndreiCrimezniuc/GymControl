@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:gymboss/data/repositories/ranking_repository.dart';
@@ -5,6 +7,7 @@ import 'package:gymboss/data/repositories/sessions_repository.dart';
 import 'package:gymboss/data/repositories/workouts_repository.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/domain/models/ranking/rank_data.dart';
+import 'package:gymboss/domain/models/insights/training_signal.dart';
 import 'package:gymboss/domain/models/streak/streak_data.dart';
 import 'package:gymboss/domain/models/workouts/workout.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
@@ -133,6 +136,10 @@ class _StatisticsState extends State<Statistics> {
                       const SizedBox(height: 12),
                       _TrainingLoadCard(points: _activity),
                       const SizedBox(height: 24),
+                      _SectionLabel(l10n.recoveryOrbit),
+                      const SizedBox(height: 12),
+                      _RecoveryOrbitCard(points: _activity),
+                      const SizedBox(height: 24),
                       _SectionLabel(
                         AppLocalizations.of(context).workoutCalendar,
                       ),
@@ -172,6 +179,236 @@ class _StatisticsState extends State<Statistics> {
             ),
     );
   }
+}
+
+class _RecoveryOrbitCard extends StatelessWidget {
+  final List<ActivityPoint> points;
+
+  const _RecoveryOrbitCard({required this.points});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final l10n = AppLocalizations.of(context);
+    final now = DateTime.now();
+    final parsed = points
+        .map((point) {
+          final date = DateTime.tryParse(point.date);
+          if (date == null) return null;
+          return TrainingDaySignal(
+            date: date,
+            workouts: point.workouts,
+            volume: point.volumeKg,
+          );
+        })
+        .whereType<TrainingDaySignal>()
+        .toList();
+    final insight = RecoveryOrbitInsight.analyze(days: parsed, now: now);
+    final today = DateTime(now.year, now.month, now.day);
+    final byDate = <String, double>{};
+    for (final day in parsed) {
+      final date = DateTime(day.date.year, day.date.month, day.date.day);
+      byDate[_dateKey(date)] = (byDate[_dateKey(date)] ?? 0) + day.volume;
+    }
+    final volumes = List<double>.generate(14, (index) {
+      final day = today.subtract(Duration(days: 13 - index));
+      return byDate[_dateKey(day)] ?? 0;
+    });
+    final title = switch (insight.status) {
+      OrbitStatus.baseline => l10n.recoveryOrbitBaseline,
+      OrbitStatus.recovery => l10n.recoveryOrbitRecovery,
+      OrbitStatus.ready => l10n.recoveryOrbitReady,
+      OrbitStatus.balanced => l10n.recoveryOrbitBalanced,
+      OrbitStatus.returning => l10n.recoveryOrbitReturning,
+    };
+    final body = switch (insight.status) {
+      OrbitStatus.baseline => l10n.recoveryOrbitBaselineBody,
+      OrbitStatus.recovery => l10n.recoveryOrbitRecoveryBody,
+      OrbitStatus.ready => l10n.recoveryOrbitReadyBody,
+      OrbitStatus.balanced => l10n.recoveryOrbitBalancedBody,
+      OrbitStatus.returning => l10n.recoveryOrbitReturningBody,
+    };
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+      decoration: BoxDecoration(
+        color: c.invBg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: c.accent.withValues(alpha: .55)),
+        boxShadow: c.cardShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    color: c.invText,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                decoration: BoxDecoration(
+                  color: c.accent.withValues(alpha: .14),
+                  borderRadius: BorderRadius.circular(9),
+                  border: Border.all(color: c.accent.withValues(alpha: .45)),
+                ),
+                child: Text(
+                  l10n.orbitActiveDays(insight.activeDays),
+                  style: TextStyle(
+                    color: c.accent,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: .5,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            body,
+            style: TextStyle(
+              color: c.invText.withValues(alpha: .66),
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 142,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: _RecoveryOrbitPainter(
+                      volumes: volumes,
+                      accent: c.accent,
+                      foreground: c.invText,
+                    ),
+                  ),
+                ),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(CupertinoIcons.scope, color: c.accent, size: 20),
+                    const SizedBox(height: 4),
+                    Text(
+                      insight.daysSinceTraining == null
+                          ? '—'
+                          : '${insight.daysSinceTraining}',
+                      style: TextStyle(
+                        color: c.invText,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    Text(
+                      l10n.daysSinceTraining,
+                      style: TextStyle(
+                        color: c.invText.withValues(alpha: .48),
+                        fontSize: 8,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: .7,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Text(
+            l10n.recoveryOrbitDisclaimer,
+            style: TextStyle(
+              color: c.invText.withValues(alpha: .42),
+              fontSize: 9,
+              height: 1.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _dateKey(DateTime date) =>
+      '${date.year}-${date.month.toString().padLeft(2, '0')}-'
+      '${date.day.toString().padLeft(2, '0')}';
+}
+
+class _RecoveryOrbitPainter extends CustomPainter {
+  final List<double> volumes;
+  final Color accent;
+  final Color foreground;
+
+  const _RecoveryOrbitPainter({
+    required this.volumes,
+    required this.accent,
+    required this.foreground,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final orbit = Rect.fromCenter(
+      center: center,
+      width: size.width * .84,
+      height: size.height * .72,
+    );
+    canvas.drawOval(
+      orbit,
+      Paint()
+        ..color = foreground.withValues(alpha: .12)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1,
+    );
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: center,
+        width: size.width * .52,
+        height: size.height * .43,
+      ),
+      Paint()
+        ..color = foreground.withValues(alpha: .06)
+        ..style = PaintingStyle.stroke,
+    );
+    final maxVolume = volumes.fold<double>(0, math.max);
+    for (var index = 0; index < volumes.length; index++) {
+      final angle = -math.pi / 2 + index * math.pi * 2 / volumes.length;
+      final point = Offset(
+        center.dx + orbit.width / 2 * math.cos(angle),
+        center.dy + orbit.height / 2 * math.sin(angle),
+      );
+      final active = volumes[index] > 0;
+      final strength = maxVolume <= 0 ? 0.0 : volumes[index] / maxVolume;
+      final radius = active ? 3.5 + strength * 2.5 : 2.1;
+      if (index == volumes.length - 1) {
+        canvas.drawCircle(
+          point,
+          10,
+          Paint()..color = accent.withValues(alpha: .12),
+        );
+      }
+      canvas.drawCircle(
+        point,
+        radius,
+        Paint()
+          ..color = active
+              ? accent.withValues(alpha: .55 + strength * .45)
+              : foreground.withValues(alpha: .16),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _RecoveryOrbitPainter oldDelegate) =>
+      oldDelegate.volumes != volumes ||
+      oldDelegate.accent != accent ||
+      oldDelegate.foreground != foreground;
 }
 
 class _TrainingLoadCard extends StatelessWidget {

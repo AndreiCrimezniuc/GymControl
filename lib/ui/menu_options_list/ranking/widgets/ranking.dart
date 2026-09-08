@@ -160,6 +160,8 @@ class _RankContent extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
           children: [
             _OverallHero(ranks: ranks),
+            const SizedBox(height: 14),
+            _StrengthConstellation(ranks: ranks),
             const SizedBox(height: 20),
             if (ranks.profile.weightKg == null) ...[
               _WeightNudge(repo: repo, onDone: onRefresh),
@@ -191,6 +193,215 @@ class _RankContent extends StatelessWidget {
       ],
     );
   }
+}
+
+class _StrengthConstellation extends StatelessWidget {
+  final UserRanks ranks;
+  const _StrengthConstellation({required this.ranks});
+
+  static const _ids = [
+    'bench_press',
+    'overhead_press',
+    'barbell_row',
+    'deadlift',
+    'squat',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final l = AppLocalizations.of(context);
+    final byId = {
+      for (final rank in ranks.exerciseRanks) rank.exerciseId: rank,
+    };
+    final visible = _ids.where(byId.containsKey).length;
+    final semantics = _ids
+        .map((id) => byId[id])
+        .whereType<ExerciseRank>()
+        .map((rank) => '${rank.exerciseName}: ${rank.rank}')
+        .join(', ');
+    return Semantics(
+      label: '${l.strengthConstellation}. $semantics',
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 15, 16, 13),
+        decoration: BoxDecoration(
+          color: c.invBg,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: c.accent.withValues(alpha: .38)),
+          boxShadow: [
+            BoxShadow(
+              color: c.accent.withValues(alpha: .09),
+              blurRadius: 24,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    l.strengthConstellation.toUpperCase(),
+                    style: TextStyle(
+                      color: c.invText,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.4,
+                    ),
+                  ),
+                ),
+                Text(
+                  l.constellationSignals(visible, _ids.length),
+                  style: TextStyle(
+                    color: c.accent,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 3),
+            Text(
+              visible == 0 ? l.constellationEmptyBody : l.constellationBody,
+              style: TextStyle(
+                color: c.invText.withValues(alpha: .56),
+                fontSize: 10,
+                height: 1.35,
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 188,
+              width: double.infinity,
+              child: CustomPaint(
+                painter: _ConstellationPainter(
+                  ranks: byId,
+                  accent: c.accent,
+                  lineColor: c.invText.withValues(alpha: .11),
+                  labelColor: c.invText.withValues(alpha: .54),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ConstellationPainter extends CustomPainter {
+  final Map<String, ExerciseRank> ranks;
+  final Color accent;
+  final Color lineColor;
+  final Color labelColor;
+
+  const _ConstellationPainter({
+    required this.ranks,
+    required this.accent,
+    required this.lineColor,
+    required this.labelColor,
+  });
+
+  static const _nodes = <(String, String, Offset)>[
+    ('bench_press', 'BP', Offset(.17, .27)),
+    ('overhead_press', 'OHP', Offset(.68, .16)),
+    ('barbell_row', 'ROW', Offset(.84, .55)),
+    ('deadlift', 'DL', Offset(.55, .83)),
+    ('squat', 'SQ', Offset(.16, .73)),
+  ];
+  static const _connections = <(int, int)>[
+    (0, 1),
+    (1, 2),
+    (2, 3),
+    (3, 4),
+    (4, 0),
+    (0, 2),
+  ];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    Offset position(int index) {
+      final point = _nodes[index].$3;
+      return Offset(point.dx * size.width, point.dy * size.height);
+    }
+
+    for (final connection in _connections) {
+      final first = _nodes[connection.$1].$1;
+      final second = _nodes[connection.$2].$1;
+      final active = ranks.containsKey(first) && ranks.containsKey(second);
+      canvas.drawLine(
+        position(connection.$1),
+        position(connection.$2),
+        Paint()
+          ..color = active ? accent.withValues(alpha: .44) : lineColor
+          ..strokeWidth = active ? 1.25 : .8,
+      );
+    }
+
+    for (var i = 0; i < _nodes.length; i++) {
+      final node = _nodes[i];
+      final rank = ranks[node.$1];
+      final point = position(i);
+      final active = rank != null;
+      final color = active ? _rankColor(rank.rank) : lineColor;
+      final strength = rank?.relativeToMedian ?? 0;
+      final radius = active
+          ? 6.0 + strength.clamp(0.0, 2.0).toDouble() * 2.2
+          : 4.5;
+      if (active) {
+        canvas.drawCircle(
+          point,
+          radius + 7,
+          Paint()
+            ..color = color.withValues(alpha: .22)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
+        );
+      }
+      canvas.drawCircle(
+        point,
+        radius + 2.5,
+        Paint()
+          ..color = active
+              ? color.withValues(alpha: .18)
+              : const Color(0x00000000)
+          ..style = PaintingStyle.fill,
+      );
+      canvas.drawCircle(
+        point,
+        radius,
+        Paint()
+          ..color = color
+          ..style = active ? PaintingStyle.fill : PaintingStyle.stroke
+          ..strokeWidth = 1,
+      );
+      final label = TextPainter(
+        text: TextSpan(
+          text: active ? '${node.$2} · ${rank.rank}' : node.$2,
+          style: TextStyle(
+            color: active ? color : labelColor,
+            fontSize: 8,
+            fontWeight: active ? FontWeight.w900 : FontWeight.w600,
+            letterSpacing: .5,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      final labelX = (point.dx - label.width / 2)
+          .clamp(0.0, size.width - label.width)
+          .toDouble();
+      final labelY = point.dy + radius + 7;
+      label.paint(canvas, Offset(labelX, labelY));
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ConstellationPainter oldDelegate) =>
+      oldDelegate.ranks != ranks ||
+      oldDelegate.accent != accent ||
+      oldDelegate.lineColor != lineColor ||
+      oldDelegate.labelColor != labelColor;
 }
 
 // ── Overall hero ──────────────────────────────────────────────────────────────

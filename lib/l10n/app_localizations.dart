@@ -824,6 +824,30 @@ abstract class AppLocalizations {
   /// **'HOW THE PASSPORT WORKS'**
   String get passportGuideTitle;
 
+  /// No description provided for @strengthConstellation.
+  ///
+  /// In en, this message translates to:
+  /// **'Strength Constellation'**
+  String get strengthConstellation;
+
+  /// No description provided for @constellationSignals.
+  ///
+  /// In en, this message translates to:
+  /// **'{active}/{total} SIGNALS'**
+  String constellationSignals(int active, int total);
+
+  /// No description provided for @constellationBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Every ranked lift shapes your personal strength signature. Brightness reflects its median class.'**
+  String get constellationBody;
+
+  /// No description provided for @constellationEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The faint coordinates preview the strength signature your first benchmark lifts will reveal.'**
+  String get constellationEmptyBody;
+
   /// No description provided for @passportStepLiftTitle.
   ///
   /// In en, this message translates to:
@@ -991,6 +1015,258 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'DONE'**
   String get done;
+
+  /// No description provided for @missionDebrief.
+  ///
+  /// In en, this message translates to:
+  /// **'MISSION DEBRIEF'**
+  String get missionDebrief;
+
+  /// No description provided for @sealed.
+  ///
+  /// In en, this message translates to:
+  /// **'SEALED'**
+  String get sealed;
+
+  /// No description provided for @baselineEstablished.
+  ///
+  /// In en, this message translates to:
+  /// **'Baseline established'**
+  String get baselineEstablished;
+
+  /// No description provided for @baselineEstablishedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This session is now the reference point for your next comparison.'**
+  String get baselineEstablishedBody;
+
+  /// No description provided for @outputRising.
+  ///
+  /// In en, this message translates to:
+  /// **'Output rising'**
+  String get outputRising;
+
+  /// No description provided for @outputRisingBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Working volume is {percent}% above the comparable sets from your previous session.'**
+  String outputRisingBody(int percent);
+
+  /// No description provided for @outputSteady.
+  ///
+  /// In en, this message translates to:
+  /// **'Signal stable'**
+  String get outputSteady;
+
+  /// No description provided for @outputSteadyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your comparable working sets stayed inside a controlled range.'**
+  String get outputSteadyBody;
+
+  /// No description provided for @recoverySignal.
+  ///
+  /// In en, this message translates to:
+  /// **'Recovery signal'**
+  String get recoverySignal;
+
+  /// No description provided for @recoverySignalBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Volume eased from the previous session. Treat it as context, not a failed streak.'**
+  String get recoverySignalBody;
+
+  /// No description provided for @sessionDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'DURATION'**
+  String get sessionDuration;
+
+  /// No description provided for @shareRecord.
+  ///
+  /// In en, this message translates to:
+  /// **'SHARE'**
+  String get shareRecord;
+
+  /// No description provided for @shareFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not prepare the training card'**
+  String get shareFailed;
+
+  /// No description provided for @trainingRecord.
+  ///
+  /// In en, this message translates to:
+  /// **'Training Record'**
+  String get trainingRecord;
+
+  /// No description provided for @personalRecord.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal Record'**
+  String get personalRecord;
+
+  /// No description provided for @strongestSignal.
+  ///
+  /// In en, this message translates to:
+  /// **'STRONGEST SET'**
+  String get strongestSignal;
+
+  /// No description provided for @estimatedOneRmShort.
+  ///
+  /// In en, this message translates to:
+  /// **'EST. 1RM'**
+  String get estimatedOneRmShort;
+
+  /// No description provided for @passportEntries.
+  ///
+  /// In en, this message translates to:
+  /// **'PASSPORT'**
+  String get passportEntries;
+
+  /// No description provided for @signalTrail.
+  ///
+  /// In en, this message translates to:
+  /// **'Signal Trail'**
+  String get signalTrail;
+
+  /// No description provided for @signalBaseline.
+  ///
+  /// In en, this message translates to:
+  /// **'Building signal'**
+  String get signalBaseline;
+
+  /// No description provided for @signalRising.
+  ///
+  /// In en, this message translates to:
+  /// **'Strength signal rising'**
+  String get signalRising;
+
+  /// No description provided for @signalStable.
+  ///
+  /// In en, this message translates to:
+  /// **'Training signal stable'**
+  String get signalStable;
+
+  /// No description provided for @signalEasing.
+  ///
+  /// In en, this message translates to:
+  /// **'Load signal eased'**
+  String get signalEasing;
+
+  /// No description provided for @signalDelta.
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}% from the first point in this view.'**
+  String signalDelta(int percent);
+
+  /// No description provided for @signalPlateauBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent points form a plateau — a useful cue to vary load, reps or recovery.'**
+  String get signalPlateauBody;
+
+  /// No description provided for @signalBaselineBody.
+  ///
+  /// In en, this message translates to:
+  /// **'More sessions will reveal the direction of this training signal.'**
+  String get signalBaselineBody;
+
+  /// No description provided for @notEnoughSignalData.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough signal data for this period'**
+  String get notEnoughSignalData;
+
+  /// No description provided for @recoveryOrbit.
+  ///
+  /// In en, this message translates to:
+  /// **'Recovery Orbit'**
+  String get recoveryOrbit;
+
+  /// No description provided for @recoveryOrbitBaseline.
+  ///
+  /// In en, this message translates to:
+  /// **'Awaiting first orbit'**
+  String get recoveryOrbitBaseline;
+
+  /// No description provided for @recoveryOrbitBaselineBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your training rhythm will appear here after the first completed session.'**
+  String get recoveryOrbitBaselineBody;
+
+  /// No description provided for @recoveryOrbitRecovery.
+  ///
+  /// In en, this message translates to:
+  /// **'Recovery window'**
+  String get recoveryOrbitRecovery;
+
+  /// No description provided for @recoveryOrbitRecoveryBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your recent output rose sharply. A quieter day may help consolidate it.'**
+  String get recoveryOrbitRecoveryBody;
+
+  /// No description provided for @recoveryOrbitReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Orbit is active'**
+  String get recoveryOrbitReady;
+
+  /// No description provided for @recoveryOrbitReadyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent training is close. Keep the next session intentional.'**
+  String get recoveryOrbitReadyBody;
+
+  /// No description provided for @recoveryOrbitBalanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Rhythm looks balanced'**
+  String get recoveryOrbitBalanced;
+
+  /// No description provided for @recoveryOrbitBalancedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Training and space between sessions are moving in a measured rhythm.'**
+  String get recoveryOrbitBalancedBody;
+
+  /// No description provided for @recoveryOrbitReturning.
+  ///
+  /// In en, this message translates to:
+  /// **'Return vector'**
+  String get recoveryOrbitReturning;
+
+  /// No description provided for @recoveryOrbitReturningBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The orbit has gone quiet. Restart with a controlled session, not a test.'**
+  String get recoveryOrbitReturningBody;
+
+  /// No description provided for @orbitActiveDays.
+  ///
+  /// In en, this message translates to:
+  /// **'{count}/14 ACTIVE'**
+  String orbitActiveDays(int count);
+
+  /// No description provided for @daysSinceTraining.
+  ///
+  /// In en, this message translates to:
+  /// **'DAYS SINCE TRAINING'**
+  String get daysSinceTraining;
+
+  /// No description provided for @recoveryOrbitDisclaimer.
+  ///
+  /// In en, this message translates to:
+  /// **'A training-rhythm signal based on logged sessions, not a medical readiness score.'**
+  String get recoveryOrbitDisclaimer;
+
+  /// No description provided for @usePreviousSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Use previous set values'**
+  String get usePreviousSet;
 
   /// No description provided for @difficultyNormal.
   ///

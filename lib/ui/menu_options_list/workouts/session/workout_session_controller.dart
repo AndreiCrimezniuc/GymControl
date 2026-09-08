@@ -7,6 +7,7 @@ import 'package:gymboss/data/repositories/ranking_repository.dart';
 import 'package:gymboss/data/repositories/sessions_repository.dart';
 import 'package:gymboss/data/repositories/workouts_repository.dart';
 import 'package:gymboss/domain/models/workouts/workout.dart';
+import 'package:gymboss/domain/models/workouts/workout_debrief.dart';
 import 'package:gymboss/domain/models/ranking/passport_lift_matcher.dart';
 import 'package:gymboss/ui/core/units/units_controller.dart';
 import 'package:gymboss/ui/core/input/numeric_limit_formatter.dart';
@@ -122,6 +123,7 @@ class WorkoutSessionController extends ChangeNotifier {
   double _loggedVolumeKg = 0;
   DateTime? _startedAt;
   String? _sessionId;
+  WorkoutDebrief? _debrief;
 
   bool _resting = false;
   int _restLeft = 0;
@@ -149,6 +151,7 @@ class WorkoutSessionController extends ChangeNotifier {
   double get loggedVolumeKg => _loggedVolumeKg;
   bool get resting => _resting;
   int get restLeft => _restLeft;
+  WorkoutDebrief? get debrief => _debrief;
 
   int get doneSets =>
       _groups.fold(0, (a, g) => a + g.sets.where((s) => s.done).length);
@@ -204,6 +207,7 @@ class WorkoutSessionController extends ChangeNotifier {
       _routineChanged = data['routine_changed'] as bool? ?? false;
       _minimized = true;
       _finished = false;
+      _debrief = null;
       _active = true;
       _groups
         ..clear()
@@ -273,6 +277,7 @@ class WorkoutSessionController extends ChangeNotifier {
     _loggedVolumeKg = 0;
     _resting = false;
     _finished = false;
+    _debrief = null;
     _routineChanged = false;
     _minimized = false;
     _active = true;
@@ -735,6 +740,7 @@ class WorkoutSessionController extends ChangeNotifier {
     final durationSeconds = _startedAt == null
         ? 0
         : DateTime.now().difference(_startedAt!).inSeconds;
+    _debrief = _buildDebrief(durationSeconds);
     for (final group in _groups) {
       for (final set in group.sets.where((set) => set.done)) {
         await _exercises.logSet(
@@ -806,6 +812,27 @@ class WorkoutSessionController extends ChangeNotifier {
     }
   }
 
+  WorkoutDebrief _buildDebrief(int durationSeconds) {
+    return WorkoutDebrief.calculate(
+      durationSeconds: durationSeconds,
+      sets: [
+        for (final group in _groups)
+          for (final set in group.sets.where((item) => item.done))
+            DebriefSetSnapshot(
+              exerciseName: group.name,
+              weightKg: _units.toKg(double.tryParse(set.weight) ?? 0),
+              reps: int.tryParse(set.reps) ?? 0,
+              setType: set.type,
+              previousWeightKg: set.previousWeightKg,
+              previousReps: set.previousReps,
+              previousBestWeightKg: _prKg[group.exerciseId],
+              countsWeight: _countsVolume(group.exerciseType),
+              passportBenchmark: passportExerciseIdForName(group.name) != null,
+            ),
+      ],
+    );
+  }
+
   /// Fully clears the session (after the summary is dismissed, or on quit).
   Future<void> discard() async {
     await WorkoutLiveActivity.end();
@@ -819,6 +846,7 @@ class WorkoutSessionController extends ChangeNotifier {
     _minimized = false;
     _finished = false;
     _routineChanged = false;
+    _debrief = null;
     _workout = null;
     _sessionId = null;
     _groups.clear();

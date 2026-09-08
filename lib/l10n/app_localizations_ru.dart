@@ -406,6 +406,22 @@ class AppLocalizationsRu extends AppLocalizations {
   String get passportGuideTitle => 'КАК РАБОТАЕТ ПАСПОРТ';
 
   @override
+  String get strengthConstellation => 'Созвездие силы';
+
+  @override
+  String constellationSignals(int active, int total) {
+    return '$active/$total СИГНАЛОВ';
+  }
+
+  @override
+  String get constellationBody =>
+      'Каждое упражнение формирует личную сигнатуру силы. Яркость отражает медианный класс.';
+
+  @override
+  String get constellationEmptyBody =>
+      'Слабые координаты показывают будущую сигнатуру, которую откроют первые контрольные подходы.';
+
+  @override
   String get passportStepLiftTitle => 'Результат создаёт запись';
 
   @override
@@ -514,6 +530,150 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get done => 'ГОТОВО';
+
+  @override
+  String get missionDebrief => 'РАЗБОР МИССИИ';
+
+  @override
+  String get sealed => 'ПРИНЯТО';
+
+  @override
+  String get baselineEstablished => 'Точка отсчёта создана';
+
+  @override
+  String get baselineEstablishedBody =>
+      'Эта тренировка станет ориентиром для следующего сравнения.';
+
+  @override
+  String get outputRising => 'Сигнал усиливается';
+
+  @override
+  String outputRisingBody(int percent) {
+    return 'Рабочий объём на $percent% выше сопоставимых подходов прошлой тренировки.';
+  }
+
+  @override
+  String get outputSteady => 'Сигнал стабилен';
+
+  @override
+  String get outputSteadyBody =>
+      'Сопоставимые рабочие подходы остались в устойчивом диапазоне.';
+
+  @override
+  String get recoverySignal => 'Сигнал восстановления';
+
+  @override
+  String get recoverySignalBody =>
+      'Объём ниже прошлой тренировки. Это контекст восстановления, а не потерянная серия.';
+
+  @override
+  String get sessionDuration => 'ДЛИТЕЛЬНОСТЬ';
+
+  @override
+  String get shareRecord => 'ПОДЕЛИТЬСЯ';
+
+  @override
+  String get shareFailed => 'Не удалось подготовить карточку тренировки';
+
+  @override
+  String get trainingRecord => 'Запись тренировки';
+
+  @override
+  String get personalRecord => 'Личный рекорд';
+
+  @override
+  String get strongestSignal => 'СИЛЬНЕЙШИЙ ПОДХОД';
+
+  @override
+  String get estimatedOneRmShort => 'РАСЧ. 1ПМ';
+
+  @override
+  String get passportEntries => 'ПАСПОРТ';
+
+  @override
+  String get signalTrail => 'Траектория сигнала';
+
+  @override
+  String get signalBaseline => 'Формируем сигнал';
+
+  @override
+  String get signalRising => 'Силовой сигнал растёт';
+
+  @override
+  String get signalStable => 'Тренировочный сигнал стабилен';
+
+  @override
+  String get signalEasing => 'Сигнал нагрузки снижен';
+
+  @override
+  String signalDelta(int percent) {
+    return '$percent% от первой точки в этом периоде.';
+  }
+
+  @override
+  String get signalPlateauBody =>
+      'Последние точки образуют плато — можно изменить нагрузку, повторы или восстановление.';
+
+  @override
+  String get signalBaselineBody =>
+      'Ещё несколько тренировок покажут направление этого сигнала.';
+
+  @override
+  String get notEnoughSignalData =>
+      'Для этого периода пока недостаточно данных';
+
+  @override
+  String get recoveryOrbit => 'Орбита восстановления';
+
+  @override
+  String get recoveryOrbitBaseline => 'Ждём первую орбиту';
+
+  @override
+  String get recoveryOrbitBaselineBody =>
+      'Ритм тренировок появится здесь после первой завершённой сессии.';
+
+  @override
+  String get recoveryOrbitRecovery => 'Окно восстановления';
+
+  @override
+  String get recoveryOrbitRecoveryBody =>
+      'Недавняя нагрузка резко выросла. Спокойный день поможет её закрепить.';
+
+  @override
+  String get recoveryOrbitReady => 'Орбита активна';
+
+  @override
+  String get recoveryOrbitReadyBody =>
+      'Последняя тренировка была недавно. Следующую стоит провести осознанно.';
+
+  @override
+  String get recoveryOrbitBalanced => 'Ритм сбалансирован';
+
+  @override
+  String get recoveryOrbitBalancedBody =>
+      'Тренировки и паузы между ними складываются в размеренный ритм.';
+
+  @override
+  String get recoveryOrbitReturning => 'Вектор возвращения';
+
+  @override
+  String get recoveryOrbitReturningBody =>
+      'Орбита затихла. Вернитесь с контролируемой тренировкой, а не с проверкой сил.';
+
+  @override
+  String orbitActiveDays(int count) {
+    return '$count/14 АКТИВНО';
+  }
+
+  @override
+  String get daysSinceTraining => 'ДНЕЙ С ТРЕНИРОВКИ';
+
+  @override
+  String get recoveryOrbitDisclaimer =>
+      'Сигнал основан на ритме записанных тренировок и не является медицинской оценкой готовности.';
+
+  @override
+  String get usePreviousSet => 'Подставить значения прошлого подхода';
 
   @override
   String get difficultyNormal => 'Обычная';
