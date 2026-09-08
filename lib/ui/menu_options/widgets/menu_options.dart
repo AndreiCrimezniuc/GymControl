@@ -19,6 +19,7 @@ import 'package:gymboss/ui/menu_options_list/ranking/widgets/ranking.dart';
 import 'package:gymboss/ui/menu_options_list/settings/widgets/settings.dart';
 import 'package:gymboss/ui/menu_options_list/statistics/widgets/statistics.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/workouts.dart';
+import 'package:gymboss/l10n/app_localizations.dart';
 
 class MenuOptions extends StatefulWidget {
   const MenuOptions({super.key});
@@ -32,6 +33,7 @@ class _MenuOptionsState extends State<MenuOptions> {
   late final RankingRepository _ranking;
   late final WorkoutsRepository _workoutsRepo;
   StreakData _streak = StreakData.empty;
+  UserRanks? _passport;
   int _workouts = 0;
 
   @override
@@ -42,6 +44,7 @@ class _MenuOptionsState extends State<MenuOptions> {
     _ranking = RankingRepository(client: client);
     _workoutsRepo = WorkoutsRepository(client: client);
     _loadStreak();
+    _loadPassport();
     _loadWorkouts();
   }
 
@@ -52,33 +55,22 @@ class _MenuOptionsState extends State<MenuOptions> {
     } catch (_) {}
   }
 
-  Future<void> _loadStreak() async {
+  Future<void> _loadPassport() async {
     try {
-      await _sessions.recordSession();
+      final passport = await _ranking.getUserRanks();
+      if (mounted) setState(() => _passport = passport);
     } catch (_) {}
+  }
+
+  Future<void> _loadStreak() async {
     try {
       final data = await _sessions.getStreakData();
       if (mounted) {
-        setState(
-          () =>
-              _streak =
-                  data.currentStreakWeeks > 0
-                      ? data
-                      : StreakData(
-                        currentStreakWeeks: 1,
-                        activeWeeks: data.activeWeeks,
-                      ),
-        );
+        setState(() => _streak = data);
       }
     } catch (_) {
       if (mounted) {
-        setState(
-          () =>
-              _streak = const StreakData(
-                currentStreakWeeks: 1,
-                activeWeeks: [],
-              ),
-        );
+        setState(() => _streak = StreakData.empty);
       }
     }
     _checkWeightPrompt();
@@ -116,18 +108,17 @@ class _MenuOptionsState extends State<MenuOptions> {
   void _showMonthlyWeightPopup(RankProfile profile) {
     showCupertinoDialog<void>(
       context: context,
-      builder:
-          (_) => _MonthlyWeightDialog(
-            ranking: _ranking,
-            profile: profile,
-            onDismiss: () async {
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.setInt(
-                'weight_last_asked',
-                DateTime.now().millisecondsSinceEpoch,
-              );
-            },
-          ),
+      builder: (_) => _MonthlyWeightDialog(
+        ranking: _ranking,
+        profile: profile,
+        onDismiss: () async {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setInt(
+            'weight_last_asked',
+            DateTime.now().millisecondsSinceEpoch,
+          );
+        },
+      ),
     );
   }
 
@@ -145,8 +136,11 @@ class _MenuOptionsState extends State<MenuOptions> {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final l10n = AppLocalizations.of(context);
     final weeks = _streak.currentStreakWeeks;
-    final weeksToGoal = 4 - (weeks % 4);
+    final nextMilestone = _streak.nextMilestoneWeeks;
+    final nextMilestoneLabel =
+        '$nextMilestone ${_weekWord(context, nextMilestone)}';
 
     return AppScaffold(
       child: MediaQuery.withClampedTextScaling(
@@ -181,15 +175,15 @@ class _MenuOptionsState extends State<MenuOptions> {
               onTap: () => _showYearCalendar(context),
               child: _StatStrip(
                 segments: [
-                  ('$weeks', 'WEEK STREAK'),
-                  ('$weeksToGoal wk', 'NEXT GOAL'),
-                  ('$_workouts', 'ROUTINES'),
+                  ('$weeks', l10n.weekStreak),
+                  (nextMilestoneLabel, l10n.nextGoal),
+                  ('$_workouts', l10n.routines),
                 ],
               ),
             ),
             const SizedBox(height: 26),
             Text(
-              'Explore',
+              l10n.explore,
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -205,32 +199,32 @@ class _MenuOptionsState extends State<MenuOptions> {
                 children: [
                   _MenuRow(
                     icon: Icons.view_list_rounded,
-                    title: 'Workouts',
-                    subtitle: 'Programs and routines',
+                    title: l10n.workouts,
+                    subtitle: l10n.workoutsSubtitle,
                     onTap: () => _pushAndReload(const Workouts()),
                   ),
                   _MenuRow(
                     icon: Icons.insights_rounded,
-                    title: 'Progress',
-                    subtitle: 'History and personal records',
+                    title: l10n.progress,
+                    subtitle: l10n.progressSubtitle,
                     onTap: () => _push(const Statistics()),
                   ),
                   _MenuRow(
                     icon: Icons.military_tech_rounded,
-                    title: 'Achievements',
-                    subtitle: 'Ranks and milestones',
+                    title: l10n.strengthPassport,
+                    subtitle: l10n.strengthPassportSubtitle,
                     onTap: () => _push(const Ranking()),
                   ),
                   _MenuRow(
                     icon: Icons.fitness_center_rounded,
-                    title: 'Exercises',
-                    subtitle: 'Movement library',
+                    title: l10n.exercises,
+                    subtitle: l10n.exercisesSubtitle,
                     onTap: () => _push(const Exercises()),
                   ),
                   _MenuRow(
                     icon: Icons.settings_rounded,
-                    title: 'Settings',
-                    subtitle: 'Preferences and account',
+                    title: l10n.settingsTitle,
+                    subtitle: l10n.settingsSubtitle,
                     onTap: () => _push(const Settings()),
                     last: true,
                   ),
@@ -239,6 +233,13 @@ class _MenuOptionsState extends State<MenuOptions> {
             ),
             const SizedBox(height: 20),
             _StartButton(onTap: () => _pushAndReload(const Workouts())),
+            if (_passport != null) ...[
+              const SizedBox(height: 20),
+              _TrainingBriefCard(
+                ranks: _passport!,
+                onTap: () => _push(const Ranking()),
+              ),
+            ],
           ],
         ),
       ),
@@ -249,6 +250,136 @@ class _MenuOptionsState extends State<MenuOptions> {
     showCupertinoModalPopup<void>(
       context: context,
       builder: (_) => _YearCalendarSheet(streak: _streak),
+    );
+  }
+}
+
+class _TrainingBriefCard extends StatelessWidget {
+  final UserRanks ranks;
+  final VoidCallback onTap;
+
+  const _TrainingBriefCard({required this.ranks, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final l10n = AppLocalizations.of(context);
+    final count = ranks.exerciseRanks.length;
+    final promotable =
+        ranks.exerciseRanks.where((rank) => rank.nextRank != null).toList()
+          ..sort((a, b) => a.ratioToNext.compareTo(b.ratioToNext));
+
+    late final String title;
+    late final String body;
+    late final String badge;
+    if (count == 0) {
+      title = l10n.passportSignal;
+      body = l10n.passportFirstBenchmark;
+      badge = '0/3';
+    } else if (count < 3) {
+      title = l10n.passportCalibration(count);
+      body = l10n.passportCalibrationBody(3 - count);
+      badge = '$count/3';
+    } else if (promotable.isNotEmpty) {
+      final next = promotable.first;
+      title = l10n.passportClosestPromotion;
+      body = l10n.passportPromotionBody(
+        next.exerciseName,
+        next.rank,
+        next.nextRank!,
+      );
+      badge = '${next.rank}→${next.nextRank}';
+    } else {
+      title = l10n.passportHighestClass;
+      body = l10n.passportHighestClassBody;
+      badge = 'SS';
+    }
+
+    final foreground = c.isDark ? c.textPrimary : c.invText;
+    final secondary = foreground.withValues(alpha: .66);
+    return Pressable(
+      semanticLabel: '${l10n.trainingBrief}. $title. $body',
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 14, 14, 15),
+        decoration: BoxDecoration(
+          color: c.isDark ? c.card : c.invBg,
+          borderRadius: BorderRadius.circular(AppDesign.radiusControl),
+          border: Border.all(
+            color: c.isDark ? c.border : c.accent.withValues(alpha: .42),
+          ),
+          boxShadow: c.cardShadow,
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 3,
+              height: 66,
+              decoration: BoxDecoration(
+                color: c.accent,
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+            const SizedBox(width: 13),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.trainingBrief,
+                    style: TextStyle(
+                      color: c.accent,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.35,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: foreground,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -.2,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    body,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: secondary,
+                      fontSize: 11,
+                      height: 1.35,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+              decoration: BoxDecoration(
+                color: c.accent.withValues(alpha: .16),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: c.accent.withValues(alpha: .38)),
+              ),
+              child: Text(
+                badge,
+                style: TextStyle(
+                  color: c.accent,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: .4,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -272,14 +403,23 @@ class _StatStrip extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  segments[i].$1,
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w600,
-                    height: 1,
-                    letterSpacing: -0.8,
-                    color: c.textPrimary,
+                SizedBox(
+                  width: double.infinity,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      segments[i].$1,
+                      maxLines: 1,
+                      softWrap: false,
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w600,
+                        height: 1,
+                        letterSpacing: -0.8,
+                        color: c.textPrimary,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -300,25 +440,25 @@ class _StatStrip extends StatelessWidget {
     ];
     return largeText
         ? Column(
-          children: [
-            for (var i = 0; i < segments.length; i++) ...[
-              if (i > 0) Container(height: 1, color: c.border),
-              Row(children: [items[i]]),
+            children: [
+              for (var i = 0; i < segments.length; i++) ...[
+                if (i > 0) Container(height: 1, color: c.border),
+                Row(children: [items[i]]),
+              ],
             ],
-          ],
-        )
+          )
         : Row(
-          children: [
-            for (var i = 0; i < segments.length; i++) ...[
-              if (i > 0) Container(width: 1, height: 54, color: c.border),
-              items[i],
+            children: [
+              for (var i = 0; i < segments.length; i++) ...[
+                if (i > 0) Container(width: 1, height: 54, color: c.border),
+                items[i],
+              ],
             ],
-          ],
-        );
+          );
   }
 }
 
-// ── Flat menu row ─────────────────────────────────────────────────────────────
+// ── Navigation row ────────────────────────────────────────────────────────────
 
 class _MenuRow extends StatelessWidget {
   final IconData icon;
@@ -347,15 +487,7 @@ class _MenuRow extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
             child: Row(
               children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: c.accent.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Icon(icon, size: 22, color: c.accent),
-                ),
+                _LogoIconTile(icon: icon),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
@@ -378,15 +510,70 @@ class _MenuRow extends StatelessWidget {
                     ],
                   ),
                 ),
+                const SizedBox(width: 10),
                 Icon(
-                  CupertinoIcons.arrow_right,
-                  size: 18,
-                  color: c.textSecondary,
+                  CupertinoIcons.chevron_right,
+                  size: 15,
+                  color: c.textSecondary.withValues(alpha: 0.76),
                 ),
               ],
             ),
           ),
-          if (!last) Container(height: 1, color: c.border),
+          if (!last)
+            Padding(
+              padding: const EdgeInsets.only(left: 68, right: 14),
+              child: Container(height: AppDesign.hairline, color: c.border),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LogoIconTile extends StatelessWidget {
+  final IconData icon;
+  const _LogoIconTile({required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return SizedBox(
+      width: 40,
+      height: 40,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                color: c.isDark ? c.iconBg : c.invBg,
+                borderRadius: BorderRadius.circular(13),
+                border: Border.all(
+                  color: c.isDark ? c.border : c.invBg,
+                  width: AppDesign.hairline,
+                ),
+              ),
+              child: Icon(
+                icon,
+                size: 17,
+                color: c.isDark ? c.textPrimary : c.invText,
+              ),
+            ),
+          ),
+          Positioned(
+            top: 6,
+            left: 5,
+            child: Transform.rotate(
+              angle: 0.72,
+              child: Container(
+                width: 7,
+                height: 2,
+                decoration: BoxDecoration(
+                  color: c.accent,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -402,8 +589,9 @@ class _StartButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final label = AppLocalizations.of(context).chooseWorkout;
     return Pressable(
-      semanticLabel: 'Choose a workout',
+      semanticLabel: label,
       haptic: true,
       onTap: onTap,
       child: Container(
@@ -417,7 +605,7 @@ class _StartButton extends StatelessWidget {
           shadows: c.cardShadow,
         ),
         child: Text(
-          'Choose a workout',
+          label,
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -507,7 +695,7 @@ class _FirstTimeWeightSheetState extends State<_FirstTimeWeightSheet> {
               Expanded(
                 child: _MetricField(
                   controller: _weightCtrl,
-                  label: 'Weight (kg)',
+                  label: AppLocalizations.of(context).weightKgLabel,
                   placeholder: '80',
                 ),
               ),
@@ -515,7 +703,7 @@ class _FirstTimeWeightSheetState extends State<_FirstTimeWeightSheet> {
               Expanded(
                 child: _MetricField(
                   controller: _heightCtrl,
-                  label: 'Height (cm)',
+                  label: AppLocalizations.of(context).heightCmLabel,
                   placeholder: '175',
                 ),
               ),
@@ -555,16 +743,15 @@ class _FirstTimeWeightSheetState extends State<_FirstTimeWeightSheet> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Center(
-                      child:
-                          _saving
-                              ? const CupertinoActivityIndicator()
-                              : Text(
-                                'Save',
-                                style: TextStyle(
-                                  color: c.textOnAccent,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                      child: _saving
+                          ? const CupertinoActivityIndicator()
+                          : Text(
+                              'Save',
+                              style: TextStyle(
+                                color: c.textOnAccent,
+                                fontWeight: FontWeight.w600,
                               ),
+                            ),
                     ),
                   ),
                 ),
@@ -752,17 +939,16 @@ class _MonthlyWeightDialogState extends State<_MonthlyWeightDialog> {
                       color: c.accent,
                       borderRadius: BorderRadius.circular(13),
                     ),
-                    child:
-                        _saving
-                            ? const CupertinoActivityIndicator()
-                            : Text(
-                              'Update',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                color: c.textOnAccent,
-                              ),
+                    child: _saving
+                        ? const CupertinoActivityIndicator()
+                        : Text(
+                            'Update',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: c.textOnAccent,
                             ),
+                          ),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -813,6 +999,7 @@ class _YearCalendarSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final russian = Localizations.localeOf(context).languageCode == 'ru';
     final year = DateTime.now().year;
     final activeSet = streak.activeWeeks.toSet();
     final currentWeek = _isoWeekNumber(DateTime.now());
@@ -836,7 +1023,7 @@ class _YearCalendarSheet extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            '$year  •  ${streak.currentStreakWeeks} week${streak.currentStreakWeeks == 1 ? '' : 's'} streak',
+            '$year  •  ${streak.currentStreakWeeks} ${_weekWord(context, streak.currentStreakWeeks)} ${russian ? 'подряд' : 'streak'}',
             style: TextStyle(
               color: c.textPrimary,
               fontSize: 16,
@@ -845,7 +1032,9 @@ class _YearCalendarSheet extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            '${streak.activeWeeks.length} week${streak.activeWeeks.length == 1 ? '' : 's'} active this year',
+            russian
+                ? '${streak.activeWeeks.length} ${_weekWord(context, streak.activeWeeks.length)} активности в этом году'
+                : '${streak.activeWeeks.length} ${_weekWord(context, streak.activeWeeks.length)} active this year',
             style: TextStyle(color: c.textSecondary, fontSize: 12),
           ),
           const SizedBox(height: 20),
@@ -873,6 +1062,19 @@ class _YearCalendarSheet extends StatelessWidget {
   }
 
   static int _weeksInYear(int year) => _isoWeekNumber(DateTime(year, 12, 28));
+}
+
+String _weekWord(BuildContext context, int value) {
+  if (Localizations.localeOf(context).languageCode != 'ru') {
+    return value == 1 ? 'week' : 'weeks';
+  }
+  final mod10 = value % 10;
+  final mod100 = value % 100;
+  if (mod10 == 1 && mod100 != 11) return 'неделя';
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
+    return 'недели';
+  }
+  return 'недель';
 }
 
 class _WeekGrid extends StatelessWidget {

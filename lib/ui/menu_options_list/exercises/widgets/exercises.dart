@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:gymboss/data/repositories/exercises_repository.dart';
@@ -11,6 +12,7 @@ import 'package:gymboss/ui/core/ui/widgets/net_image.dart';
 import 'package:gymboss/ui/core/ui/widgets/skeleton.dart';
 import 'package:gymboss/ui/core/units/units_controller.dart';
 import 'package:gymboss/ui/menu_options_list/exercises/widgets/muscle_illustration.dart';
+import 'package:gymboss/l10n/app_localizations.dart';
 
 class Exercises extends StatefulWidget {
   const Exercises({super.key});
@@ -94,16 +96,15 @@ class _ExercisesState extends State<Exercises> {
   }
 
   List<ExerciseCatalogItem> get _filtered {
-    final items =
-        _all.where((e) {
-          final mg = _group == 'All' || e.muscleGroup == _group;
-          final equipment = _equipment == 'All' || e.equipment == _equipment;
-          final custom = e.category.toLowerCase() == 'custom';
-          final source =
-              _source == 'all' || (_source == 'custom' ? custom : !custom);
-          final q = _query.isEmpty || e.matchesSearch(_query);
-          return mg && equipment && source && q;
-        }).toList();
+    final items = _all.where((e) {
+      final mg = _group == 'All' || e.muscleGroup == _group;
+      final equipment = _equipment == 'All' || e.equipment == _equipment;
+      final custom = e.category.toLowerCase() == 'custom';
+      final source =
+          _source == 'all' || (_source == 'custom' ? custom : !custom);
+      final q = _query.isEmpty || e.matchesSearch(_query);
+      return mg && equipment && source && q;
+    }).toList();
     switch (_sort) {
       case 'muscle':
         items.sort(
@@ -126,37 +127,35 @@ class _ExercisesState extends State<Exercises> {
   void _openCreate() {
     showCupertinoModalPopup<void>(
       context: context,
-      builder:
-          (_) => _CreateExerciseSheet(
-            repo: _repo,
-            onCreated: (_) => _load(forceRefresh: true),
-          ),
+      builder: (_) => _CreateExerciseSheet(
+        repo: _repo,
+        onCreated: (_) => _load(forceRefresh: true),
+      ),
     );
   }
 
   Future<void> _pickSort() async {
     final selected = await showCupertinoModalPopup<String>(
       context: context,
-      builder:
-          (sheetContext) => CupertinoActionSheet(
-            title: const Text('Sort exercises'),
-            actions: [
-              for (final option in const [
-                ('name', 'Name'),
-                ('muscle', 'Muscle group'),
-                ('equipment', 'Equipment'),
-              ])
-                CupertinoActionSheetAction(
-                  isDefaultAction: _sort == option.$1,
-                  onPressed: () => Navigator.pop(sheetContext, option.$1),
-                  child: Text(option.$2),
-                ),
-            ],
-            cancelButton: CupertinoActionSheetAction(
-              onPressed: () => Navigator.pop(sheetContext),
-              child: const Text('Cancel'),
+      builder: (sheetContext) => CupertinoActionSheet(
+        title: Text(AppLocalizations.of(context).sortExercises),
+        actions: [
+          for (final option in const [
+            ('name', 'Name'),
+            ('muscle', 'Muscle group'),
+            ('equipment', 'Equipment'),
+          ])
+            CupertinoActionSheetAction(
+              isDefaultAction: _sort == option.$1,
+              onPressed: () => Navigator.pop(sheetContext, option.$1),
+              child: Text(option.$2),
             ),
-          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.pop(sheetContext),
+          child: Text(AppLocalizations.of(context).cancel),
+        ),
+      ),
     );
     if (selected != null && mounted) setState(() => _sort = selected);
   }
@@ -165,7 +164,7 @@ class _ExercisesState extends State<Exercises> {
   Widget build(BuildContext context) {
     final c = context.colors;
     return AppPage(
-      title: 'Exercises',
+      title: AppLocalizations.of(context).exercises,
       actions: [
         CupertinoButton(
           padding: EdgeInsets.zero,
@@ -174,10 +173,9 @@ class _ExercisesState extends State<Exercises> {
           child: Icon(
             CupertinoIcons.slider_horizontal_3,
             size: 22,
-            color:
-                _filtersOpen || _equipment != 'All' || _source != 'all'
-                    ? c.accent
-                    : c.textSecondary,
+            color: _filtersOpen || _equipment != 'All' || _source != 'all'
+                ? c.accent
+                : c.textSecondary,
           ),
         ),
         GestureDetector(
@@ -186,12 +184,11 @@ class _ExercisesState extends State<Exercises> {
           child: Icon(CupertinoIcons.add_circled, size: 24, color: c.accent),
         ),
       ],
-      body:
-          _loading
-              ? const SkeletonList()
-              : _error != null
-              ? _ErrorView(error: _error!, onRetry: _load)
-              : _buildList(c),
+      body: _loading
+          ? const SkeletonList()
+          : _error != null
+          ? _ErrorView(error: _error!, onRetry: _load)
+          : _buildList(c),
     );
   }
 
@@ -203,7 +200,9 @@ class _ExercisesState extends State<Exercises> {
           padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
           child: CupertinoSearchTextField(
             controller: _searchCtrl,
-            placeholder: 'Search ${_all.length} exercises',
+            placeholder: AppLocalizations.of(
+              context,
+            ).searchExercises(_all.length),
             backgroundColor: c.card,
             style: TextStyle(color: c.textPrimary),
             placeholderStyle: TextStyle(color: c.textSecondary),
@@ -274,22 +273,22 @@ class _ExercisesState extends State<Exercises> {
                     groupValue: _source,
                     backgroundColor: c.iconBg,
                     thumbColor: c.card,
-                    children: const {
+                    children: {
                       'all': Padding(
-                        padding: EdgeInsets.symmetric(vertical: 6),
-                        child: Text('All'),
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: Text(AppLocalizations.of(context).all),
                       ),
                       'catalog': Padding(
-                        padding: EdgeInsets.symmetric(vertical: 6),
-                        child: Text('Catalog'),
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: Text(AppLocalizations.of(context).catalog),
                       ),
                       'custom': Padding(
-                        padding: EdgeInsets.symmetric(vertical: 6),
-                        child: Text('My exercises'),
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: Text(AppLocalizations.of(context).myExercises),
                       ),
                     },
-                    onValueChanged:
-                        (value) => setState(() => _source = value ?? 'all'),
+                    onValueChanged: (value) =>
+                        setState(() => _source = value ?? 'all'),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -340,7 +339,7 @@ class _ExercisesState extends State<Exercises> {
                   hasScrollBody: false,
                   child: Center(
                     child: Text(
-                      'No exercises found',
+                      AppLocalizations.of(context).noExercisesFound,
                       style: TextStyle(color: c.textSecondary),
                     ),
                   ),
@@ -351,9 +350,8 @@ class _ExercisesState extends State<Exercises> {
                   sliver: SliverList.separated(
                     itemCount: filtered.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder:
-                        (_, i) =>
-                            _ExerciseTile(entry: filtered[i], repo: _repo),
+                    itemBuilder: (_, i) =>
+                        _ExerciseTile(entry: filtered[i], repo: _repo),
                   ),
                 ),
             ],
@@ -410,12 +408,11 @@ class _ExerciseTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     return GestureDetector(
-      onTap:
-          () => Navigator.of(context, rootNavigator: true).push(
-            CupertinoPageRoute(
-              builder: (_) => ExerciseDetailScreen(entry: entry, repo: repo),
-            ),
-          ),
+      onTap: () => Navigator.of(context, rootNavigator: true).push(
+        CupertinoPageRoute(
+          builder: (_) => ExerciseDetailScreen(entry: entry, repo: repo),
+        ),
+      ),
       child: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
@@ -490,21 +487,19 @@ class _Thumb extends StatelessWidget {
         width: size,
         height: size,
         color: c.iconBg,
-        child:
-            url.isEmpty
-                ? Icon(CupertinoIcons.photo, color: c.textSecondary, size: 20)
-                : NetImage(
-                  url: url,
-                  fit: BoxFit.cover,
-                  width: size,
-                  height: size,
-                  fallback:
-                      (_) => Icon(
-                        CupertinoIcons.photo,
-                        color: c.textSecondary,
-                        size: 20,
-                      ),
+        child: url.isEmpty
+            ? Icon(CupertinoIcons.photo, color: c.textSecondary, size: 20)
+            : NetImage(
+                url: url,
+                fit: BoxFit.cover,
+                width: size,
+                height: size,
+                fallback: (_) => Icon(
+                  CupertinoIcons.photo,
+                  color: c.textSecondary,
+                  size: 20,
                 ),
+              ),
       ),
     );
   }
@@ -614,7 +609,7 @@ class ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
             ),
           ],
           const SizedBox(height: 20),
-          _SectionLabel('Your Stats'),
+          _SectionLabel(AppLocalizations.of(context).yourStats),
           const SizedBox(height: 12),
           if (_loadingStats)
             const Center(
@@ -654,6 +649,7 @@ class _StatsBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     final units = context.units;
+    final l10n = AppLocalizations.of(context);
     final s = stats;
     if (s == null || !s.hasData) {
       return Container(
@@ -666,10 +662,23 @@ class _StatsBlock extends StatelessWidget {
         ),
         child: Column(
           children: [
-            Icon(CupertinoIcons.chart_bar, size: 28, color: c.textSecondary),
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: c.accent.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(color: c.accent.withValues(alpha: 0.25)),
+              ),
+              child: Icon(
+                CupertinoIcons.shield_lefthalf_fill,
+                size: 24,
+                color: c.accent,
+              ),
+            ),
             const SizedBox(height: 10),
             Text(
-              'No data yet',
+              l10n.recordStartsHere,
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
@@ -678,7 +687,7 @@ class _StatsBlock extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'Log a set below to start tracking\ntimes done, volume and progression.',
+              l10n.recordStartsBody,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 12,
@@ -686,6 +695,8 @@ class _StatsBlock extends StatelessWidget {
                 height: 1.5,
               ),
             ),
+            const SizedBox(height: 16),
+            const _LockedStatsPreview(),
           ],
         ),
       );
@@ -693,48 +704,50 @@ class _StatsBlock extends StatelessWidget {
 
     return Column(
       children: [
-        Row(
-          children: [
-            _StatCard(value: '${s.timesPerformed}', label: 'TIMES DONE'),
-            const SizedBox(width: 10),
-            _StatCard(value: '${s.totalSets}', label: 'TOTAL SETS'),
-            const SizedBox(width: 10),
-            _StatCard(value: '${s.totalReps}', label: 'TOTAL REPS'),
-          ],
-        ),
+        _MasteryPanel(stats: s),
         const SizedBox(height: 10),
-        Row(
-          children: [
-            _StatCard(
-              value: '${units.format(s.maxWeightKg)} ${units.label}',
-              label: 'MAX WEIGHT',
-            ),
-            const SizedBox(width: 10),
-            _StatCard(
-              value: units.formatVolume(s.maxVolumeKg),
-              label: 'MAX VOLUME',
-            ),
-            const SizedBox(width: 10),
-            _StatCard(value: s.rank ?? '—', label: 'RANK'),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            _StatCard(
-              value: '${units.format(s.estimatedOneRmKg)} ${units.label}',
-              label: 'EST. 1RM',
-            ),
-            const SizedBox(width: 10),
-            _StatCard(
-              value: units.formatVolume(s.maxSetVolumeKg),
-              label: 'BEST SET VOLUME',
-            ),
-          ],
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final width = (constraints.maxWidth - 10) / 2;
+            return Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                _MetricCard(
+                  width: width,
+                  icon: CupertinoIcons.bolt_fill,
+                  value: '${units.format(s.estimatedOneRmKg)} ${units.label}',
+                  label: l10n.estimatedOneRm,
+                  detail: l10n.currentPowerMark,
+                ),
+                _MetricCard(
+                  width: width,
+                  icon: CupertinoIcons.arrow_up_right,
+                  value: '${units.format(s.maxWeightKg)} ${units.label}',
+                  label: l10n.heaviestSet,
+                  detail: l10n.sessionsLogged(s.timesPerformed),
+                ),
+                _MetricCard(
+                  width: width,
+                  icon: CupertinoIcons.layers_alt_fill,
+                  value: '${s.totalSets}',
+                  label: l10n.workingSets,
+                  detail: l10n.totalReps(s.totalReps),
+                ),
+                _MetricCard(
+                  width: width,
+                  icon: CupertinoIcons.chart_bar_alt_fill,
+                  value: units.formatVolume(s.maxSetVolumeKg),
+                  label: l10n.bestSetVolume,
+                  detail: l10n.peakSingleSetWork,
+                ),
+              ],
+            );
+          },
         ),
         if (s.records.isNotEmpty) ...[
           const SizedBox(height: 16),
-          _SectionLabel('Personal Records'),
+          _SectionLabel(AppLocalizations.of(context).personalRecords),
           const SizedBox(height: 10),
           _RecordsGrid(records: s.records),
         ],
@@ -745,6 +758,230 @@ class _StatsBlock extends StatelessWidget {
           _ProgressionChart(points: s.progression),
         ],
       ],
+    );
+  }
+}
+
+int exerciseMasteryLevel(int totalSets) =>
+    1 + math.sqrt(math.max(0, totalSets)).floor();
+
+double exerciseMasteryProgress(int totalSets) {
+  final level = exerciseMasteryLevel(totalSets);
+  final floor = (level - 1) * (level - 1);
+  final ceiling = level * level;
+  return ((totalSets - floor) / math.max(1, ceiling - floor)).clamp(0, 1);
+}
+
+String _masteryTitle(AppLocalizations l10n, int level) => switch (level) {
+  <= 2 => l10n.masteryInitiate,
+  <= 5 => l10n.masteryTrained,
+  <= 9 => l10n.masteryProven,
+  <= 14 => l10n.masteryVeteran,
+  _ => l10n.masteryMaster,
+};
+
+class _MasteryPanel extends StatelessWidget {
+  final ExerciseStats stats;
+  const _MasteryPanel({required this.stats});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final l10n = AppLocalizations.of(context);
+    final level = exerciseMasteryLevel(stats.totalSets);
+    final progress = exerciseMasteryProgress(stats.totalSets);
+    final rank = stats.rank;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: c.invBg,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: c.accent.withValues(alpha: 0.35)),
+        boxShadow: [
+          BoxShadow(
+            color: c.accent.withValues(alpha: 0.12),
+            blurRadius: 22,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 58,
+            height: 58,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: c.accent.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(17),
+              border: Border.all(color: c.accent.withValues(alpha: 0.65)),
+            ),
+            child: Text(
+              rank ?? '$level',
+              style: TextStyle(
+                fontSize: 23,
+                fontWeight: FontWeight.w900,
+                color: c.isDark ? c.textPrimary : c.invText,
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  rank == null
+                      ? l10n.masteryLevel(level)
+                      : l10n.rankAndLevel(rank, level),
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.1,
+                    color: c.accentSecondary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _masteryTitle(l10n, level),
+                  style: TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w800,
+                    color: c.invText,
+                  ),
+                ),
+                const SizedBox(height: 9),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: Stack(
+                    children: [
+                      Container(
+                        height: 5,
+                        color: c.invText.withValues(alpha: 0.12),
+                      ),
+                      FractionallySizedBox(
+                        widthFactor: progress,
+                        child: Container(height: 5, color: c.accent),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  l10n.setsToNextLevel(
+                    level * level - stats.totalSets,
+                    level + 1,
+                  ),
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: c.invText.withValues(alpha: 0.62),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MetricCard extends StatelessWidget {
+  final double width;
+  final IconData icon;
+  final String value;
+  final String label;
+  final String detail;
+
+  const _MetricCard({
+    required this.width,
+    required this.icon,
+    required this.value,
+    required this.label,
+    required this.detail,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Container(
+      width: width,
+      padding: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        color: c.card,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: c.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: c.accent),
+          const SizedBox(height: 9),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: c.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 8,
+              fontWeight: FontWeight.w800,
+              letterSpacing: .7,
+              color: c.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            detail,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 10, color: c.textSecondary),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LockedStatsPreview extends StatelessWidget {
+  const _LockedStatsPreview();
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final l10n = AppLocalizations.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: c.iconBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: c.border),
+      ),
+      child: Row(
+        children: [
+          Icon(CupertinoIcons.lock_fill, size: 14, color: c.textSecondary),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Text(
+              l10n.lockedStatsPreview,
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.w800,
+                letterSpacing: .6,
+                color: c.textSecondary,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -772,39 +1009,38 @@ class _RecordsGrid extends StatelessWidget {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
-      children:
-          records
-              .map(
-                (record) => Container(
-                  width: (MediaQuery.sizeOf(context).width - 48) / 2,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: c.card,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: c.border),
+      children: records
+          .map(
+            (record) => Container(
+              width: (MediaQuery.sizeOf(context).width - 48) / 2,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: c.card,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: c.border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(CupertinoIcons.rosette, size: 18, color: c.accent),
+                  const SizedBox(height: 7),
+                  Text(
+                    value(record),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: c.textPrimary,
+                    ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(CupertinoIcons.rosette, size: 18, color: c.accent),
-                      const SizedBox(height: 7),
-                      Text(
-                        value(record),
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: c.textPrimary,
-                        ),
-                      ),
-                      Text(
-                        '${label(record)} · ${record.date}',
-                        style: TextStyle(fontSize: 10, color: c.textSecondary),
-                      ),
-                    ],
+                  Text(
+                    '${label(record)} · ${record.date}',
+                    style: TextStyle(fontSize: 10, color: c.textSecondary),
                   ),
-                ),
-              )
-              .toList(),
+                ],
+              ),
+            ),
+          )
+          .toList(),
     );
   }
 }
@@ -818,108 +1054,61 @@ class _ExerciseHistory extends StatelessWidget {
     final c = context.colors;
     final units = context.units;
     return Column(
-      children:
-          items
-              .map(
-                (session) => Container(
-                  width: double.infinity,
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.all(13),
-                  decoration: BoxDecoration(
-                    color: c.card,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: c.border),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+      children: items
+          .map(
+            (session) => Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(13),
+              decoration: BoxDecoration(
+                color: c.card,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: c.border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      Row(
-                        children: [
-                          Text(
-                            session.date,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                              color: c.textPrimary,
-                            ),
-                          ),
-                          const Spacer(),
-                          if (session.workoutName.isNotEmpty)
-                            Flexible(
-                              child: Text(
-                                session.workoutName,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: c.textSecondary,
-                                ),
-                              ),
-                            ),
-                        ],
+                      Text(
+                        session.date,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: c.textPrimary,
+                        ),
                       ),
-                      const SizedBox(height: 8),
-                      ...session.sets.asMap().entries.map(
-                        (entry) => Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
+                      const Spacer(),
+                      if (session.workoutName.isNotEmpty)
+                        Flexible(
                           child: Text(
-                            '${entry.key + 1}. '
-                            '${units.format(entry.value.weightKg)} ${units.label} × '
-                            '${entry.value.reps} · ${entry.value.setType}',
+                            session.workoutName,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: 11,
                               color: c.textSecondary,
                             ),
                           ),
                         ),
-                      ),
                     ],
                   ),
-                ),
-              )
-              .toList(),
-    );
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  final String value;
-  final String label;
-  const _StatCard({required this.value, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.colors;
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
-        decoration: BoxDecoration(
-          color: c.card,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: c.border),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                color: c.textPrimary,
+                  const SizedBox(height: 8),
+                  ...session.sets.asMap().entries.map(
+                    (entry) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Text(
+                        '${entry.key + 1}. '
+                        '${units.format(entry.value.weightKg)} ${units.label} × '
+                        '${entry.value.reps} · ${entry.value.setType}',
+                        style: TextStyle(fontSize: 12, color: c.textSecondary),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 9,
-                letterSpacing: 0.5,
-                color: c.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      ),
+          )
+          .toList(),
     );
   }
 }
@@ -946,22 +1135,20 @@ class _ProgressionChartState extends State<_ProgressionChart> {
       '1y' => 366,
       _ => null,
     };
-    final data =
-        widget.points.where((point) {
-          if (days == null) return true;
-          final date = DateTime.tryParse(point.date);
-          return date != null && now.difference(date).inDays <= days;
-        }).toList();
-    final values =
-        data
-            .map(
-              (point) => switch (_metric) {
-                'volume' => point.volumeKg,
-                'reps' => point.topReps.toDouble(),
-                _ => point.topWeightKg,
-              },
-            )
-            .toList();
+    final data = widget.points.where((point) {
+      if (days == null) return true;
+      final date = DateTime.tryParse(point.date);
+      return date != null && now.difference(date).inDays <= days;
+    }).toList();
+    final values = data
+        .map(
+          (point) => switch (_metric) {
+            'volume' => point.volumeKg,
+            'reps' => point.topReps.toDouble(),
+            _ => point.topWeightKg,
+          },
+        )
+        .toList();
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
       decoration: BoxDecoration(
@@ -973,45 +1160,44 @@ class _ProgressionChartState extends State<_ProgressionChart> {
         children: [
           CupertinoSlidingSegmentedControl<String>(
             groupValue: _metric,
-            children: const {
+            children: {
               'weight': Padding(
-                padding: EdgeInsets.symmetric(horizontal: 5),
-                child: Text('Weight'),
+                padding: const EdgeInsets.symmetric(horizontal: 5),
+                child: Text(AppLocalizations.of(context).labelWeight),
               ),
-              'volume': Text('Volume'),
-              'reps': Text('Reps'),
+              'volume': Text(AppLocalizations.of(context).volume),
+              'reps': Text(AppLocalizations.of(context).repetitions),
             },
-            onValueChanged:
-                (value) => setState(() => _metric = value ?? 'weight'),
+            onValueChanged: (value) =>
+                setState(() => _metric = value ?? 'weight'),
           ),
           const SizedBox(height: 16),
           SizedBox(
             height: 130,
             width: double.infinity,
-            child:
-                values.length < 2
-                    ? Center(
-                      child: Text(
-                        'Not enough data for this period',
-                        style: TextStyle(color: c.textSecondary),
-                      ),
-                    )
-                    : CustomPaint(
-                      painter: _LineChartPainter(
-                        values: values,
-                        lineColor: c.accent,
-                        gridColor: c.border,
-                      ),
+            child: values.length < 2
+                ? Center(
+                    child: Text(
+                      'Not enough data for this period',
+                      style: TextStyle(color: c.textSecondary),
                     ),
+                  )
+                : CustomPaint(
+                    painter: _LineChartPainter(
+                      values: values,
+                      lineColor: c.accent,
+                      gridColor: c.border,
+                    ),
+                  ),
           ),
           const SizedBox(height: 10),
           CupertinoSlidingSegmentedControl<String>(
             groupValue: _period,
-            children: const {
-              '1m': Text('1M'),
-              '3m': Text('3M'),
-              '1y': Text('1Y'),
-              'all': Text('All'),
+            children: {
+              '1m': const Text('1M'),
+              '3m': const Text('3M'),
+              '1y': const Text('1Y'),
+              'all': Text(AppLocalizations.of(context).all),
             },
             onValueChanged: (value) => setState(() => _period = value ?? 'all'),
           ),
@@ -1034,18 +1220,18 @@ class _LineChartPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final grid =
-        Paint()
-          ..color = gridColor
-          ..strokeWidth = 1;
+    final grid = Paint()
+      ..color = gridColor
+      ..strokeWidth = 1;
     for (var i = 0; i <= 3; i++) {
       final y = size.height * i / 3;
       canvas.drawLine(Offset(0, y), Offset(size.width, y), grid);
     }
     final minValue = values.reduce((a, b) => a < b ? a : b);
     final maxValue = values.reduce((a, b) => a > b ? a : b);
-    final range =
-        (maxValue - minValue).abs() < 0.001 ? 1.0 : maxValue - minValue;
+    final range = (maxValue - minValue).abs() < 0.001
+        ? 1.0
+        : maxValue - minValue;
     final path = Path();
     for (var i = 0; i < values.length; i++) {
       final x = size.width * i / (values.length - 1);
@@ -1057,13 +1243,12 @@ class _LineChartPainter extends CustomPainter {
         path.lineTo(x, y);
       }
     }
-    final paint =
-        Paint()
-          ..color = lineColor
-          ..strokeWidth = 3
-          ..style = PaintingStyle.stroke
-          ..strokeCap = StrokeCap.round
-          ..strokeJoin = StrokeJoin.round;
+    final paint = Paint()
+      ..color = lineColor
+      ..strokeWidth = 3
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
     canvas.drawPath(path, paint);
     for (var i = 0; i < values.length; i++) {
       final x = size.width * i / (values.length - 1);
@@ -1134,11 +1319,14 @@ class _ErrorView extends StatelessWidget {
           const Text('⚠️', style: TextStyle(fontSize: 32)),
           const SizedBox(height: 8),
           Text(
-            'Could not load exercises',
+            AppLocalizations.of(context).couldNotLoadExercises,
             style: TextStyle(color: c.textPrimary),
           ),
           const SizedBox(height: 16),
-          CupertinoButton(onPressed: onRetry, child: const Text('Retry')),
+          CupertinoButton(
+            onPressed: onRetry,
+            child: Text(AppLocalizations.of(context).retry),
+          ),
         ],
       ),
     );
@@ -1273,7 +1461,7 @@ class _CreateExerciseSheetState extends State<_CreateExerciseSheet> {
             ),
             const SizedBox(height: 16),
             Text(
-              'New exercise',
+              AppLocalizations.of(context).newExercise,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
@@ -1283,7 +1471,7 @@ class _CreateExerciseSheetState extends State<_CreateExerciseSheet> {
             const SizedBox(height: 16),
             _Field(
               controller: _nameCtrl,
-              label: 'Name',
+              label: AppLocalizations.of(context).name,
               placeholder: 'My Cable Crossover',
             ),
             const SizedBox(height: 12),
@@ -1299,31 +1487,30 @@ class _CreateExerciseSheetState extends State<_CreateExerciseSheet> {
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children:
-                  _muscleGroups.map((g) {
-                    final active = g == _group;
-                    return GestureDetector(
-                      onTap: () => setState(() => _group = g),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 7,
-                        ),
-                        decoration: BoxDecoration(
-                          color: active ? c.accent : c.iconBg,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          g,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: active ? c.textOnAccent : c.textSecondary,
-                          ),
-                        ),
+              children: _muscleGroups.map((g) {
+                final active = g == _group;
+                return GestureDetector(
+                  onTap: () => setState(() => _group = g),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 7,
+                    ),
+                    decoration: BoxDecoration(
+                      color: active ? c.accent : c.iconBg,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      g,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: active ? c.textOnAccent : c.textSecondary,
                       ),
-                    );
-                  }).toList(),
+                    ),
+                  ),
+                );
+              }).toList(),
             ),
             const SizedBox(height: 12),
             Text(
@@ -1338,19 +1525,17 @@ class _CreateExerciseSheetState extends State<_CreateExerciseSheet> {
             Wrap(
               spacing: 7,
               runSpacing: 7,
-              children:
-                  _muscleGroups.where((group) => group != _group).map((group) {
-                    final selected = _secondary.contains(group);
-                    return GestureDetector(
-                      onTap:
-                          () => setState(() {
-                            selected
-                                ? _secondary.remove(group)
-                                : _secondary.add(group);
-                          }),
-                      child: _ChoiceChip(label: group, selected: selected),
-                    );
-                  }).toList(),
+              children: _muscleGroups.where((group) => group != _group).map((
+                group,
+              ) {
+                final selected = _secondary.contains(group);
+                return GestureDetector(
+                  onTap: () => setState(() {
+                    selected ? _secondary.remove(group) : _secondary.add(group);
+                  }),
+                  child: _ChoiceChip(label: group, selected: selected),
+                );
+              }).toList(),
             ),
             const SizedBox(height: 12),
             Text(
@@ -1365,18 +1550,17 @@ class _CreateExerciseSheetState extends State<_CreateExerciseSheet> {
             Wrap(
               spacing: 7,
               runSpacing: 7,
-              children:
-                  _equipmentOptions
-                      .map(
-                        (equipment) => GestureDetector(
-                          onTap: () => setState(() => _equipment = equipment),
-                          child: _ChoiceChip(
-                            label: equipment,
-                            selected: equipment == _equipment,
-                          ),
-                        ),
-                      )
-                      .toList(),
+              children: _equipmentOptions
+                  .map(
+                    (equipment) => GestureDetector(
+                      onTap: () => setState(() => _equipment = equipment),
+                      child: _ChoiceChip(
+                        label: equipment,
+                        selected: equipment == _equipment,
+                      ),
+                    ),
+                  )
+                  .toList(),
             ),
             const SizedBox(height: 12),
             Text(
@@ -1391,24 +1575,22 @@ class _CreateExerciseSheetState extends State<_CreateExerciseSheet> {
             Wrap(
               spacing: 7,
               runSpacing: 7,
-              children:
-                  _exerciseTypes.entries
-                      .map(
-                        (entry) => GestureDetector(
-                          onTap:
-                              () => setState(() => _exerciseType = entry.key),
-                          child: _ChoiceChip(
-                            label: entry.value,
-                            selected: entry.key == _exerciseType,
-                          ),
-                        ),
-                      )
-                      .toList(),
+              children: _exerciseTypes.entries
+                  .map(
+                    (entry) => GestureDetector(
+                      onTap: () => setState(() => _exerciseType = entry.key),
+                      child: _ChoiceChip(
+                        label: entry.value,
+                        selected: entry.key == _exerciseType,
+                      ),
+                    ),
+                  )
+                  .toList(),
             ),
             const SizedBox(height: 12),
             _Field(
               controller: _imageCtrl,
-              label: 'Image URL',
+              label: AppLocalizations.of(context).imageUrl,
               placeholder: 'https://…/photo.jpg',
               onChanged: (_) => setState(() {}),
             ),
@@ -1419,7 +1601,7 @@ class _CreateExerciseSheetState extends State<_CreateExerciseSheet> {
             const SizedBox(height: 12),
             _Field(
               controller: _descCtrl,
-              label: 'Description',
+              label: AppLocalizations.of(context).description,
               placeholder: 'How to perform it…',
               maxLines: 3,
             ),
@@ -1443,17 +1625,16 @@ class _CreateExerciseSheetState extends State<_CreateExerciseSheet> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Center(
-                    child:
-                        _saving
-                            ? const CupertinoActivityIndicator()
-                            : Text(
-                              'Create',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                color: c.textOnAccent,
-                              ),
+                    child: _saving
+                        ? const CupertinoActivityIndicator()
+                        : Text(
+                            'Create',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: c.textOnAccent,
                             ),
+                          ),
                   ),
                 ),
               ),

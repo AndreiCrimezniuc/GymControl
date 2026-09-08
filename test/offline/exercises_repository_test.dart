@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -71,12 +72,57 @@ void main() {
   });
 
   test('performed set is kept in the outbox when the network fails', () async {
-    await repository.logSet(42, weightKg: 100, reps: 5);
+    await repository.logSet(
+      42,
+      weightKg: 100,
+      reps: 5,
+      sessionId: 'session-1',
+      workoutId: 'workout-1',
+      workoutName: 'Push',
+    );
 
     final mutation = store.pending().single;
     expect(mutation.kind, 'exercise.logSet');
     expect(mutation.args['exerciseId'], 42);
     expect(mutation.args['weight_kg'], 100);
     expect(mutation.args['reps'], 5);
+    expect(store.getDoc('exercise_stats', '42')?['total_sets'], 1);
+    final history = store.getDoc('exercise_history', '42')?['items'] as List;
+    expect((history.single as Map)['workout_name'], 'Push');
+  });
+
+  test('cached stats do not wait for a stalled network check', () async {
+    await store.putDoc('exercise_stats', '42', {
+      'exercise_id': 42,
+      'total_sets': 12,
+      'total_reps': 60,
+    });
+    final stalledConnectivity = Completer<bool>();
+    final stats = await ExercisesRepository(
+      client: client,
+      isOnline: () => stalledConnectivity.future,
+    ).getStats(42).timeout(const Duration(milliseconds: 100));
+
+    expect(stats.totalSets, 12);
+  });
+
+  test('custom exercise is immediately available and queued offline', () async {
+    final item =
+        await ExercisesRepository(
+          client: client,
+          isOnline: () async => false,
+        ).createCustom(
+          name: 'Cable chaos',
+          muscleGroup: 'Back',
+          equipment: 'Cable',
+        );
+
+    expect(item.id, isNegative);
+    expect(item.name, 'Cable chaos');
+    expect(store.getListIds('exercises:catalog'), contains('${item.id}'));
+    expect(store.getDoc('exercise', '${item.id}')?['name'], 'Cable chaos');
+    final mutation = store.pending().single;
+    expect(mutation.kind, 'exercise.createCustom');
+    expect(mutation.args['tempId'], '${item.id}');
   });
 }

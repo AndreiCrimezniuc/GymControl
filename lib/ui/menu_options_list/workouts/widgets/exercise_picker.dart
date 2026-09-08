@@ -6,6 +6,7 @@ import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
 import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
 import 'package:gymboss/ui/menu_options_list/exercises/exercise_discovery_preferences.dart';
 import 'package:gymboss/ui/menu_options_list/exercises/widgets/muscle_illustration.dart';
+import 'package:gymboss/l10n/app_localizations.dart';
 
 /// Full-screen catalog picker that pops the chosen [ExerciseCatalogItem].
 /// Shared by the workout editor and the in-session runner.
@@ -89,302 +90,286 @@ class _ExercisePickerState extends State<ExercisePicker> {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final filtered =
-        _all
-            .where(
-              (exercise) =>
-                  exercise.matchesSearch(_query) &&
-                  !widget.excludedIds.contains(exercise.id) &&
-                  (_muscleGroup == null ||
-                      exercise.muscleGroup == _muscleGroup) &&
-                  (_equipment == null || exercise.equipment == _equipment) &&
-                  (_scope != 'recent' || _recentIds.contains(exercise.id)) &&
-                  (_scope != 'favorites' || _favoriteIds.contains(exercise.id)),
-            )
-            .toList();
+    final filtered = _all
+        .where(
+          (exercise) =>
+              exercise.matchesSearch(_query) &&
+              !widget.excludedIds.contains(exercise.id) &&
+              (_muscleGroup == null || exercise.muscleGroup == _muscleGroup) &&
+              (_equipment == null || exercise.equipment == _equipment) &&
+              (_scope != 'recent' || _recentIds.contains(exercise.id)) &&
+              (_scope != 'favorites' || _favoriteIds.contains(exercise.id)),
+        )
+        .toList();
     if (_scope == 'recent') {
       filtered.sort(
         (a, b) => _recentIds.indexOf(a.id).compareTo(_recentIds.indexOf(b.id)),
       );
     }
     return AppPage(
-      title: 'Pick exercise',
-      body:
-          _loading
-              ? const Center(child: CupertinoActivityIndicator())
-              : Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 10),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: CupertinoSearchTextField(
-                            placeholder: 'Search ${_all.length} exercises',
-                            backgroundColor: c.card,
-                            style: TextStyle(color: c.textPrimary),
-                            onChanged:
-                                (value) => setState(() => _query = value),
-                          ),
+      title: AppLocalizations.of(context).pickExercise,
+      body: _loading
+          ? const Center(child: CupertinoActivityIndicator())
+          : Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 10),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: CupertinoSearchTextField(
+                          placeholder: 'Search ${_all.length} exercises',
+                          backgroundColor: c.card,
+                          style: TextStyle(color: c.textPrimary),
+                          onChanged: (value) => setState(() => _query = value),
                         ),
-                        const SizedBox(width: 8),
-                        CupertinoButton(
-                          padding: EdgeInsets.zero,
-                          minimumSize: const Size(44, 44),
-                          onPressed:
-                              () =>
-                                  setState(() => _showFilters = !_showFilters),
-                          child: Container(
-                            height: 36,
-                            padding: const EdgeInsets.symmetric(horizontal: 11),
-                            decoration: BoxDecoration(
-                              color:
-                                  _muscleGroup != null || _equipment != null
-                                      ? c.accent
-                                      : c.card,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
+                      ),
+                      const SizedBox(width: 8),
+                      CupertinoButton(
+                        padding: EdgeInsets.zero,
+                        minimumSize: const Size(44, 44),
+                        onPressed: () =>
+                            setState(() => _showFilters = !_showFilters),
+                        child: Container(
+                          height: 36,
+                          padding: const EdgeInsets.symmetric(horizontal: 11),
+                          decoration: BoxDecoration(
+                            color: _muscleGroup != null || _equipment != null
+                                ? c.accent
+                                : c.card,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: _muscleGroup != null || _equipment != null
+                                  ? c.accent
+                                  : c.border,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                CupertinoIcons.slider_horizontal_3,
+                                size: 16,
                                 color:
                                     _muscleGroup != null || _equipment != null
-                                        ? c.accent
-                                        : c.border,
+                                    ? c.textOnAccent
+                                    : c.textPrimary,
                               ),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  CupertinoIcons.slider_horizontal_3,
-                                  size: 16,
+                              const SizedBox(width: 5),
+                              Text(
+                                'Filter',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
                                   color:
                                       _muscleGroup != null || _equipment != null
-                                          ? c.textOnAccent
-                                          : c.textPrimary,
+                                      ? c.textOnAccent
+                                      : c.textPrimary,
                                 ),
-                                const SizedBox(width: 5),
-                                Text(
-                                  'Filter',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    color:
-                                        _muscleGroup != null ||
-                                                _equipment != null
-                                            ? c.textOnAccent
-                                            : c.textPrimary,
-                                  ),
-                                ),
-                              ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                  child: Row(
+                    children: [
+                      _MuscleTag(
+                        label: AppLocalizations.of(context).all,
+                        selected: _scope == 'all',
+                        onTap: () => setState(() => _scope = 'all'),
+                      ),
+                      const SizedBox(width: 7),
+                      _MuscleTag(
+                        label: AppLocalizations.of(context).recent,
+                        selected: _scope == 'recent',
+                        onTap: () => setState(() => _scope = 'recent'),
+                      ),
+                      const SizedBox(width: 7),
+                      _MuscleTag(
+                        label: AppLocalizations.of(context).favorites,
+                        selected: _scope == 'favorites',
+                        onTap: () => setState(() => _scope = 'favorites'),
+                      ),
+                    ],
+                  ),
+                ),
+                if (_showFilters)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                        child: Row(
+                          children: [
+                            _MuscleTag(
+                              label: AppLocalizations.of(context).all,
+                              selected: _muscleGroup == null,
+                              onTap: () => setState(() => _muscleGroup = null),
                             ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-                    child: Row(
-                      children: [
-                        _MuscleTag(
-                          label: 'All',
-                          selected: _scope == 'all',
-                          onTap: () => setState(() => _scope = 'all'),
-                        ),
-                        const SizedBox(width: 7),
-                        _MuscleTag(
-                          label: 'Recent',
-                          selected: _scope == 'recent',
-                          onTap: () => setState(() => _scope = 'recent'),
-                        ),
-                        const SizedBox(width: 7),
-                        _MuscleTag(
-                          label: 'Favorites',
-                          selected: _scope == 'favorites',
-                          onTap: () => setState(() => _scope = 'favorites'),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (_showFilters)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                          child: Row(
-                            children: [
+                            for (final group in _muscleGroups) ...[
+                              const SizedBox(width: 7),
                               _MuscleTag(
-                                label: 'All',
-                                selected: _muscleGroup == null,
-                                onTap:
-                                    () => setState(() => _muscleGroup = null),
+                                label: group,
+                                selected: _muscleGroup == group,
+                                onTap: () =>
+                                    setState(() => _muscleGroup = group),
                               ),
-                              for (final group in _muscleGroups) ...[
-                                const SizedBox(width: 7),
-                                _MuscleTag(
-                                  label: group,
-                                  selected: _muscleGroup == group,
-                                  onTap:
-                                      () =>
-                                          setState(() => _muscleGroup = group),
-                                ),
-                              ],
                             ],
-                          ),
+                          ],
                         ),
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                          child: Row(
-                            children: [
+                      ),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                        child: Row(
+                          children: [
+                            _MuscleTag(
+                              label: AppLocalizations.of(context).anyEquipment,
+                              selected: _equipment == null,
+                              onTap: () => setState(() => _equipment = null),
+                            ),
+                            for (final equipment in _equipmentOptions) ...[
+                              const SizedBox(width: 7),
                               _MuscleTag(
-                                label: 'Any equipment',
-                                selected: _equipment == null,
-                                onTap: () => setState(() => _equipment = null),
+                                label: equipment,
+                                selected: _equipment == equipment,
+                                onTap: () =>
+                                    setState(() => _equipment = equipment),
                               ),
-                              for (final equipment in _equipmentOptions) ...[
-                                const SizedBox(width: 7),
-                                _MuscleTag(
-                                  label: equipment,
-                                  selected: _equipment == equipment,
-                                  onTap:
-                                      () => setState(
-                                        () => _equipment = equipment,
-                                      ),
-                                ),
-                              ],
                             ],
-                          ),
+                          ],
                         ),
-                      ],
-                    ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                    child: Row(
-                      children: [
+                      ),
+                    ],
+                  ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                  child: Row(
+                    children: [
+                      Text(
+                        '${filtered.length} result${filtered.length == 1 ? '' : 's'}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: c.textSecondary,
+                        ),
+                      ),
+                      if (_muscleGroup != null || _equipment != null) ...[
+                        const Spacer(),
                         Text(
-                          '${filtered.length} result${filtered.length == 1 ? '' : 's'}',
+                          [
+                            if (_muscleGroup != null) _muscleGroup!,
+                            if (_equipment != null) _equipment!,
+                          ].join(' · '),
                           style: TextStyle(
                             fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: c.textSecondary,
+                            fontWeight: FontWeight.w800,
+                            color: c.accent,
                           ),
                         ),
-                        if (_muscleGroup != null || _equipment != null) ...[
-                          const Spacer(),
-                          Text(
-                            [
-                              if (_muscleGroup != null) _muscleGroup!,
-                              if (_equipment != null) _equipment!,
-                            ].join(' · '),
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                              color: c.accent,
-                            ),
-                          ),
-                        ],
                       ],
-                    ),
+                    ],
                   ),
-                  Expanded(
-                    child:
-                        filtered.isEmpty
-                            ? _PickerEmpty(query: _query)
-                            : ListView.separated(
-                              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-                              itemCount: filtered.length,
-                              separatorBuilder:
-                                  (_, __) => const SizedBox(height: 8),
-                              itemBuilder: (_, i) {
-                                final e = filtered[i];
-                                return GestureDetector(
-                                  onTap: () => _select(e),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: BoxDecoration(
-                                      color: c.card,
-                                      borderRadius: BorderRadius.circular(14),
-                                      border: Border.all(color: c.border),
+                ),
+                Expanded(
+                  child: filtered.isEmpty
+                      ? _PickerEmpty(query: _query)
+                      : ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                          itemCount: filtered.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 8),
+                          itemBuilder: (_, i) {
+                            final e = filtered[i];
+                            return GestureDetector(
+                              onTap: () => _select(e),
+                              child: Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: c.card,
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(color: c.border),
+                                ),
+                                child: Row(
+                                  children: [
+                                    SizedBox(
+                                      width: 44,
+                                      height: 44,
+                                      child: ExerciseVisual(
+                                        name: e.name,
+                                        muscleGroup: e.muscleGroup,
+                                        equipment: e.equipment,
+                                        category: e.category,
+                                        imageUrl: e.imageUrl,
+                                        imageUrl2: e.imageUrl2,
+                                        radius: 10,
+                                        figurePadding: 5,
+                                      ),
                                     ),
-                                    child: Row(
-                                      children: [
-                                        SizedBox(
-                                          width: 44,
-                                          height: 44,
-                                          child: ExerciseVisual(
-                                            name: e.name,
-                                            muscleGroup: e.muscleGroup,
-                                            equipment: e.equipment,
-                                            category: e.category,
-                                            imageUrl: e.imageUrl,
-                                            imageUrl2: e.imageUrl2,
-                                            radius: 10,
-                                            figurePadding: 5,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                e.name,
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.w700,
-                                                  color: c.textPrimary,
-                                                ),
-                                              ),
-                                              Text(
-                                                [e.muscleGroup, e.equipment]
-                                                    .where(
-                                                      (value) =>
-                                                          value.isNotEmpty,
-                                                    )
-                                                    .join(' · '),
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: c.textSecondary,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        Pressable(
-                                          semanticLabel:
-                                              _favoriteIds.contains(e.id)
-                                                  ? 'Remove ${e.name} from favorites'
-                                                  : 'Add ${e.name} to favorites',
-                                          onTap: () => _toggleFavorite(e.id),
-                                          child: SizedBox(
-                                            width: 44,
-                                            height: 44,
-                                            child: Icon(
-                                              _favoriteIds.contains(e.id)
-                                                  ? CupertinoIcons.star_fill
-                                                  : CupertinoIcons.star,
-                                              size: 20,
-                                              color:
-                                                  _favoriteIds.contains(e.id)
-                                                      ? c.accent
-                                                      : c.textSecondary,
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            e.name,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w700,
+                                              color: c.textPrimary,
                                             ),
                                           ),
-                                        ),
-                                      ],
+                                          Text(
+                                            [e.muscleGroup, e.equipment]
+                                                .where(
+                                                  (value) => value.isNotEmpty,
+                                                )
+                                                .join(' · '),
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: c.textSecondary,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                );
-                              },
-                            ),
-                  ),
-                ],
-              ),
+                                    Pressable(
+                                      semanticLabel: _favoriteIds.contains(e.id)
+                                          ? 'Remove ${e.name} from favorites'
+                                          : 'Add ${e.name} to favorites',
+                                      onTap: () => _toggleFavorite(e.id),
+                                      child: SizedBox(
+                                        width: 44,
+                                        height: 44,
+                                        child: Icon(
+                                          _favoriteIds.contains(e.id)
+                                              ? CupertinoIcons.star_fill
+                                              : CupertinoIcons.star,
+                                          size: 20,
+                                          color: _favoriteIds.contains(e.id)
+                                              ? c.accent
+                                              : c.textSecondary,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
     );
   }
 

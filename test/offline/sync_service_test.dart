@@ -99,4 +99,12 @@ void main() {
     expect(store.pending(), isEmpty);
     expect(store.deadLetters().map((mutation) => mutation.id), ['bad']);
   });
+
+  test('retry delay grows exponentially and is capped at one hour', () {
+    expect(syncRetryDelay(0), const Duration(minutes: 1));
+    expect(syncRetryDelay(1), const Duration(minutes: 2));
+    expect(syncRetryDelay(5), const Duration(minutes: 32));
+    expect(syncRetryDelay(6), const Duration(minutes: 60));
+    expect(syncRetryDelay(100), const Duration(minutes: 60));
+  });
 }

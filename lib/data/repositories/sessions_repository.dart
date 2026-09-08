@@ -30,22 +30,9 @@ class SessionsRepository {
   }
 
   Future<void> recordSession() async {
-    if (await _isOnline()) {
-      try {
-        final resp = await _client
-            .post(Uri.parse('$_base/sessions'))
-            .timeout(const Duration(seconds: 10));
-        if (resp.statusCode == 204) return;
-        throw AppError(
-          AppErrorCode.dataSaveFailed,
-          message: 'POST /sessions HTTP ${resp.statusCode}',
-        )..log();
-      } on Object catch (error) {
-        if (!isTransientNetworkFailure(error)) rethrow;
-      }
-    }
-    // Home can be rebuilt repeatedly while offline. One pending heartbeat is
-    // enough; the endpoint records presence rather than an individual workout.
+    // A session is a completed workout, never an app-open heartbeat. One
+    // pending record is enough because the server stores at most one active
+    // day for the weekly streak and POST /sessions is idempotent per day.
     if (_store.pending().any((mutation) => mutation.kind == 'session.record')) {
       return;
     }
@@ -60,10 +47,10 @@ class SessionsRepository {
     SyncService.instance.flushSoon();
   }
 
-  Future<StreakData> getStreakData() async {
+  Future<StreakData> getStreakData({bool forceRefresh = false}) async {
     final cached = _store.getDoc(_streakCollection, _streakId);
-    if (cached != null) {
-      if (await _isOnline()) unawaited(_refreshStreakInBackground());
+    if (!forceRefresh && cached != null) {
+      unawaited(_refreshStreakInBackground());
       return StreakData.fromJson(cached);
     }
     if (!await _isOnline()) return StreakData.empty;
@@ -87,6 +74,7 @@ class SessionsRepository {
 
   Future<void> _refreshStreakInBackground() async {
     try {
+      if (!await _isOnline()) return;
       await _refreshStreak();
     } catch (_) {}
   }

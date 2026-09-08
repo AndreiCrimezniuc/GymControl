@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 
 import 'package:gymboss/data/sync/sync_service.dart';
+import 'package:gymboss/l10n/app_localizations.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 
 /// A thin status strip shown app-wide when the device is offline and/or there
@@ -23,11 +24,12 @@ class OfflineBanner extends StatelessWidget {
             ? CupertinoIcons.wifi_slash
             : CupertinoIcons.arrow_2_circlepath;
 
+        final l10n = AppLocalizations.of(context);
         final label = offline
             ? (s.hasPending
-                  ? 'Offline · ${s.pending} change${s.pending == 1 ? '' : 's'} will sync later'
-                  : 'Offline · changes are saved on this device')
-            : 'Syncing ${s.pending} change${s.pending == 1 ? '' : 's'}…';
+                  ? l10n.offlinePending(s.pending)
+                  : l10n.offlineSaved)
+            : l10n.syncingChanges(s.pending);
 
         return Semantics(
           liveRegion: true,

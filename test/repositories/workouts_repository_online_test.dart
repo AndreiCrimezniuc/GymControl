@@ -11,6 +11,7 @@ import 'package:gymboss/data/repositories/workouts_repository.dart';
 import 'package:gymboss/data/services/auth/auth_service.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/data/services/auth/token_storage.dart';
+import 'package:gymboss/data/sync/sync_service.dart';
 
 AuthenticatedClient clientReturning(
   Map<String, http.Response> Function() routesFn,
@@ -128,8 +129,7 @@ void main() {
     expect(s.history.single.difficulty, 'hard');
   });
 
-  // Write paths: isOnline() returns true when the connectivity plugin is
-  // absent (test env), so these exercise the network branch directly.
+  // Writes commit locally first and are replayed through SyncService.
   AuthenticatedClient writeClient(http.Response Function(http.Request) fn) {
     return AuthenticatedClient(
       storage: TokenStorage(),
@@ -150,7 +150,7 @@ void main() {
     'exercises': [],
   });
 
-  test('create posts and swaps the temp doc for the server workout', () async {
+  test('create commits locally and swaps its id after sync', () async {
     final client = writeClient((req) {
       if (req.method == 'POST' && req.url.path.endsWith('/workouts')) {
         return http.Response(workoutJson('w-server', 'Created'), 201);
@@ -161,7 +161,14 @@ void main() {
     final w = await WorkoutsRepository(
       client: client,
     ).create(name: 'Created', comment: '', exercises: []);
-    expect(w.id, 'w-server');
+    expect(w.id, startsWith('local:'));
+    expect(store.pending().single.kind, 'workout.create');
+
+    SyncService.instance.bind(client);
+    await SyncService.instance.flush();
+
+    expect(store.pending(), isEmpty);
+    expect(store.getDoc('workout', 'w-server')?['name'], 'Created');
   });
 
   test('logRun / setVisibility / delete succeed on 2xx', () async {
@@ -173,10 +180,13 @@ void main() {
       return http.Response('{}', 404);
     });
     addTearDown(client.dispose);
+    SyncService.instance.bind(client);
     final repo = WorkoutsRepository(client: client);
     await repo.logRun('w1', 'medium', durationSeconds: 900);
     await repo.setVisibility('w1', 'public');
     await repo.delete('w1');
+    await SyncService.instance.flush();
+    expect(store.pending(), isEmpty);
   });
 
   test('share returns the code and copy/import return workouts', () async {
@@ -194,6 +204,7 @@ void main() {
       return http.Response('{}', 404);
     });
     addTearDown(client.dispose);
+    SyncService.instance.bind(client);
     final repo = WorkoutsRepository(client: client);
     expect(await repo.share('w1'), 'XYZ9');
     expect((await repo.copy('w1')).id, 'w-copy');
@@ -250,14 +261,19 @@ void main() {
       return http.Response('', 204);
     });
     addTearDown(client.dispose);
+    SyncService.instance.bind(client);
     final repo = WorkoutsRepository(client: client);
 
     expect((await repo.listFolders()).single.name, 'Strength');
-    expect((await repo.createFolder('Cardio')).id, 'f2');
+    final localFolder = await repo.createFolder('Cardio');
+    expect(localFolder.id, startsWith('local:'));
+    await SyncService.instance.flush();
+    expect(store.getDoc('workout-folder', 'f2'), isNotNull);
     await repo.renameFolder('f2', 'Conditioning');
     await repo.assignFolder('w1', 'f2');
     await repo.assignFolder('w1', null);
     await repo.deleteFolder('f2');
+    await SyncService.instance.flush();
 
     expect(requests.map((r) => r.method), [
       'GET',

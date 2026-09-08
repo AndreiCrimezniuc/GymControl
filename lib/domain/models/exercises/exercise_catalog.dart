@@ -42,12 +42,12 @@ class ExerciseCatalogItem {
         imageUrl2: (j['image_url2'] as String?) ?? '',
         instructions: (j['instructions'] as String?) ?? '',
         exerciseType: (j['exercise_type'] as String?) ?? 'weight_reps',
-        secondaryMuscles:
-            ((j['secondary_muscles'] as List?) ?? const [])
-                .whereType<String>()
-                .toList(),
-        aliases:
-            ((j['aliases'] as List?) ?? const []).whereType<String>().toList(),
+        secondaryMuscles: ((j['secondary_muscles'] as List?) ?? const [])
+            .whereType<String>()
+            .toList(),
+        aliases: ((j['aliases'] as List?) ?? const [])
+            .whereType<String>()
+            .toList(),
       );
 
   bool matchesSearch(String query) {
@@ -126,17 +126,14 @@ class ExerciseStats {
     estimatedOneRmKg: (j['estimated_one_rm_kg'] as num?)?.toDouble() ?? 0,
     maxSetVolumeKg: (j['max_set_volume_kg'] as num?)?.toDouble() ?? 0,
     rank: j['rank'] as String?,
-    progression:
-        ((j['progression'] as List?) ?? [])
-            .map(
-              (e) =>
-                  ExerciseProgressionPoint.fromJson(e as Map<String, dynamic>),
-            )
-            .toList(),
-    records:
-        ((j['records'] as List?) ?? const [])
-            .map((e) => ExerciseRecord.fromJson(e as Map<String, dynamic>))
-            .toList(),
+    progression: ((j['progression'] as List?) ?? [])
+        .map(
+          (e) => ExerciseProgressionPoint.fromJson(e as Map<String, dynamic>),
+        )
+        .toList(),
+    records: ((j['records'] as List?) ?? const [])
+        .map((e) => ExerciseRecord.fromJson(e as Map<String, dynamic>))
+        .toList(),
   );
 
   bool get hasData => totalSets > 0;
@@ -212,11 +209,8 @@ class ExerciseHistorySession {
         workoutId: json['workout_id'] as String? ?? '',
         workoutName: json['workout_name'] as String? ?? '',
         sessionId: json['session_id'] as String? ?? '',
-        sets:
-            ((json['sets'] as List?) ?? const [])
-                .map(
-                  (e) => ExerciseHistorySet.fromJson(e as Map<String, dynamic>),
-                )
-                .toList(),
+        sets: ((json['sets'] as List?) ?? const [])
+            .map((e) => ExerciseHistorySet.fromJson(e as Map<String, dynamic>))
+            .toList(),
       );
 }

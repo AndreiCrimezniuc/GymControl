@@ -9,6 +9,9 @@ import 'package:gymboss/domain/models/auth/user.dart';
 
 class AuthService {
   final String _base = ApiConfig.authBaseUrl;
+  final http.Client _client;
+
+  AuthService({http.Client? client}) : _client = client ?? http.Client();
 
   Future<AuthTokens> login(String email, String password) async {
     final resp = await _post('/auth/login', {
@@ -42,7 +45,7 @@ class AuthService {
     int expectedStatus = 200,
   }) async {
     try {
-      final resp = await http
+      final resp = await _client
           .post(
             Uri.parse('$_base$path'),
             headers: {'Content-Type': 'application/json'},
@@ -75,10 +78,11 @@ class AuthService {
     if (resp.statusCode == expected) return;
 
     final raw = _bodyError(resp);
-    final code = switch (resp.statusCode) {
-      401 => AppErrorCode.authInvalidCredentials,
-      409 => AppErrorCode.authEmailTaken,
-      >= 500 => AppErrorCode.networkServerError,
+    final code = switch ((path, resp.statusCode)) {
+      ('/auth/refresh', 400 || 401) => AppErrorCode.authTokenExpired,
+      (_, 401) => AppErrorCode.authInvalidCredentials,
+      (_, 409) => AppErrorCode.authEmailTaken,
+      (_, >= 500) => AppErrorCode.networkServerError,
       _ => AppErrorCode.authUnknown,
     };
 

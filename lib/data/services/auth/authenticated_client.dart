@@ -94,13 +94,23 @@ class AuthenticatedClient {
   Future<String?> _doRefresh() async {
     try {
       final rt = await _storage.getRefreshToken();
-      if (rt == null) return null;
+      if (rt == null) {
+        await _storage.clear();
+        return null;
+      }
       final tokens = await _authService.refresh(rt);
       await _storage.save(tokens.accessToken, tokens.refreshToken);
       return tokens.accessToken;
-    } catch (_) {
-      await _storage.clear();
-      return null;
+    } on AppError catch (error) {
+      // A dead refresh token is terminal. A server outage, timeout or lost
+      // connection is not: keep the secure tokens so the offline-first app can
+      // continue locally and retry authentication after connectivity returns.
+      if (error.errorCode == AppErrorCode.authTokenExpired ||
+          error.errorCode == AppErrorCode.authInvalidCredentials) {
+        await _storage.clear();
+        return null;
+      }
+      rethrow;
     }
   }
 

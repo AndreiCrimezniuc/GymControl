@@ -69,20 +69,20 @@ class _NavButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap:
-          onTap == null
-              ? null
-              : () {
-                if (!active) HapticFeedback.selectionClick();
-                onTap!();
-              },
+      onTap: onTap == null
+          ? null
+          : () {
+              if (!active) HapticFeedback.selectionClick();
+              onTap!();
+            },
       child: AnimatedContainer(
         duration: AppDesign.quick,
         width: 44,
         height: 34,
         decoration: BoxDecoration(
-          color:
-              active ? accent.withValues(alpha: 0.14) : const Color(0x00000000),
+          color: active
+              ? accent.withValues(alpha: 0.14)
+              : const Color(0x00000000),
           borderRadius: BorderRadius.circular(13),
         ),
         child: Icon(icon, size: 21, color: active ? accent : inactive),

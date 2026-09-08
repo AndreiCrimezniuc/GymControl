@@ -8,6 +8,16 @@ import 'package:gymboss/domain/models/exercises/exercise_catalog.dart';
 /// Four workers keep first-run bandwidth controlled while ensuring every
 /// exercise illustration remains available after the device goes offline.
 abstract final class ExerciseMediaCache {
+  static final CacheManager _cache = CacheManager(
+    Config(
+      'gymboss_exercise_media_v1',
+      stalePeriod: const Duration(days: 180),
+      maxNrOfCacheObjects: 1600,
+    ),
+  );
+
+  static CacheManager get manager => _cache;
+
   static Future<void> warm(Iterable<ExerciseCatalogItem> exercises) async {
     final urls = exercises
         .expand((exercise) => [exercise.imageUrl, exercise.imageUrl2])
@@ -21,7 +31,7 @@ abstract final class ExerciseMediaCache {
       while (cursor < urls.length) {
         final url = urls[cursor++];
         try {
-          await DefaultCacheManager().downloadFile(url);
+          await _cache.downloadFile(url);
         } catch (_) {
           // Media has a local mannequin fallback and is retried after the next
           // catalog refresh, so one unavailable asset must not stop the batch.

@@ -16,5 +16,281 @@
   "languageSystem": "System default",
   "languageEnglish": "English",
   "languageRussian": "Russian",
-  "logOut": "Log Out"
+  "logOut": "Log Out",
+  "signIn": "Sign In",
+  "createAccount": "Create Account",
+  "email": "Email",
+  "password": "Password",
+  "passwordMin": "Password (min 8 chars)",
+  "confirmPassword": "Confirm Password",
+  "continueGoogle": "Continue with Google",
+  "or": "or",
+  "noAccount": "Don't have an account? ",
+  "register": "Register",
+  "alreadyAccount": "Already have an account? ",
+  "explore": "Explore",
+  "weekStreak": "WEEK STREAK",
+  "nextGoal": "NEXT GOAL",
+  "routines": "ROUTINES",
+  "workouts": "Workouts",
+  "workoutsSubtitle": "Programs and routines",
+  "progress": "Progress",
+  "progressSubtitle": "History and personal records",
+  "strengthPassport": "Strength Passport",
+  "strengthPassportSubtitle": "Your median-ranked strength identity",
+  "exercises": "Exercises",
+  "exercisesSubtitle": "Movement library",
+  "settingsSubtitle": "Preferences and account",
+  "startWorkout": "Start workout",
+  "rankedLifts": "RANKED LIFTS",
+  "bodyweight": "BODYWEIGHT",
+  "bestLift": "BEST LIFT",
+  "medianRankedNote": "Median-ranked · extreme results excluded",
+  "passportLocked": "Record 3+ exercises\nto issue your passport",
+  "resumeWorkout": "Resume active workout"
+  ,"chooseWorkout": "Choose a workout"
+  ,"resumeSummary": "{elapsed} · {done}/{total} sets · tap to resume",
+  "@resumeSummary": {"placeholders": {"elapsed": {"type": "String"}, "done": {"type": "int"}, "total": {"type": "int"}}}
+  ,"repetitions": "Repetitions"
+  ,"weightField": "Weight in {unit}",
+  "@weightField": {"placeholders": {"unit": {"type": "String"}}}
+  ,"restoringSession": "Restoring your session…"
+  ,"gettingReady": "Getting things ready…"
+  ,"takingLonger": "This is taking longer than expected."
+  ,"tryAgain": "Try again"
+  ,"mineCount": "Mine ({count})", "@mineCount": {"placeholders": {"count": {"type": "int"}}}
+  ,"libraryCount": "Library ({count})", "@libraryCount": {"placeholders": {"count": {"type": "int"}}}
+  ,"library": "Library"
+  ,"allWorkouts": "All workouts"
+  ,"searchWorkouts": "Search all workouts"
+  ,"noWorkoutsFound": "No workouts found"
+  ,"noWorkoutsYet": "No workouts yet"
+  ,"libraryEmpty": "Library is empty"
+  ,"createWorkout": "Create workout"
+  ,"couldNotLoadWorkouts": "Could not load workouts"
+  ,"retry": "Retry"
+  ,"sortExercises": "Sort exercises"
+  ,"searchExercises": "Search {count} exercises", "@searchExercises": {"placeholders": {"count": {"type": "int"}}}
+  ,"catalog": "Catalog"
+  ,"myExercises": "My exercises"
+  ,"noExercisesFound": "No exercises found"
+  ,"yourStats": "Your Stats"
+  ,"noDataYet": "No data yet"
+  ,"personalRecords": "Personal Records"
+  ,"couldNotLoadExercises": "Could not load exercises"
+  ,"newExercise": "New exercise"
+  ,"statistics": "Statistics"
+  ,"trainingWorkload": "Training Workload"
+  ,"workoutCalendar": "Workout Calendar"
+  ,"trainingTrends": "Training Trends"
+  ,"finishWorkoutForTrends": "Finish a workout to see trends"
+  ,"noStatsYet": "No stats yet"
+  ,"highlights": "Highlights"
+  ,"noSessionsYet": "No sessions yet"
+  ,"all": "All"
+  ,"recordStartsHere": "Your record starts here"
+  ,"recordStartsBody": "Complete a working set to unlock mastery, personal records and a progression trail."
+  ,"estimatedOneRm": "ESTIMATED 1RM"
+  ,"currentPowerMark": "Current power mark"
+  ,"heaviestSet": "HEAVIEST SET"
+  ,"sessionsLogged": "{count} sessions logged", "@sessionsLogged": {"placeholders": {"count": {"type": "int"}}}
+  ,"workingSets": "WORKING SETS"
+  ,"totalReps": "{count} total reps", "@totalReps": {"placeholders": {"count": {"type": "int"}}}
+  ,"bestSetVolume": "BEST SET VOLUME"
+  ,"peakSingleSetWork": "Peak single-set work"
+  ,"masteryLevel": "MASTERY LEVEL {level}", "@masteryLevel": {"placeholders": {"level": {"type": "int"}}}
+  ,"rankAndLevel": "RANK {rank} · LEVEL {level}", "@rankAndLevel": {"placeholders": {"rank": {"type": "String"}, "level": {"type": "int"}}}
+  ,"setsToNextLevel": "{count} working sets to level {level}", "@setsToNextLevel": {"placeholders": {"count": {"type": "int"}, "level": {"type": "int"}}}
+  ,"masteryInitiate": "Initiate"
+  ,"masteryTrained": "Trained"
+  ,"masteryProven": "Proven"
+  ,"masteryVeteran": "Veteran"
+  ,"masteryMaster": "Master"
+  ,"lockedStatsPreview": "LEVEL 1 · FIRST PR · PROGRESSION TRAIL"
+  ,"passportRatioSummary": "{ratio}× cohort median · median of {count} ranked lifts", "@passportRatioSummary": {"placeholders": {"ratio": {"type": "String"}, "count": {"type": "int"}}}
+  ,"passportTierProgress": "{remaining}× median to {next} · {progress}% through this rank", "@passportTierProgress": {"placeholders": {"remaining": {"type": "String"}, "next": {"type": "String"}, "progress": {"type": "int"}}}
+  ,"exerciseMedianProgress": "{ratio}× median · next {next}", "@exerciseMedianProgress": {"placeholders": {"ratio": {"type": "String"}, "next": {"type": "String"}}}
+  ,"medianCalibrationPending": "Median calibration pending"
+  ,"passportNoLiftsTitle": "No lifts recorded yet"
+  ,"passportNoLiftsBody": "Record a benchmark lift to issue your passport. Three ranked movements unlock the overall class."
+  ,"passportPreviewTitle": "PASSPORT ENTRY · PREVIEW"
+  ,"passportPreviewExercise": "Bench Press"
+  ,"passportPreviewSubtitle": "Your best set · estimated 1RM · cohort position"
+  ,"passportPreviewBody": "Every entry shows exactly why you earned the class and what separates you from the next one."
+  ,"passportGuideTitle": "HOW THE PASSPORT WORKS"
+  ,"passportStepLiftTitle": "A lift earns an entry"
+  ,"passportStepLiftBody": "Your strongest estimated 1RM is normalized by bodyweight."
+  ,"passportStepMedianTitle": "The middle defines the field"
+  ,"passportStepMedianBody": "Ranks use the cohort median after both extreme deciles are removed."
+  ,"passportStepBreadthTitle": "Breadth earns the passport"
+  ,"passportStepBreadthBody": "Your overall class is the median of at least three ranked movements."
+  ,"aiSuggest": "AI SUGGEST"
+  ,"aiReviewPlan": "Review this plan against your history and results"
+  ,"aiReviewStagedTitle": "AI review is staged"
+  ,"aiReviewStagedBody": "GymControl already collects the workout, recent history, account statistics and measurements securely on the server. Connect the model provider to activate the final analysis step."
+  ,"aiReviewFailed": "The review could not be generated. Try again when the server is available."
+  ,"buildWarmup": "Build warm-up"
+  ,"previousCompact": "PREV {value}", "@previousCompact": {"placeholders": {"value": {"type": "String"}}}
+  ,"trainingBrief": "TRAINING BRIEF"
+  ,"passportSignal": "Passport signal"
+  ,"passportFirstBenchmark": "Log a benchmark set in your next workout. Your normal training can now issue the first passport entry automatically."
+  ,"passportCalibration": "Passport calibration · {count}/3", "@passportCalibration": {"placeholders": {"count": {"type": "int"}}}
+  ,"passportCalibrationBody": "Add {count} more benchmark movements to reveal your overall class.", "@passportCalibrationBody": {"placeholders": {"count": {"type": "int"}}}
+  ,"passportClosestPromotion": "Closest promotion"
+  ,"passportPromotionBody": "{exercise} · class {rank} → {next}. Your clearest route forward.", "@passportPromotionBody": {"placeholders": {"exercise": {"type": "String"}, "rank": {"type": "String"}, "next": {"type": "String"}}}
+  ,"passportHighestClass": "Passport at highest class"
+  ,"passportHighestClassBody": "Your recorded benchmark movements have reached the top issued class."
+  ,"workoutComplete": "Workout complete"
+  ,"sessionSealed": "SESSION SEALED"
+  ,"sessionSealedBody": "Saved on this device. Weekly streak and supported benchmark lifts will sync into your Strength Passport."
+  ,"setLogged": "{count, plural, =1{SET LOGGED} other{SETS LOGGED}}", "@setLogged": {"placeholders": {"count": {"type": "int"}}}
+  ,"volumeLifted": "VOLUME LIFTED"
+  ,"done": "DONE"
+  ,"difficultyNormal": "Normal"
+  ,"difficultyDeload": "Deload"
+  ,"back": "Back"
+  ,"cancel": "Cancel"
+  ,"save": "Save"
+  ,"delete": "Delete"
+  ,"syncLedger": "Sync ledger"
+  ,"syncCurrent": "All changes are safely synced"
+  ,"syncOfflineSafe": "Offline · your changes are saved on this device"
+  ,"syncPending": "{count} changes awaiting sync", "@syncPending": {"placeholders": {"count": {"type": "int"}}}
+  ,"syncRejected": "{count} changes need attention · tap to retry", "@syncRejected": {"placeholders": {"count": {"type": "int"}}}
+  ,"offlinePending": "Offline · {count, plural, =1{1 change} other{{count} changes}} will sync later", "@offlinePending": {"placeholders": {"count": {"type": "int"}}}
+  ,"offlineSaved": "Offline · changes are saved on this device"
+  ,"syncingChanges": "Syncing {count, plural, =1{1 change} other{{count} changes}}…", "@syncingChanges": {"placeholders": {"count": {"type": "int"}}}
+  ,"notSet": "Not set"
+  ,"weightUnits": "Weight units"
+  ,"addNote": "Add note"
+  ,"editNote": "Edit note"
+  ,"groupWithNext": "Group with next…"
+  ,"extendGroup": "Extend group to next…"
+  ,"removeExerciseGroup": "Remove exercise group"
+  ,"moveUp": "Move up"
+  ,"moveDown": "Move down"
+  ,"removeExercise": "Remove exercise"
+  ,"trainingGroup": "Training group"
+  ,"trainingGroupBody": "Grouped exercises advance without starting the rest timer until the round is complete."
+  ,"superset": "Superset"
+  ,"circuit": "Circuit"
+  ,"intervalBlock": "Interval block"
+  ,"exerciseNote": "Exercise note"
+  ,"exerciseNoteHint": "Form cues, pain, target for next time…"
+  ,"quitWorkoutQuestion": "Quit workout?"
+  ,"quitWorkoutBody": "This workout and all checked sets will be discarded."
+  ,"keepGoing": "Keep going"
+  ,"quit": "Quit"
+  ,"finishWorkoutQuestion": "Finish workout?"
+  ,"finishWorkoutBody": "{done} of {total} sets are complete. Choose how you want to finish.", "@finishWorkoutBody": {"placeholders": {"done": {"type": "int"}, "total": {"type": "int"}}}
+  ,"finishWithoutSaving": "Finish without saving"
+  ,"saveKeepRoutine": "Save · keep routine"
+  ,"finishAndSave": "Finish and save"
+  ,"saveUpdateRoutine": "Save · update routine"
+  ,"couldNotSaveWorkout": "Couldn’t save workout"
+  ,"setColumn": "SET"
+  ,"setType": "Set type"
+  ,"progressionTag": "Progression tag…"
+  ,"progressionValue": "Progression: {value}", "@progressionValue": {"placeholders": {"value": {"type": "String"}}}
+  ,"setProgressQuestion": "How did this set progress?"
+  ,"noProgressionTag": "No progression tag"
+  ,"perceivedExertion": "Rate of perceived exertion"
+  ,"perceivedExertionQuestion": "How hard did this set feel?"
+  ,"clearRpe": "Clear RPE"
+  ,"startNewWorkoutQuestion": "Start a new workout?"
+  ,"activeWorkoutBody": "You have an active session in progress. Starting this one will discard it."
+  ,"resumeActive": "Resume active"
+  ,"startNew": "Start new"
+  ,"configureWorkout": "Configure workout"
+  ,"configureWorkoutBody": "Optional exercises and alternatives can change each session."
+  ,"optional": "Optional"
+  ,"chooseOne": "CHOOSE ONE"
+  ,"alternative": "Alternative"
+  ,"saved": "Saved"
+  ,"copySavedBody": "A private copy was added to your workouts. Open “Mine” to launch or edit it."
+  ,"couldNotSaveCopy": "Could not save a copy"
+  ,"whatWorks": "What works"
+  ,"watch": "Watch"
+  ,"nextFocus": "Next focus"
+  ,"deleteWorkoutQuestion": "Delete workout?"
+  ,"workoutHistory": "Workout history"
+  ,"volume": "Volume"
+  ,"averageTime": "Avg time"
+  ,"streak": "Streak"
+  ,"ranked": "Ranked"
+  ,"sessions": "Sessions"
+  ,"time": "Time"
+  ,"hardSets": "Hard sets"
+  ,"longestWorkout": "Longest workout"
+  ,"favoriteExercise": "Favorite exercise"
+  ,"strongestBodyweight": "Strongest (vs bodyweight)"
+  ,"name": "Name"
+  ,"imageUrl": "Image URL"
+  ,"description": "Description"
+  ,"bodyMeasurements": "Body Measurements"
+  ,"deleteMeasurementQuestion": "Delete measurement?"
+  ,"deleteMeasurementBody": "The entry from {date} will be removed.", "@deleteMeasurementBody": {"placeholders": {"date": {"type": "String"}}}
+  ,"couldNotLoadRetry": "Could not load · Retry"
+  ,"saveMeasurement": "Save measurement"
+  ,"privacyPolicy": "Privacy policy"
+  ,"termsOfUse": "Terms of use"
+  ,"support": "Support"
+  ,"logoutQuestion": "Are you sure you want to log out?"
+  ,"deleteAccount": "Delete Account"
+  ,"deleteAccountCaption": "Permanently deletes your workouts, exercise history and profile. This cannot be undone."
+  ,"deleteAccountBody": "This will permanently delete your account, workouts, exercise history and profile. This cannot be undone."
+  ,"couldNotDeleteAccount": "Could not delete account"
+  ,"rename": "Rename"
+  ,"deleteFolder": "Delete folder"
+  ,"deleteFolderQuestion": "Delete “{name}”?", "@deleteFolderQuestion": {"placeholders": {"name": {"type": "String"}}}
+  ,"moveWorkout": "Move “{name}”", "@moveWorkout": {"placeholders": {"name": {"type": "String"}}}
+  ,"defaultFolder": "Default folder"
+  ,"couldNotSaveChanges": "Couldn’t save changes"
+  ,"sortWorkouts": "Sort workouts"
+  ,"newFolder": "New folder"
+  ,"openWorkout": "Open {name}", "@openWorkout": {"placeholders": {"name": {"type": "String"}}}
+  ,"couldNotVerifyPro": "Couldn’t verify Pro access"
+  ,"warmupSet": "Warm-up"
+  ,"warmupSetBody": "Excluded from working volume"
+  ,"workingSet": "Working"
+  ,"workingSetBody": "Counts toward volume and PRs"
+  ,"failureSet": "Failure"
+  ,"failureSetBody": "Taken to muscular failure"
+  ,"dropSet": "Drop set"
+  ,"dropSetBody": "Reduced load without a full rest period"
+  ,"heavierWeight": "Heavier weight"
+  ,"greaterAmplitude": "Greater amplitude"
+  ,"betterEfficiency": "Better efficiency"
+  ,"meoSet": "MEO / myo-rep set"
+  ,"weightKgLabel": "Weight (kg)"
+  ,"heightCmLabel": "Height (cm)"
+  ,"couldNotOpenLink": "Could not open link"
+  ,"noDiagnostics": "No diagnostics to send"
+  ,"diagnosticsEmpty": "The local diagnostic buffer is currently empty."
+  ,"sendDiagnosticsQuestion": "Send diagnostics?"
+  ,"sendDiagnosticsBody": "This sends {count} technical events to GymControl support. Tokens, email, workout contents, comments and stack traces are not included.", "@sendDiagnosticsBody": {"placeholders": {"count": {"type": "int"}}}
+  ,"diagnosticsSent": "Diagnostics sent"
+  ,"diagnosticsSentBody": "{count} events sent. Reference: {reference}", "@diagnosticsSentBody": {"placeholders": {"count": {"type": "int"}, "reference": {"type": "String"}}}
+  ,"diagnosticsFailed": "Could not send diagnostics"
+  ,"diagnosticsFailedBody": "The events remain on this device. Check your connection and try again."
+  ,"shareDiagnostics": "Share technical diagnostics automatically"
+  ,"diagnosticsPrivacyBody": "Helps us detect app errors. Includes only event codes, app version and platform; never email, workout content, tokens or stack traces."
+  ,"exerciseIllustrations": "Exercise illustrations"
+  ,"exerciseIllustrationsCredit": "Muscle-highlight illustrations © Everkinetic, used under the Creative Commons Attribution-ShareAlike license (CC BY-SA)."
+  ,"exerciseData": "Exercise data"
+  ,"exerciseDataCredit": "Exercise catalog based on the free-exercise-db, released into the public domain under The Unlicense."
+  ,"warmupCalculator": "Warm-up calculator"
+  ,"workingKg": "Working kg"
+  ,"barKg": "Bar kg"
+  ,"plateCalculator": "Plate calculator"
+  ,"totalKg": "Total kg"
+  ,"pickExercise": "Pick exercise"
+  ,"recent": "Recent"
+  ,"favorites": "Favorites"
+  ,"anyEquipment": "Any equipment"
+  ,"optionalBody": "Choose whether to include it when starting"
+  ,"alternativePrevious": "Alternative to previous"
+  ,"alternativePreviousBody": "Pick one of the two when starting"
+  ,"restSeconds": "Rest (s)"
+  ,"repsShort": "reps"
 }

@@ -31,20 +31,17 @@ class GradientButton extends StatelessWidget {
           boxShadow: loading ? null : c.cardShadow,
         ),
         child: Center(
-          child:
-              loading
-                  ? const CupertinoActivityIndicator(
-                    color: CupertinoColors.white,
-                  )
-                  : Text(
-                    label,
-                    style: TextStyle(
-                      color: c.invText,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: -0.2,
-                    ),
+          child: loading
+              ? const CupertinoActivityIndicator(color: CupertinoColors.white)
+              : Text(
+                  label,
+                  style: TextStyle(
+                    color: c.invText,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.2,
                   ),
+                ),
         ),
       ),
     );

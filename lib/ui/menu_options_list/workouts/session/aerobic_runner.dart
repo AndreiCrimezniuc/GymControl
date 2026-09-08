@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 
 import 'package:gymboss/data/repositories/workouts_repository.dart';
+import 'package:gymboss/data/repositories/sessions_repository.dart';
 import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_scaffold.dart';
@@ -81,11 +82,13 @@ class AerobicRunnerScreen extends StatefulWidget {
   final String workoutId;
   final String workoutName;
   final WorkoutsRepository repo;
+  final SessionsRepository sessions;
   const AerobicRunnerScreen({
     super.key,
     required this.workoutId,
     required this.workoutName,
     required this.repo,
+    required this.sessions,
   });
 
   @override
@@ -123,6 +126,7 @@ class _AerobicRunnerScreenState extends State<AerobicRunnerScreen> {
         'normal',
         durationSeconds: _c.totalSeconds,
       );
+      await widget.sessions.recordSession();
     } catch (_) {}
     if (mounted) Navigator.of(context).pop(true);
   }
@@ -262,28 +266,27 @@ class _AerobicRunnerScreenState extends State<AerobicRunnerScreen> {
     child: ListView.builder(
       itemCount: _c.laps.length,
       reverse: true,
-      itemBuilder:
-          (_, i) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 5),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Lap ${i + 1}',
-                  style: TextStyle(fontSize: 13, color: c.textSecondary),
-                ),
-                Text(
-                  AerobicSessionController.fmt(_c.laps[i]),
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                    color: c.textPrimary,
-                  ),
-                ),
-              ],
+      itemBuilder: (_, i) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Lap ${i + 1}',
+              style: TextStyle(fontSize: 13, color: c.textSecondary),
             ),
-          ),
+            Text(
+              AerobicSessionController.fmt(_c.laps[i]),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                fontFeatures: const [FontFeature.tabularFigures()],
+                color: c.textPrimary,
+              ),
+            ),
+          ],
+        ),
+      ),
     ),
   );
 

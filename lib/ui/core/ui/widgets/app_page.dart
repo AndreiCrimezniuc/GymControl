@@ -3,6 +3,7 @@ import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/theme/app_design.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_scaffold.dart';
 import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
+import 'package:gymboss/l10n/app_localizations.dart';
 
 /// A themed inner page: warm gradient background, a header row with a back
 /// button + title (and optional trailing actions), and a body that fills the
@@ -38,20 +39,17 @@ class AppPage extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Semantics(
-                  button: true,
-                  label: 'Back',
-                  child: Pressable(
-                    onTap: () => Navigator.of(context).maybePop(),
-                    child: SizedBox(
-                      width: 44,
-                      height: 44,
-                      child: Center(
-                        child: Icon(
-                          CupertinoIcons.chevron_back,
-                          size: 20,
-                          color: c.textPrimary,
-                        ),
+                Pressable(
+                  semanticLabel: AppLocalizations.of(context).back,
+                  onTap: () => Navigator.of(context).maybePop(),
+                  child: SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: Center(
+                      child: Icon(
+                        CupertinoIcons.chevron_back,
+                        size: 20,
+                        color: c.textPrimary,
                       ),
                     ),
                   ),

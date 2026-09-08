@@ -28,10 +28,9 @@ class PillButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: filled ? c.accent : const Color(0x00000000),
           borderRadius: BorderRadius.circular(AppDesign.radiusControl),
-          border:
-              filled
-                  ? null
-                  : Border.all(color: c.pillBorder, width: AppDesign.hairline),
+          border: filled
+              ? null
+              : Border.all(color: c.pillBorder, width: AppDesign.hairline),
         ),
         child: Text(
           label,

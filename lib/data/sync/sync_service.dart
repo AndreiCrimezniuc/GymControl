@@ -56,16 +56,24 @@ typedef MutationHandler =
 class SyncStatus {
   final bool online;
   final int pending;
-  const SyncStatus({required this.online, required this.pending});
+  final int rejected;
+  const SyncStatus({
+    required this.online,
+    required this.pending,
+    this.rejected = 0,
+  });
 
   bool get hasPending => pending > 0;
 
   @override
   bool operator ==(Object other) =>
-      other is SyncStatus && other.online == online && other.pending == pending;
+      other is SyncStatus &&
+      other.online == online &&
+      other.pending == pending &&
+      other.rejected == rejected;
 
   @override
-  int get hashCode => Object.hash(online, pending);
+  int get hashCode => Object.hash(online, pending, rejected);
 }
 
 /// Drains the outbox against the backend whenever the app is online. Handlers
@@ -75,8 +83,10 @@ class SyncService {
     LocalStore? store,
     Future<bool> Function()? isOnline,
     Stream<bool>? onlineChanges,
+    Duration Function(int attempt)? retryDelay,
   }) : _store = store ?? LocalStore.instance,
        _isOnline = isOnline ?? ConnectivityService.instance.isOnline,
+       _retryDelay = retryDelay ?? syncRetryDelay,
        _onlineChanges =
            onlineChanges ?? ConnectivityService.instance.onlineChanges;
 
@@ -85,12 +95,15 @@ class SyncService {
   final LocalStore _store;
   final Future<bool> Function() _isOnline;
   final Stream<bool> _onlineChanges;
+  final Duration Function(int attempt) _retryDelay;
   final _handlers = <String, MutationHandler>{};
 
   AuthenticatedClient? _client;
   StreamSubscription<bool>? _sub;
   Completer<void>? _flushCompleter;
   bool _online = true;
+  Timer? _retryTimer;
+  int _retryAttempt = 0;
 
   /// Reactive sync health for the UI (online state + pending-change count).
   /// Repositories call [notifyChanged] after enqueuing; connectivity and flush
@@ -102,7 +115,19 @@ class SyncService {
   /// Recomputes [status] from the current online flag and outbox depth.
   void notifyChanged() {
     final pending = _store.isReady ? _store.pending().length : 0;
-    status.value = SyncStatus(online: _online, pending: pending);
+    final rejected = _store.isReady ? _store.deadLetters().length : 0;
+    status.value = SyncStatus(
+      online: _online,
+      pending: pending,
+      rejected: rejected,
+    );
+  }
+
+  Future<void> retryRejected() async {
+    if (!_store.isReady) return;
+    await _store.retryDeadLetters();
+    notifyChanged();
+    await flush();
   }
 
   void registerHandler(String kind, MutationHandler handler) {
@@ -119,7 +144,11 @@ class SyncService {
     _sub ??= _onlineChanges.listen((online) {
       _online = online;
       notifyChanged();
-      if (online) flush();
+      if (online) {
+        _retryAttempt = 0;
+        _retryTimer?.cancel();
+        flush();
+      }
     });
     unawaited(
       _isOnline().then((v) {
@@ -150,8 +179,12 @@ class SyncService {
     // can otherwise all pass the guard and replay the same mutation.
     final completer = Completer<void>();
     _flushCompleter = completer;
+    var needsRetry = false;
     try {
-      if (!await _isOnline()) return;
+      if (!await _isOnline()) {
+        needsRetry = _store.hasPending;
+        return;
+      }
       for (final m in _store.pending()) {
         final handler = _handlers[m.kind];
         if (handler == null) {
@@ -189,6 +222,7 @@ class SyncService {
         } else {
           m.retries += 1;
           await _store.updateMutation(m);
+          needsRetry = true;
           break; // transient — retry the whole queue later, in order
         }
       }
@@ -196,12 +230,37 @@ class SyncService {
       _flushCompleter = null;
       notifyChanged();
       completer.complete();
+      if (needsRetry || _store.hasPending) {
+        _scheduleRetry();
+      } else {
+        _retryAttempt = 0;
+        _retryTimer?.cancel();
+        _retryTimer = null;
+      }
     }
+  }
+
+  void _scheduleRetry() {
+    if (_retryTimer?.isActive ?? false) return;
+    final delay = _retryDelay(_retryAttempt++);
+    _retryTimer = Timer(delay, () {
+      _retryTimer = null;
+      unawaited(flush());
+    });
   }
 
   void dispose() {
     _sub?.cancel();
     _sub = null;
+    _retryTimer?.cancel();
+    _retryTimer = null;
     status.dispose();
   }
+}
+
+/// Exponential retry with a one-hour ceiling: 1, 2, 4, 8, 16, 32, 60 min.
+Duration syncRetryDelay(int attempt) {
+  final safeAttempt = attempt.clamp(0, 6);
+  final minutes = (1 << safeAttempt).clamp(1, 60);
+  return Duration(minutes: minutes);
 }

@@ -12,11 +12,19 @@ class WorkoutLiveActivity {
   static Future<void> start({
     required String workoutName,
     required int totalSets,
+    required int completedSets,
+    required DateTime startedAt,
+    int? restSeconds,
   }) => _call('start', {
     'workoutName': workoutName,
     'totalSets': totalSets,
-    'completedSets': 0,
-    'startedAt': DateTime.now().millisecondsSinceEpoch,
+    'completedSets': completedSets,
+    'startedAt': startedAt.millisecondsSinceEpoch,
+    'restEnd': restSeconds == null || restSeconds <= 0
+        ? null
+        : DateTime.now()
+              .add(Duration(seconds: restSeconds))
+              .millisecondsSinceEpoch,
   });
 
   static Future<void> update({
@@ -26,12 +34,11 @@ class WorkoutLiveActivity {
   }) => _call('update', {
     'completedSets': completedSets,
     'totalSets': totalSets,
-    'restEnd':
-        restSeconds == null || restSeconds <= 0
-            ? null
-            : DateTime.now()
-                .add(Duration(seconds: restSeconds))
-                .millisecondsSinceEpoch,
+    'restEnd': restSeconds == null || restSeconds <= 0
+        ? null
+        : DateTime.now()
+              .add(Duration(seconds: restSeconds))
+              .millisecondsSinceEpoch,
   });
 
   static Future<void> end() => _call('end');

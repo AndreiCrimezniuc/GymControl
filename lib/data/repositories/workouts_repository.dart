@@ -52,7 +52,7 @@ class WorkoutsRepository {
   Future<List<WorkoutFolder>> listFolders({bool forceRefresh = false}) async {
     if (!forceRefresh && _store.hasList(_foldersKey)) {
       final cached = _cachedFolders();
-      if (await _isOnline()) unawaited(_refreshFoldersInBackground());
+      unawaited(_refreshFoldersInBackground());
       return cached;
     }
     if (!await _isOnline() && _store.hasList(_foldersKey)) {
@@ -69,8 +69,8 @@ class WorkoutsRepository {
       if (response.statusCode != 200) {
         throw Exception(_err(response.body, response.statusCode));
       }
-      final raw =
-          (jsonDecode(response.body) as List).cast<Map<String, dynamic>>();
+      final raw = (jsonDecode(response.body) as List)
+          .cast<Map<String, dynamic>>();
       for (final folder in raw) {
         await _store.putDoc(_folderCollection, folder['id'] as String, folder);
       }
@@ -89,17 +89,17 @@ class WorkoutsRepository {
 
   Future<void> _refreshFoldersInBackground() async {
     try {
+      if (!await _isOnline()) return;
       await _refreshFolders();
     } catch (_) {
       // Keep the last durable snapshot and retry later.
     }
   }
 
-  List<WorkoutFolder> _cachedFolders() =>
-      _store
-          .getListDocs(_folderCollection, _foldersKey)
-          .map(WorkoutFolder.fromJson)
-          .toList();
+  List<WorkoutFolder> _cachedFolders() => _store
+      .getListDocs(_folderCollection, _foldersKey)
+      .map(WorkoutFolder.fromJson)
+      .toList();
 
   Future<WorkoutFolder> createFolder(String name) async {
     final tempId = 'local:${_uuid.v4()}';
@@ -113,33 +113,6 @@ class WorkoutsRepository {
       ..._store.getListIds(_foldersKey),
       tempId,
     ]);
-    if (await _isOnline()) {
-      try {
-        final response = await _client
-            .post(
-              Uri.parse('${ApiConfig.apiBaseUrl}/api/v1/workout-folders'),
-              body: jsonEncode({'name': name}),
-            )
-            .timeout(const Duration(seconds: 15));
-        if (response.statusCode != 201) {
-          throw Exception(_err(response.body, response.statusCode));
-        }
-        final body = jsonDecode(response.body) as Map<String, dynamic>;
-        await _store.remapId(
-          _folderCollection,
-          tempId,
-          body['id'] as String,
-          body,
-        );
-        return WorkoutFolder.fromJson(body);
-      } on Object catch (error) {
-        if (!isTransientNetworkFailure(error)) {
-          await _store.deleteDoc(_folderCollection, tempId);
-          await _store.removeFromList(_foldersKey, tempId);
-          rethrow;
-        }
-      }
-    }
     await _enqueue('folder.create', {'tempId': tempId, 'name': name});
     return WorkoutFolder.fromJson(doc);
   }
@@ -148,22 +121,6 @@ class WorkoutsRepository {
     final cached = _store.getDoc(_folderCollection, id);
     if (cached != null) {
       await _store.putDoc(_folderCollection, id, {...cached, 'name': name});
-    }
-    if (!id.startsWith('local:') && await _isOnline()) {
-      try {
-        final response = await _client
-            .put(
-              Uri.parse('${ApiConfig.apiBaseUrl}/api/v1/workout-folders/$id'),
-              body: jsonEncode({'name': name}),
-            )
-            .timeout(const Duration(seconds: 15));
-        if (response.statusCode != 204) {
-          throw Exception(_err(response.body, response.statusCode));
-        }
-        return;
-      } on Object catch (error) {
-        if (!isTransientNetworkFailure(error)) rethrow;
-      }
     }
     await _enqueue('folder.rename', {'id': id, 'name': name});
   }
@@ -182,21 +139,6 @@ class WorkoutsRepository {
       await _store.cancelPendingFor(id);
       return;
     }
-    if (await _isOnline()) {
-      try {
-        final response = await _client
-            .delete(
-              Uri.parse('${ApiConfig.apiBaseUrl}/api/v1/workout-folders/$id'),
-            )
-            .timeout(const Duration(seconds: 15));
-        if (response.statusCode != 204) {
-          throw Exception(_err(response.body, response.statusCode));
-        }
-        return;
-      } on Object catch (error) {
-        if (!isTransientNetworkFailure(error)) rethrow;
-      }
-    }
     await _enqueue('folder.delete', {'id': id});
   }
 
@@ -207,24 +149,6 @@ class WorkoutsRepository {
         ...cached,
         'folder_id': folderId,
       });
-    }
-    if (!workoutId.startsWith('local:') && await _isOnline()) {
-      try {
-        final response = await _client
-            .put(
-              Uri.parse(
-                '${ApiConfig.apiBaseUrl}/api/v1/workouts/$workoutId/folder',
-              ),
-              body: jsonEncode({'folder_id': folderId}),
-            )
-            .timeout(const Duration(seconds: 15));
-        if (response.statusCode != 204) {
-          throw Exception(_err(response.body, response.statusCode));
-        }
-        return;
-      } on Object catch (error) {
-        if (!isTransientNetworkFailure(error)) rethrow;
-      }
     }
     await _enqueue('workout.assignFolder', {
       'id': workoutId,
@@ -239,9 +163,7 @@ class WorkoutsRepository {
   }) async {
     if (!forceRefresh && _store.hasList(key)) {
       final cached = _readCachedWorkouts(key);
-      if (await _isOnline()) {
-        unawaited(_refreshWorkoutListInBackground(url, key));
-      }
+      unawaited(_refreshWorkoutListInBackground(url, key));
       return cached;
     }
     if (!await _isOnline() && _store.hasList(key)) {
@@ -275,6 +197,7 @@ class WorkoutsRepository {
 
   Future<void> _refreshWorkoutListInBackground(String url, String key) async {
     try {
+      if (!await _isOnline()) return;
       await _refreshWorkoutList(url, key);
     } catch (_) {
       // Keep the last durable snapshot and retry later.
@@ -284,11 +207,19 @@ class WorkoutsRepository {
   List<Workout> _readCachedWorkouts(String key) =>
       _store.getListDocs(_collection, key).map(Workout.fromJson).toList();
 
-  Future<Workout> get(String id) async {
+  Future<Workout> get(String id, {bool forceRefresh = false}) async {
     final cached = _store.getDoc(_collection, id);
-    if (!await _isOnline() && cached != null) {
+    if (!forceRefresh && cached != null) {
+      unawaited(_refreshWorkoutInBackground(id));
       return Workout.fromJson(cached);
     }
+    if (!await _isOnline()) {
+      throw Exception('Workout is not available offline yet');
+    }
+    return _refreshWorkout(id);
+  }
+
+  Future<Workout> _refreshWorkout(String id) async {
     try {
       final resp = await _client
           .get(Uri.parse('$_base/$id'))
@@ -300,6 +231,7 @@ class WorkoutsRepository {
       await _store.putDoc(_collection, id, doc);
       return Workout.fromJson(doc);
     } on Object catch (e) {
+      final cached = _store.getDoc(_collection, id);
       if (isTransientNetworkFailure(e) && cached != null) {
         return Workout.fromJson(cached);
       }
@@ -307,15 +239,31 @@ class WorkoutsRepository {
     }
   }
 
+  Future<void> _refreshWorkoutInBackground(String id) async {
+    try {
+      if (await _isOnline()) await _refreshWorkout(id);
+    } catch (_) {}
+  }
+
   /// Statistics-screen summary. Cached so it renders offline; [period] is
   /// 'year' or 'all'.
-  Future<StatsSummary> statsSummary({String period = 'all'}) async {
-    final url = '${ApiConfig.apiBaseUrl}/api/v1/stats/summary?period=$period';
+  Future<StatsSummary> statsSummary({
+    String period = 'all',
+    bool forceRefresh = false,
+  }) async {
     final cacheKey = 'summary_$period';
     final cached = _store.getDoc('stats_summary', cacheKey);
-    if (!await _isOnline() && cached != null) {
+    if (!forceRefresh && cached != null) {
+      unawaited(_refreshStatsSummaryInBackground(period));
       return StatsSummary.fromJson(cached);
     }
+    if (!await _isOnline()) return StatsSummary.empty;
+    return _refreshStatsSummary(period);
+  }
+
+  Future<StatsSummary> _refreshStatsSummary(String period) async {
+    final url = '${ApiConfig.apiBaseUrl}/api/v1/stats/summary?period=$period';
+    final cacheKey = 'summary_$period';
     try {
       final resp = await _client
           .get(Uri.parse(url))
@@ -327,6 +275,7 @@ class WorkoutsRepository {
       await _store.putDoc('stats_summary', cacheKey, doc);
       return StatsSummary.fromJson(doc);
     } on Object catch (e) {
+      final cached = _store.getDoc('stats_summary', cacheKey);
       if (isTransientNetworkFailure(e) && cached != null) {
         return StatsSummary.fromJson(cached);
       }
@@ -334,15 +283,31 @@ class WorkoutsRepository {
     }
   }
 
-  Future<List<ActivityPoint>> activity({String period = 'all'}) async {
+  Future<void> _refreshStatsSummaryInBackground(String period) async {
+    try {
+      if (await _isOnline()) await _refreshStatsSummary(period);
+    } catch (_) {}
+  }
+
+  Future<List<ActivityPoint>> activity({
+    String period = 'all',
+    bool forceRefresh = false,
+  }) async {
+    final cacheKey = 'activity_$period';
+    final cached = _store.getDoc('stats_activity', cacheKey);
+    if (!forceRefresh && cached != null) {
+      unawaited(_refreshActivityInBackground(period));
+      return _activityFromCache(cached);
+    }
+    if (!await _isOnline()) return const [];
+    return _refreshActivity(period);
+  }
+
+  Future<List<ActivityPoint>> _refreshActivity(String period) async {
     final cacheKey = 'activity_$period';
     final uri = Uri.parse(
       '${ApiConfig.apiBaseUrl}/api/v1/stats/activity?period=$period',
     );
-    final cached = _store.getDoc('stats_activity', cacheKey);
-    if (!await _isOnline() && cached != null) {
-      return _activityFromCache(cached);
-    }
     try {
       final response = await _client
           .get(uri)
@@ -350,11 +315,12 @@ class WorkoutsRepository {
       if (response.statusCode != 200) {
         throw Exception('GET stats/activity HTTP ${response.statusCode}');
       }
-      final raw =
-          (jsonDecode(response.body) as List).cast<Map<String, dynamic>>();
+      final raw = (jsonDecode(response.body) as List)
+          .cast<Map<String, dynamic>>();
       await _store.putDoc('stats_activity', cacheKey, {'items': raw});
       return raw.map(ActivityPoint.fromJson).toList();
     } on Object catch (error) {
+      final cached = _store.getDoc('stats_activity', cacheKey);
       if (isTransientNetworkFailure(error) && cached != null) {
         return _activityFromCache(cached);
       }
@@ -362,16 +328,28 @@ class WorkoutsRepository {
     }
   }
 
+  Future<void> _refreshActivityInBackground(String period) async {
+    try {
+      if (await _isOnline()) await _refreshActivity(period);
+    } catch (_) {}
+  }
+
   List<ActivityPoint> _activityFromCache(Map<String, dynamic> cached) =>
       ((cached['items'] as List?) ?? const [])
           .map((item) => ActivityPoint.fromJson(item as Map<String, dynamic>))
           .toList();
 
-  Future<WorkoutStats> stats(String id) async {
+  Future<WorkoutStats> stats(String id, {bool forceRefresh = false}) async {
     final cached = _store.getDoc('workout_stats', id);
-    if (!await _isOnline() && cached != null) {
+    if (!forceRefresh && cached != null) {
+      unawaited(_refreshWorkoutStatsInBackground(id));
       return WorkoutStats.fromJson(cached);
     }
+    if (!await _isOnline()) return WorkoutStats.empty;
+    return _refreshWorkoutStats(id);
+  }
+
+  Future<WorkoutStats> _refreshWorkoutStats(String id) async {
     try {
       final resp = await _client
           .get(Uri.parse('$_base/$id/stats'))
@@ -383,6 +361,7 @@ class WorkoutsRepository {
       await _store.putDoc('workout_stats', id, doc);
       return WorkoutStats.fromJson(doc);
     } on Object catch (e) {
+      final cached = _store.getDoc('workout_stats', id);
       if (isTransientNetworkFailure(e) && cached != null) {
         return WorkoutStats.fromJson(cached);
       }
@@ -390,12 +369,32 @@ class WorkoutsRepository {
     }
   }
 
-  Future<List<PerformedExerciseLog>> runDetail(String id, String date) async {
+  Future<void> _refreshWorkoutStatsInBackground(String id) async {
+    try {
+      if (await _isOnline()) await _refreshWorkoutStats(id);
+    } catch (_) {}
+  }
+
+  Future<List<PerformedExerciseLog>> runDetail(
+    String id,
+    String date, {
+    bool forceRefresh = false,
+  }) async {
     final cacheId = '$id:$date';
     final cached = _store.getDoc('workout_run_detail', cacheId);
-    if (!await _isOnline() && cached != null) {
+    if (!forceRefresh && cached != null) {
+      unawaited(_refreshRunDetailInBackground(id, date));
       return _runDetailFromCache(cached);
     }
+    if (!await _isOnline()) return const [];
+    return _refreshRunDetail(id, date);
+  }
+
+  Future<List<PerformedExerciseLog>> _refreshRunDetail(
+    String id,
+    String date,
+  ) async {
+    final cacheId = '$id:$date';
     try {
       final resp = await _client
           .get(Uri.parse('$_base/$id/history/$date'))
@@ -409,6 +408,7 @@ class WorkoutsRepository {
           .map((e) => PerformedExerciseLog.fromJson(e as Map<String, dynamic>))
           .toList();
     } on Object catch (error) {
+      final cached = _store.getDoc('workout_run_detail', cacheId);
       if (isTransientNetworkFailure(error) && cached != null) {
         return _runDetailFromCache(cached);
       }
@@ -416,10 +416,28 @@ class WorkoutsRepository {
     }
   }
 
+  Future<void> _refreshRunDetailInBackground(String id, String date) async {
+    try {
+      if (await _isOnline()) await _refreshRunDetail(id, date);
+    } catch (_) {}
+  }
+
   List<PerformedExerciseLog> _runDetailFromCache(Map<String, dynamic> cached) =>
       ((cached['items'] as List?) ?? const [])
           .map((e) => PerformedExerciseLog.fromJson(e as Map<String, dynamic>))
           .toList();
+
+  Future<WorkoutSuggestion> requestAiSuggestion(String id) async {
+    final response = await _client
+        .post(Uri.parse('$_base/$id/ai-suggest'))
+        .timeout(const Duration(seconds: 45));
+    if (response.statusCode != 200) {
+      throw Exception(_err(response.body, response.statusCode));
+    }
+    return WorkoutSuggestion.fromJson(
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
+  }
 
   // ── Writes (optimistic + outbox) ───────────────────────────────────────────
 
@@ -445,26 +463,6 @@ class WorkoutsRepository {
     await _store.putDoc(_collection, tempId, doc);
     await _store.prependToList(_ownedKey, tempId);
 
-    if (await _isOnline()) {
-      try {
-        return await _networkCreate(
-          name,
-          comment,
-          serverExercises,
-          clientRequestId: clientRequestId,
-          replaceTempId: tempId,
-          deloadFactor: deloadFactor,
-          type: type,
-        );
-      } on Object catch (e) {
-        if (!isTransientNetworkFailure(e)) {
-          // Real rejection (e.g. validation) — roll back the optimistic doc.
-          await _store.deleteDoc(_collection, tempId);
-          await _store.removeFromList(_ownedKey, tempId);
-          rethrow;
-        }
-      }
-    }
     await _enqueue('workout.create', {
       'tempId': tempId,
       'client_request_id': clientRequestId,
@@ -497,32 +495,6 @@ class WorkoutsRepository {
     doc['deload_factor'] = deloadFactor;
     await _store.putDoc(_collection, id, doc);
 
-    if (!id.startsWith('local:') && await _isOnline()) {
-      try {
-        final resp = await _client
-            .put(
-              Uri.parse('$_base/$id'),
-              body: _encode(
-                name,
-                comment,
-                serverExercises,
-                deloadFactor: deloadFactor,
-                type: type,
-              ),
-            )
-            .timeout(const Duration(seconds: 20));
-        if (resp.statusCode != 200) {
-          throw Exception(_err(resp.body, resp.statusCode));
-        }
-        final fresh = jsonDecode(resp.body) as Map<String, dynamic>;
-        await _store.putDoc(_collection, id, fresh);
-        return Workout.fromJson(fresh);
-      } on Object catch (e) {
-        if (!isTransientNetworkFailure(e)) {
-          rethrow;
-        }
-      }
-    }
     await _enqueue('workout.update', {
       'id': id,
       'name': name,
@@ -542,21 +514,6 @@ class WorkoutsRepository {
       await _store.cancelPendingFor(id);
       return;
     }
-    if (await _isOnline()) {
-      try {
-        final resp = await _client
-            .delete(Uri.parse('$_base/$id'))
-            .timeout(const Duration(seconds: 15));
-        if (resp.statusCode != 204) {
-          throw Exception('DELETE HTTP ${resp.statusCode}');
-        }
-        return;
-      } on Object catch (e) {
-        if (!isTransientNetworkFailure(e)) {
-          rethrow;
-        }
-      }
-    }
     await _enqueue('workout.delete', {'id': id});
   }
 
@@ -567,28 +524,29 @@ class WorkoutsRepository {
     String? sessionId,
   }) async {
     final operationId = _uuid.v4();
-    if (!id.startsWith('local:') && await _isOnline()) {
-      try {
-        final resp = await _client
-            .post(
-              Uri.parse('$_base/$id/run'),
-              body: jsonEncode({
-                'difficulty': difficulty,
-                'duration_seconds': durationSeconds,
-                'operation_id': operationId,
-                'session_id': sessionId,
-              }),
-            )
-            .timeout(const Duration(seconds: 15));
-        if (resp.statusCode != 204) {
-          throw Exception('RUN HTTP ${resp.statusCode}');
-        }
-        return;
-      } on Object catch (e) {
-        if (!isTransientNetworkFailure(e)) {
-          rethrow;
-        }
-      }
+    final now = DateTime.now().toUtc().toIso8601String();
+    final cachedStats = _store.getDoc('workout_stats', id);
+    if (cachedStats != null) {
+      final history = List<Map<String, dynamic>>.from(
+        (cachedStats['history'] as List? ?? const []).map(
+          (item) => Map<String, dynamic>.from(item as Map),
+        ),
+      );
+      history.insert(0, {'date': now, 'difficulty': difficulty});
+      await _store.putDoc('workout_stats', id, {
+        ...cachedStats,
+        'times_performed':
+            ((cachedStats['times_performed'] as num?)?.toInt() ?? 0) + 1,
+        'history': history,
+      });
+    }
+    final cachedWorkout = _store.getDoc(_collection, id);
+    if (cachedWorkout != null) {
+      await _store.putDoc(_collection, id, {
+        ...cachedWorkout,
+        'times_performed':
+            ((cachedWorkout['times_performed'] as num?)?.toInt() ?? 0) + 1,
+      });
     }
     await _enqueue('workout.run', {
       'id': id,
@@ -604,24 +562,6 @@ class WorkoutsRepository {
     if (doc != null) {
       doc['visibility'] = visibility;
       await _store.putDoc(_collection, id, doc);
-    }
-    if (!id.startsWith('local:') && await _isOnline()) {
-      try {
-        final resp = await _client
-            .put(
-              Uri.parse('$_base/$id/visibility'),
-              body: jsonEncode({'visibility': visibility}),
-            )
-            .timeout(const Duration(seconds: 15));
-        if (resp.statusCode != 204) {
-          throw Exception('VISIBILITY HTTP ${resp.statusCode}');
-        }
-        return;
-      } on Object catch (e) {
-        if (!isTransientNetworkFailure(e)) {
-          rethrow;
-        }
-      }
     }
     await _enqueue('workout.visibility', {'id': id, 'visibility': visibility});
   }
@@ -660,41 +600,6 @@ class WorkoutsRepository {
   }
 
   // ── Internals ──────────────────────────────────────────────────────────────
-
-  Future<Workout> _networkCreate(
-    String name,
-    String comment,
-    List<Map<String, dynamic>> exercises, {
-    required String clientRequestId,
-    required String replaceTempId,
-    double? deloadFactor,
-    String? type,
-  }) async {
-    final resp = await _client
-        .post(
-          Uri.parse(_base),
-          body: _encode(
-            name,
-            comment,
-            exercises,
-            clientRequestId: clientRequestId,
-            deloadFactor: deloadFactor,
-            type: type,
-          ),
-        )
-        .timeout(const Duration(seconds: 20));
-    if (resp.statusCode != 201) {
-      throw Exception(_err(resp.body, resp.statusCode));
-    }
-    final fresh = jsonDecode(resp.body) as Map<String, dynamic>;
-    await _store.remapId(
-      _collection,
-      replaceTempId,
-      fresh['id'] as String,
-      fresh,
-    );
-    return Workout.fromJson(fresh);
-  }
 
   Future<void> _enqueue(String kind, Map<String, dynamic> args) async {
     await _store.enqueue(
@@ -897,38 +802,21 @@ class WorkoutsRepository {
     'exercise_count': exercises.length,
     'times_performed': base?['times_performed'] ?? 0,
     'folder_id': base?['folder_id'],
-    'exercises':
-        exercises
-            .map(
-              (e) => {
-                'exercise_id': e.exerciseId,
-                'name': e.name,
-                'image_url': e.imageUrl,
-                'image_url2': e.imageUrl2,
-                'muscle_group': e.muscleGroup,
-                'rest_seconds': e.restSeconds,
-                'comment': e.comment,
-                'sets': e.sets.map((s) => s.toJson()).toList(),
-              },
-            )
-            .toList(),
+    'exercises': exercises
+        .map(
+          (e) => {
+            'exercise_id': e.exerciseId,
+            'name': e.name,
+            'image_url': e.imageUrl,
+            'image_url2': e.imageUrl2,
+            'muscle_group': e.muscleGroup,
+            'rest_seconds': e.restSeconds,
+            'comment': e.comment,
+            'sets': e.sets.map((s) => s.toJson()).toList(),
+          },
+        )
+        .toList(),
   };
-
-  static String _encode(
-    String name,
-    String comment,
-    List<Map<String, dynamic>> exercises, {
-    String? clientRequestId,
-    double? deloadFactor,
-    String? type,
-  }) => jsonEncode({
-    'name': name,
-    'comment': comment,
-    'exercises': exercises,
-    if (deloadFactor != null) 'deload_factor': deloadFactor,
-    if (type != null) 'type': type,
-    if (clientRequestId != null) 'client_request_id': clientRequestId,
-  });
 
   static String _encodeArgs(Map<String, dynamic> args) => jsonEncode({
     'name': args['name'],

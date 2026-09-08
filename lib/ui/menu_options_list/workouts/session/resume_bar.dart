@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/session/workout_session_controller.dart';
+import 'package:gymboss/l10n/app_localizations.dart';
 
 /// A persistent bar shown over the app while a workout is minimized. Tapping it
 /// re-opens the runner with the session intact.
@@ -17,13 +18,14 @@ class WorkoutResumeBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final progress =
-        session.totalSets == 0
-            ? 0.0
-            : (session.doneSets / session.totalSets).clamp(0.0, 1.0);
+    final l10n = AppLocalizations.of(context);
+    final progress = session.totalSets == 0
+        ? 0.0
+        : (session.doneSets / session.totalSets).clamp(0.0, 1.0);
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
       child: Pressable(
+        semanticLabel: l10n.resumeWorkout,
         onTap: onTap,
         child: Container(
           decoration: BoxDecoration(
@@ -75,7 +77,11 @@ class WorkoutResumeBar extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '${session.elapsed}  ·  ${session.doneSets}/${session.totalSets} sets  ·  tap to resume',
+                            l10n.resumeSummary(
+                              session.elapsed,
+                              session.doneSets,
+                              session.totalSets,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(

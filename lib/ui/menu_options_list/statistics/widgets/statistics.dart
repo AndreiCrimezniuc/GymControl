@@ -10,6 +10,7 @@ import 'package:gymboss/domain/models/workouts/workout.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
 import 'package:gymboss/ui/core/ui/widgets/skeleton.dart';
+import 'package:gymboss/l10n/app_localizations.dart';
 
 class Statistics extends StatefulWidget {
   const Statistics({super.key});
@@ -84,83 +85,91 @@ class _StatisticsState extends State<Statistics> {
   @override
   Widget build(BuildContext context) {
     final ranks = _ranks.exerciseRanks;
+    final l10n = AppLocalizations.of(context);
     return AppPage(
-      title: 'Statistics',
-      body:
-          _loading
-              ? const SkeletonList()
-              : CustomScrollView(
-                slivers: [
-                  CupertinoSliverRefreshControl(onRefresh: _load),
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                    sliver: SliverList(
-                      delegate: SliverChildListDelegate([
-                        Row(
-                          children: [
-                            _StatTile(
-                              value: '${_streak.currentStreakWeeks}',
-                              unit:
-                                  _streak.currentStreakWeeks == 1
-                                      ? 'week'
-                                      : 'weeks',
-                              title: 'Streak',
-                              icon: CupertinoIcons.flame_fill,
+      title: AppLocalizations.of(context).statistics,
+      body: _loading
+          ? const SkeletonList()
+          : CustomScrollView(
+              slivers: [
+                CupertinoSliverRefreshControl(onRefresh: _load),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate([
+                      Row(
+                        children: [
+                          _StatTile(
+                            value: '${_streak.currentStreakWeeks}',
+                            unit: _weekWord(
+                              context,
+                              _streak.currentStreakWeeks,
                             ),
-                            const SizedBox(width: 10),
-                            _StatTile(
-                              value: '$_workouts',
-                              unit: 'routines',
-                              title: 'Workouts',
-                              icon: CupertinoIcons.calendar,
-                            ),
-                            const SizedBox(width: 10),
-                            _StatTile(
-                              value: '${ranks.length}',
-                              unit: 'lifts',
-                              title: 'Ranked',
-                              icon: CupertinoIcons.chart_bar_fill,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-                        _MetricsBlock(summary: _summary),
-                        const SizedBox(height: 24),
-                        const _SectionLabel('Training Workload'),
-                        const SizedBox(height: 12),
-                        _TrainingLoadCard(points: _activity),
-                        const SizedBox(height: 24),
-                        const _SectionLabel('Workout Calendar'),
-                        const SizedBox(height: 12),
-                        _ActivityCalendar(points: _activity),
-                        const SizedBox(height: 24),
-                        const _SectionLabel('Training Trends'),
-                        const SizedBox(height: 12),
-                        _ActivityChart(points: _activity),
-                        const SizedBox(height: 24),
-                        _MonthlyChart(
-                          summary: _summary,
-                          period: _period,
-                          onPeriod: _setPeriod,
-                        ),
-                        const SizedBox(height: 24),
-                        if (ranks.isEmpty)
-                          const _EmptyState()
-                        else ...[
-                          const _SectionLabel('Estimated 1RM'),
-                          const SizedBox(height: 12),
-                          _OneRmChart(ranks: ranks),
-                          const SizedBox(height: 24),
-                          const _SectionLabel('Personal Records'),
-                          const SizedBox(height: 12),
-                          _RecordsList(ranks: ranks),
+                            title: l10n.streak,
+                            icon: CupertinoIcons.flame_fill,
+                          ),
+                          const SizedBox(width: 10),
+                          _StatTile(
+                            value: '$_workouts',
+                            unit: 'routines',
+                            title: l10n.workouts,
+                            icon: CupertinoIcons.calendar,
+                          ),
+                          const SizedBox(width: 10),
+                          _StatTile(
+                            value: '${ranks.length}',
+                            unit: 'lifts',
+                            title: l10n.ranked,
+                            icon: CupertinoIcons.chart_bar_fill,
+                          ),
                         ],
-                        const SizedBox(height: 16),
-                      ]),
-                    ),
+                      ),
+                      const SizedBox(height: 24),
+                      _MetricsBlock(summary: _summary),
+                      const SizedBox(height: 24),
+                      _SectionLabel(
+                        AppLocalizations.of(context).trainingWorkload,
+                      ),
+                      const SizedBox(height: 12),
+                      _TrainingLoadCard(points: _activity),
+                      const SizedBox(height: 24),
+                      _SectionLabel(
+                        AppLocalizations.of(context).workoutCalendar,
+                      ),
+                      const SizedBox(height: 12),
+                      _ActivityCalendar(points: _activity),
+                      const SizedBox(height: 24),
+                      _SectionLabel(
+                        AppLocalizations.of(context).trainingTrends,
+                      ),
+                      const SizedBox(height: 12),
+                      _ActivityChart(points: _activity),
+                      const SizedBox(height: 24),
+                      _MonthlyChart(
+                        summary: _summary,
+                        period: _period,
+                        onPeriod: _setPeriod,
+                      ),
+                      const SizedBox(height: 24),
+                      if (ranks.isEmpty)
+                        const _EmptyState()
+                      else ...[
+                        const _SectionLabel('Estimated 1RM'),
+                        const SizedBox(height: 12),
+                        _OneRmChart(ranks: ranks),
+                        const SizedBox(height: 24),
+                        _SectionLabel(
+                          AppLocalizations.of(context).personalRecords,
+                        ),
+                        const SizedBox(height: 12),
+                        _RecordsList(ranks: ranks),
+                      ],
+                      const SizedBox(height: 16),
+                    ]),
                   ),
-                ],
-              ),
+                ),
+              ],
+            ),
     );
   }
 }
@@ -182,11 +191,9 @@ class _TrainingLoadCard extends StatelessWidget {
     final previousStart = currentStart.subtract(const Duration(days: 28));
     final current = _totals(currentStart, now.add(const Duration(days: 1)));
     final previous = _totals(previousStart, currentStart);
-    final change =
-        previous.volume <= 0
-            ? null
-            : ((current.volume - previous.volume) / previous.volume * 100)
-                .round();
+    final change = previous.volume <= 0
+        ? null
+        : ((current.volume - previous.volume) / previous.volume * 100).round();
     final status = switch (change) {
       null => 'Building your baseline',
       > 25 => 'Load increased quickly',
@@ -235,17 +242,17 @@ class _TrainingLoadCard extends StatelessWidget {
           Row(
             children: [
               _LoadMetric(
-                label: 'Volume',
+                label: AppLocalizations.of(context).volume,
                 value: _compact(current.volume),
                 suffix: 'kg',
               ),
               _LoadMetric(
-                label: 'Sessions',
+                label: AppLocalizations.of(context).sessions,
                 value: '${current.workouts}',
                 suffix: '',
               ),
               _LoadMetric(
-                label: 'Time',
+                label: AppLocalizations.of(context).time,
                 value: (current.seconds / 3600).toStringAsFixed(1),
                 suffix: 'h',
               ),
@@ -255,24 +262,23 @@ class _TrainingLoadCard extends StatelessWidget {
           Row(
             children: [
               _LoadMetric(
-                label: 'Working sets',
+                label: AppLocalizations.of(context).workingSets,
                 value: '${current.workingSets}',
                 suffix: '',
               ),
               _LoadMetric(
-                label: 'Hard sets',
+                label: AppLocalizations.of(context).hardSets,
                 value: '${current.hardSets}',
                 suffix: '',
                 highlight: true,
               ),
               _LoadMetric(
                 label: current.distance > 0 ? 'Distance' : 'Avg RPE',
-                value:
-                    current.distance > 0
-                        ? current.distance.toStringAsFixed(1)
-                        : current.rpeSets > 0
-                        ? (current.rpeSum / current.rpeSets).toStringAsFixed(1)
-                        : '—',
+                value: current.distance > 0
+                    ? current.distance.toStringAsFixed(1)
+                    : current.rpeSets > 0
+                    ? (current.rpeSum / current.rpeSets).toStringAsFixed(1)
+                    : '—',
                 suffix: current.distance > 0 ? 'km' : '',
               ),
             ],
@@ -325,10 +331,9 @@ class _TrainingLoadCard extends StatelessWidget {
     );
   }
 
-  String _compact(double value) =>
-      value >= 1000
-          ? '${(value / 1000).toStringAsFixed(value >= 10000 ? 0 : 1)}k'
-          : value.toStringAsFixed(0);
+  String _compact(double value) => value >= 1000
+      ? '${(value / 1000).toStringAsFixed(value >= 10000 ? 0 : 1)}k'
+      : value.toStringAsFixed(0);
 }
 
 class _LoadMetric extends StatelessWidget {
@@ -390,10 +395,9 @@ class _ActivityCalendarState extends State<_ActivityCalendar> {
   @override
   void initState() {
     super.initState();
-    final latest =
-        widget.points.isEmpty
-            ? DateTime.now()
-            : DateTime.tryParse(widget.points.last.date) ?? DateTime.now();
+    final latest = widget.points.isEmpty
+        ? DateTime.now()
+        : DateTime.tryParse(widget.points.last.date) ?? DateTime.now();
     _month = DateTime(latest.year, latest.month);
   }
 
@@ -432,10 +436,9 @@ class _ActivityCalendarState extends State<_ActivityCalendar> {
               CupertinoButton(
                 padding: EdgeInsets.zero,
                 minimumSize: const Size.square(32),
-                onPressed:
-                    () => setState(() {
-                      _month = DateTime(_month.year, _month.month - 1);
-                    }),
+                onPressed: () => setState(() {
+                  _month = DateTime(_month.year, _month.month - 1);
+                }),
                 child: const Icon(CupertinoIcons.chevron_left, size: 17),
               ),
               Expanded(
@@ -452,28 +455,26 @@ class _ActivityCalendarState extends State<_ActivityCalendar> {
               CupertinoButton(
                 padding: EdgeInsets.zero,
                 minimumSize: const Size.square(32),
-                onPressed:
-                    () => setState(() {
-                      _month = DateTime(_month.year, _month.month + 1);
-                    }),
+                onPressed: () => setState(() {
+                  _month = DateTime(_month.year, _month.month + 1);
+                }),
                 child: const Icon(CupertinoIcons.chevron_right, size: 17),
               ),
             ],
           ),
           const SizedBox(height: 8),
           Row(
-            children:
-                const ['M', 'T', 'W', 'T', 'F', 'S', 'S']
-                    .map(
-                      (day) => Expanded(
-                        child: Text(
-                          day,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 10),
-                        ),
-                      ),
-                    )
-                    .toList(),
+            children: const ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+                .map(
+                  (day) => Expanded(
+                    child: Text(
+                      day,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 10),
+                    ),
+                  ),
+                )
+                .toList(),
           ),
           const SizedBox(height: 5),
           GridView.builder(
@@ -530,15 +531,13 @@ class _ActivityChartState extends State<_ActivityChart> {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final recent =
-        widget.points.length > 16
-            ? widget.points.sublist(widget.points.length - 16)
-            : widget.points;
+    final recent = widget.points.length > 16
+        ? widget.points.sublist(widget.points.length - 16)
+        : widget.points;
     final values = recent.map((point) => point.volumeKg).toList();
-    final maxValue =
-        values.isEmpty
-            ? 1.0
-            : values.fold<double>(1, (max, value) => value > max ? value : max);
+    final maxValue = values.isEmpty
+        ? 1.0
+        : values.fold<double>(1, (max, value) => value > max ? value : max);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -577,39 +576,37 @@ class _ActivityChartState extends State<_ActivityChart> {
           const SizedBox(height: 18),
           SizedBox(
             height: 130,
-            child:
-                values.isEmpty
-                    ? Center(
-                      child: Text(
-                        'Finish a workout to see trends',
-                        style: TextStyle(color: c.textSecondary),
-                      ),
-                    )
-                    : Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children:
-                          values
-                              .map(
-                                (value) => Expanded(
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 2,
-                                    ),
-                                    child: Container(
-                                      height: (value / maxValue * 110).clamp(
-                                        4.0,
-                                        110.0,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: c.accent,
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              )
-                              .toList(),
+            child: values.isEmpty
+                ? Center(
+                    child: Text(
+                      AppLocalizations.of(context).finishWorkoutForTrends,
+                      style: TextStyle(color: c.textSecondary),
                     ),
+                  )
+                : Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: values
+                        .map(
+                          (value) => Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 2,
+                              ),
+                              child: Container(
+                                height: (value / maxValue * 110).clamp(
+                                  4.0,
+                                  110.0,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: c.accent,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  ),
           ),
           const SizedBox(height: 8),
           Text(
@@ -640,7 +637,7 @@ class _EmptyState extends StatelessWidget {
           const Text('📊', style: TextStyle(fontSize: 36)),
           const SizedBox(height: 12),
           Text(
-            'No stats yet',
+            AppLocalizations.of(context).noStatsYet,
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
@@ -747,57 +744,49 @@ class _OneRmChart extends StatelessWidget {
             height: 110,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
-              children:
-                  ranks.map((r) {
-                    final barH = (r.oneRmKg / maxOrm * 80).clamp(6.0, 80.0);
-                    return Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              r.oneRmKg.toStringAsFixed(0),
-                              style: TextStyle(
-                                fontSize: 9,
-                                color: c.textSecondary,
-                              ),
-                            ),
-                            const SizedBox(height: 3),
-                            Container(
-                              height: barH,
-                              decoration: BoxDecoration(
-                                color: c.accent,
-                                borderRadius: BorderRadius.circular(5),
-                              ),
-                            ),
-                          ],
+              children: ranks.map((r) {
+                final barH = (r.oneRmKg / maxOrm * 80).clamp(6.0, 80.0);
+                return Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          r.oneRmKg.toStringAsFixed(0),
+                          style: TextStyle(fontSize: 9, color: c.textSecondary),
                         ),
-                      ),
-                    );
-                  }).toList(),
+                        const SizedBox(height: 3),
+                        Container(
+                          height: barH,
+                          decoration: BoxDecoration(
+                            color: c.accent,
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
             ),
           ),
           const SizedBox(height: 8),
           Row(
-            children:
-                ranks
-                    .map(
-                      (r) => Expanded(
-                        child: Center(
-                          child: Text(
-                            _short(r.exerciseName),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 9,
-                              color: c.textSecondary,
-                            ),
-                          ),
-                        ),
+            children: ranks
+                .map(
+                  (r) => Expanded(
+                    child: Center(
+                      child: Text(
+                        _short(r.exerciseName),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 9, color: c.textSecondary),
                       ),
-                    )
-                    .toList(),
+                    ),
+                  ),
+                )
+                .toList(),
           ),
         ],
       ),
@@ -828,12 +817,11 @@ class _RecordsList extends StatelessWidget {
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: ranks.length,
-        separatorBuilder:
-            (_, __) => Container(
-              height: 1,
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              color: c.border,
-            ),
+        separatorBuilder: (_, __) => Container(
+          height: 1,
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          color: c.border,
+        ),
         itemBuilder: (_, i) {
           final r = ranks[i];
           return Padding(
@@ -897,26 +885,26 @@ class _MetricsBlock extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _SectionLabel('Highlights'),
+        _SectionLabel(AppLocalizations.of(context).highlights),
         const SizedBox(height: 12),
         _MetricRow(
           icon: CupertinoIcons.time,
-          title: 'Longest workout',
+          title: AppLocalizations.of(context).longestWorkout,
           value: _fmtDuration(summary.longestWorkoutSeconds),
         ),
         _MetricRow(
           icon: CupertinoIcons.heart_fill,
-          title: 'Favorite exercise',
-          value:
-              summary.favoriteExercise.isEmpty ? '—' : summary.favoriteExercise,
+          title: AppLocalizations.of(context).favoriteExercise,
+          value: summary.favoriteExercise.isEmpty
+              ? '—'
+              : summary.favoriteExercise,
         ),
         _MetricRow(
           icon: CupertinoIcons.bolt_fill,
-          title: 'Strongest (vs bodyweight)',
-          value:
-              summary.strongestExercise.isEmpty
-                  ? '—'
-                  : summary.strongestExercise,
+          title: AppLocalizations.of(context).strongestBodyweight,
+          value: summary.strongestExercise.isEmpty
+              ? '—'
+              : summary.strongestExercise,
         ),
       ],
     );
@@ -1009,56 +997,53 @@ class _MonthlyChart extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: c.border),
           ),
-          child:
-              data.isEmpty
-                  ? Center(
-                    child: Text(
-                      'No sessions yet',
-                      style: TextStyle(color: c.textSecondary),
-                    ),
-                  )
-                  : Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      for (final m in data)
-                        Expanded(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              Text(
-                                '${m.count}',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  color: c.textSecondary,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Container(
-                                margin: const EdgeInsets.symmetric(
-                                  horizontal: 3,
-                                ),
-                                height: 90 * (m.count / maxCount),
-                                decoration: BoxDecoration(
-                                  color: c.accent,
-                                  borderRadius: BorderRadius.circular(5),
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                m.month.length >= 7
-                                    ? m.month.substring(5)
-                                    : m.month,
-                                style: TextStyle(
-                                  fontSize: 9,
-                                  color: c.textSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                    ],
+          child: data.isEmpty
+              ? Center(
+                  child: Text(
+                    AppLocalizations.of(context).noSessionsYet,
+                    style: TextStyle(color: c.textSecondary),
                   ),
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    for (final m in data)
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Text(
+                              '${m.count}',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: c.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 3),
+                              height: 90 * (m.count / maxCount),
+                              decoration: BoxDecoration(
+                                color: c.accent,
+                                borderRadius: BorderRadius.circular(5),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              m.month.length >= 7
+                                  ? m.month.substring(5)
+                                  : m.month,
+                              style: TextStyle(
+                                fontSize: 9,
+                                color: c.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
         ),
       ],
     );
@@ -1103,4 +1088,17 @@ class _PeriodToggle extends StatelessWidget {
       ],
     );
   }
+}
+
+String _weekWord(BuildContext context, int value) {
+  if (Localizations.localeOf(context).languageCode != 'ru') {
+    return value == 1 ? 'week' : 'weeks';
+  }
+  final mod10 = value % 10;
+  final mod100 = value % 100;
+  if (mod10 == 1 && mod100 != 11) return 'неделя';
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
+    return 'недели';
+  }
+  return 'недель';
 }

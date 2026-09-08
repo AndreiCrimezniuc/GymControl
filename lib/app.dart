@@ -7,11 +7,14 @@ import 'package:gymboss/data/repositories/measurements_repository.dart';
 import 'package:gymboss/data/repositories/ranking_repository.dart';
 import 'package:gymboss/data/repositories/sessions_repository.dart';
 import 'package:gymboss/data/repositories/workouts_repository.dart';
+import 'package:gymboss/data/local/exercise_media_cache.dart';
 import 'package:gymboss/data/diagnostics/diagnostic_service.dart';
 import 'package:gymboss/data/services/auth/auth_service.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/data/services/auth/token_storage.dart';
 import 'package:gymboss/data/sync/sync_service.dart';
+import 'package:gymboss/domain/models/workouts/workout.dart';
+import 'package:gymboss/domain/models/exercises/exercise_catalog.dart';
 import 'package:gymboss/ui/auth/login_screen.dart';
 import 'package:gymboss/ui/auth/register_screen.dart';
 import 'package:gymboss/ui/auth/widgets/gym_logo.dart';
@@ -35,46 +38,167 @@ class GymControlApp extends StatefulWidget {
   State<GymControlApp> createState() => _GymControlAppState();
 }
 
-class _GymControlAppState extends State<GymControlApp> {
+class _GymControlAppState extends State<GymControlApp>
+    with WidgetsBindingObserver {
   final _storage = TokenStorage();
   final _authService = AuthService();
   final _navKey = GlobalKey<NavigatorState>();
   late final AuthenticatedClient _client;
   late final AuthViewModel _authVm;
   late final ProController _pro;
+  late final ExercisesRepository _exercises;
+  late final WorkoutsRepository _workouts;
+  late final MeasurementsRepository _measurements;
+  late final RankingRepository _ranking;
+  late final SessionsRepository _sessions;
+  late final UnitsController _units;
+  late final WorkoutSessionController _session;
+  Future<void> _sessionSync = Future.value();
+  bool _restoreAttempted = false;
+  bool _cacheWarmStarted = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _client = AuthenticatedClient(storage: _storage, authService: _authService);
     // Register every mutation handler eagerly. Repositories are otherwise
     // created lazily by screens, which could leave durable changes blocked
     // after a cold start until the user happened to revisit that screen.
-    WorkoutsRepository(client: _client);
-    ExercisesRepository(client: _client);
-    MeasurementsRepository(client: _client);
-    RankingRepository(client: _client);
-    SessionsRepository(client: _client);
+    _workouts = WorkoutsRepository(client: _client);
+    _exercises = ExercisesRepository(client: _client);
+    _measurements = MeasurementsRepository(client: _client);
+    _ranking = RankingRepository(client: _client);
+    _sessions = SessionsRepository(client: _client);
     // Drain any queued offline mutations once we have an authenticated client
     // and whenever connectivity returns.
     SyncService.instance.bind(_client);
     _authVm = AuthViewModel(
       AuthRepository(service: _authService, storage: _storage, client: _client),
-    )..checkAuth();
+    );
     _pro = ProController(_client);
+    _units = UnitsController();
+    _session = WorkoutSessionController();
+    _authVm.addListener(_queueSessionSync);
+    unawaited(_authVm.checkAuth());
 
-    // ActivityKit can keep a Live Activity alive after Flutter is terminated
-    // or the app is upgraded. Workout sessions are currently memory-only, so
-    // a cold app start cannot have a legitimate session to resume. End any
-    // orphan after the native MethodChannel has been registered.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(WorkoutLiveActivity.end());
+      _queueSessionSync();
     });
+  }
+
+  void _queueSessionSync() {
+    _sessionSync = _sessionSync.then((_) => _syncSessionWithAuth());
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // ActivityKit outlives the Flutter process. Retry reconciliation every
+      // time the app becomes interactive so an interrupted best-effort end
+      // can never leave a timer running without a local workout.
+      _queueSessionSync();
+    }
+  }
+
+  Future<void> _syncSessionWithAuth() async {
+    final status = _authVm.status;
+    if (status != AuthStatus.authenticated) {
+      if (status == AuthStatus.unauthenticated) {
+        _restoreAttempted = false;
+        _cacheWarmStarted = false;
+        if (_session.isActive) _session.clear();
+      }
+      await WorkoutLiveActivity.end();
+      return;
+    }
+    if (_session.isActive) return;
+    // Reconcile even after the one allowed restore attempt. A Live Activity
+    // can survive a killed/suspended process while local state is already
+    // gone, so every later foreground transition must retry this cleanup.
+    await WorkoutLiveActivity.end();
+    if (_restoreAttempted) return;
+    _restoreAttempted = true;
+    await _session.restore(
+      exercises: _exercises,
+      ranking: _ranking,
+      sessions: _sessions,
+      workouts: _workouts,
+      units: _units,
+    );
+    if (!_cacheWarmStarted) {
+      _cacheWarmStarted = true;
+      unawaited(_warmOfflineCache());
+    }
+  }
+
+  /// Hydrates every core local snapshot after authentication. Failures are
+  /// isolated because this is background preparation, never a launch gate.
+  Future<void> _warmOfflineCache() async {
+    Future<T?> safe<T>(Future<T> Function() load) async {
+      try {
+        return await load();
+      } catch (_) {
+        return null;
+      }
+    }
+
+    final results = await Future.wait([
+      safe(() => _workouts.listOwned(forceRefresh: true)),
+      safe(() => _workouts.listFolders(forceRefresh: true)),
+      safe(() => _exercises.getCatalog(forceRefresh: true)),
+      safe(() => _measurements.list(forceRefresh: true)),
+      safe(() => _ranking.getProfile(forceRefresh: true)),
+      safe(() => _ranking.getUserRanks(forceRefresh: true)),
+      safe(() => _sessions.getStreakData(forceRefresh: true)),
+      safe(() => _workouts.statsSummary(period: 'all', forceRefresh: true)),
+      safe(() => _workouts.statsSummary(period: 'year', forceRefresh: true)),
+      safe(() => _workouts.activity(period: 'all', forceRefresh: true)),
+      safe(() => _workouts.activity(period: 'year', forceRefresh: true)),
+      safe(() => _pro.load(force: true)),
+    ]);
+    final catalog = results[2];
+    if (catalog is List<ExerciseCatalogItem>) {
+      await safe(() => ExerciseMediaCache.warm(catalog));
+    }
+    final owned = results.first;
+    if (owned is! List<Workout>) return;
+    // Full routines, aggregates and recorded run details become available
+    // offline after the first successful sign-in.
+    for (final workout in owned) {
+      final full = await safe(
+        () => _workouts.get(workout.id, forceRefresh: true),
+      );
+      if (full != null) {
+        final ids = full.exercises
+            .map((exercise) => exercise.exerciseId)
+            .toSet();
+        await Future.wait([
+          for (final id in ids) ...[
+            safe(() => _exercises.getStats(id, forceRefresh: true)),
+            safe(() => _exercises.getHistory(id, forceRefresh: true)),
+          ],
+        ]);
+      }
+      final stats = await safe(
+        () => _workouts.stats(workout.id, forceRefresh: true),
+      );
+      if (stats == null) continue;
+      for (final run in stats.history) {
+        await safe(
+          () => _workouts.runDetail(workout.id, run.date, forceRefresh: true),
+        );
+      }
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _authVm.removeListener(_queueSessionSync);
     _client.dispose();
+    _session.dispose();
+    _units.dispose();
     super.dispose();
   }
 
@@ -85,12 +209,8 @@ class _GymControlAppState extends State<GymControlApp> {
         ChangeNotifierProvider<ThemeController>(
           create: (_) => ThemeController(),
         ),
-        ChangeNotifierProvider<UnitsController>(
-          create: (_) => UnitsController(),
-        ),
-        ChangeNotifierProvider<WorkoutSessionController>(
-          create: (_) => WorkoutSessionController(),
-        ),
+        ChangeNotifierProvider<UnitsController>.value(value: _units),
+        ChangeNotifierProvider<WorkoutSessionController>.value(value: _session),
         ChangeNotifierProvider<LocaleController>(
           create: (_) => LocaleController(),
         ),
@@ -103,10 +223,9 @@ class _GymControlAppState extends State<GymControlApp> {
           return CupertinoApp(
             navigatorKey: _navKey,
             theme: CupertinoThemeData(
-              brightness:
-                  theme.colors.usesLightForeground
-                      ? Brightness.dark
-                      : Brightness.light,
+              brightness: theme.colors.usesLightForeground
+                  ? Brightness.dark
+                  : Brightness.light,
               scaffoldBackgroundColor: theme.colors.bg,
               primaryColor: theme.colors.accent,
               barBackgroundColor: theme.colors.card,
@@ -138,35 +257,35 @@ class _GymControlAppState extends State<GymControlApp> {
             // floating overlay) so every screen's content shifts up above it
             // instead of being covered — otherwise bottom inputs/buttons (e.g.
             // body metrics) become untappable while a workout is minimized.
-            builder:
-                (context, child) => Column(
-                  children: [
-                    Expanded(child: child ?? const SizedBox.shrink()),
-                    Consumer<WorkoutSessionController>(
-                      builder: (ctx, session, __) {
-                        if (!session.isActive ||
-                            !session.isMinimized ||
-                            session.isFinished) {
-                          return const SizedBox.shrink();
-                        }
-                        return SafeArea(
-                          top: false,
-                          child: WorkoutResumeBar(
-                            session: session,
-                            onTap: () {
-                              session.resume();
-                              _navKey.currentState?.push(
-                                CupertinoPageRoute(
-                                  builder: (_) => const WorkoutRunnerScreen(),
-                                ),
-                              );
-                            },
-                          ),
-                        );
-                      },
-                    ),
-                  ],
+            builder: (context, child) => Column(
+              children: [
+                Expanded(child: child ?? const SizedBox.shrink()),
+                Consumer2<WorkoutSessionController, AuthViewModel>(
+                  builder: (ctx, session, auth, __) {
+                    if (!session.isActive ||
+                        auth.status != AuthStatus.authenticated ||
+                        !session.isMinimized ||
+                        session.isFinished) {
+                      return const SizedBox.shrink();
+                    }
+                    return SafeArea(
+                      top: false,
+                      child: WorkoutResumeBar(
+                        session: session,
+                        onTap: () {
+                          session.resume();
+                          _navKey.currentState?.push(
+                            CupertinoPageRoute(
+                              builder: (_) => const WorkoutRunnerScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
                 ),
+              ],
+            ),
           );
         },
       ),
@@ -235,6 +354,7 @@ class _AuthGateState extends State<_AuthGate> {
   Widget build(BuildContext context) {
     return Consumer<AuthViewModel>(
       builder: (ctx, vm, _) {
+        final l10n = AppLocalizations.of(context);
         if (vm.status == AuthStatus.unknown) {
           return AppScaffold(
             child: Center(
@@ -250,9 +370,7 @@ class _AuthGateState extends State<_AuthGate> {
                     AnimatedSwitcher(
                       duration: const Duration(milliseconds: 200),
                       child: Text(
-                        _slow
-                            ? 'Restoring your session…'
-                            : 'Getting things ready…',
+                        _slow ? l10n.restoringSession : l10n.gettingReady,
                         key: ValueKey(_slow),
                         textAlign: TextAlign.center,
                         style: TextStyle(
@@ -264,7 +382,7 @@ class _AuthGateState extends State<_AuthGate> {
                     if (_stalled) ...[
                       const SizedBox(height: 12),
                       Text(
-                        'This is taking longer than expected.',
+                        l10n.takingLonger,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: context.colors.textSecondary,
@@ -273,7 +391,7 @@ class _AuthGateState extends State<_AuthGate> {
                       ),
                       CupertinoButton(
                         onPressed: _retryAuth,
-                        child: const Text('Try again'),
+                        child: Text(l10n.tryAgain),
                       ),
                     ],
                   ],
@@ -307,6 +425,10 @@ class _AuthGateState extends State<_AuthGate> {
         }
         _proLoadStarted = false;
         _diagnosticUploadStarted = false;
+        final session = context.read<WorkoutSessionController>();
+        if (session.isActive) {
+          WidgetsBinding.instance.addPostFrameCallback((_) => session.clear());
+        }
         return const _AuthFlow();
       },
     );

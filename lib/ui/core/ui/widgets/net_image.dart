@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 
 import 'package:gymboss/config/api_config.dart';
+import 'package:gymboss/data/local/exercise_media_cache.dart';
 
 /// Network image for exercise media. Resolves relative API paths (e.g. a
 /// self-hosted illustration "/api/v1/exercise-images/x.png") to an absolute URL
@@ -29,6 +30,7 @@ class NetImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CachedNetworkImage(
+      cacheManager: ExerciseMediaCache.manager,
       imageUrl: ApiConfig.resolveImageUrl(url),
       fit: fit,
       width: width,

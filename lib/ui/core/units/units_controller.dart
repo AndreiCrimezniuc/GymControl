@@ -9,9 +9,10 @@ class UnitsController extends ChangeNotifier {
   static const _kgToLb = 2.2046226218;
 
   bool _lb = false;
+  late final Future<void> ready;
 
   UnitsController() {
-    _restore();
+    ready = _restore();
   }
 
   bool get isLb => _lb;

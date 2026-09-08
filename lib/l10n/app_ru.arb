@@ -16,5 +16,281 @@
   "languageSystem": "Как в системе",
   "languageEnglish": "Английский",
   "languageRussian": "Русский",
-  "logOut": "Выйти"
+  "logOut": "Выйти",
+  "signIn": "Войти",
+  "createAccount": "Создать аккаунт",
+  "email": "Электронная почта",
+  "password": "Пароль",
+  "passwordMin": "Пароль (минимум 8 символов)",
+  "confirmPassword": "Повторите пароль",
+  "continueGoogle": "Продолжить с Google",
+  "or": "или",
+  "noAccount": "Нет аккаунта? ",
+  "register": "Зарегистрироваться",
+  "alreadyAccount": "Уже есть аккаунт? ",
+  "explore": "Разделы",
+  "weekStreak": "НЕДЕЛЬ ПОДРЯД",
+  "nextGoal": "СЛЕДУЮЩАЯ ЦЕЛЬ",
+  "routines": "ПРОГРАММЫ",
+  "workouts": "Тренировки",
+  "workoutsSubtitle": "Программы и планы",
+  "progress": "Прогресс",
+  "progressSubtitle": "История и личные рекорды",
+  "strengthPassport": "Силовой паспорт",
+  "strengthPassportSubtitle": "Ваш силовой профиль по медианным результатам",
+  "exercises": "Упражнения",
+  "exercisesSubtitle": "Библиотека движений",
+  "settingsSubtitle": "Параметры и аккаунт",
+  "startWorkout": "Начать тренировку",
+  "rankedLifts": "УПРАЖНЕНИЙ В РЕЙТИНГЕ",
+  "bodyweight": "ВЕС ТЕЛА",
+  "bestLift": "ЛУЧШЕЕ УПРАЖНЕНИЕ",
+  "medianRankedNote": "Рейтинг по медиане · выбросы исключены",
+  "passportLocked": "Запишите 3+ упражнения,\nчтобы получить паспорт",
+  "resumeWorkout": "Продолжить активную тренировку"
+  ,"chooseWorkout": "Выбрать тренировку"
+  ,"resumeSummary": "{elapsed} · {done}/{total} подходов · нажмите, чтобы продолжить",
+  "@resumeSummary": {"placeholders": {"elapsed": {"type": "String"}, "done": {"type": "int"}, "total": {"type": "int"}}}
+  ,"repetitions": "Повторения"
+  ,"weightField": "Вес в {unit}",
+  "@weightField": {"placeholders": {"unit": {"type": "String"}}}
+  ,"restoringSession": "Восстанавливаем сессию…"
+  ,"gettingReady": "Подготавливаем приложение…"
+  ,"takingLonger": "Это занимает больше времени, чем ожидалось."
+  ,"tryAgain": "Повторить"
+  ,"mineCount": "Мои ({count})", "@mineCount": {"placeholders": {"count": {"type": "int"}}}
+  ,"libraryCount": "Библиотека ({count})", "@libraryCount": {"placeholders": {"count": {"type": "int"}}}
+  ,"library": "Библиотека"
+  ,"allWorkouts": "Все тренировки"
+  ,"searchWorkouts": "Поиск тренировок"
+  ,"noWorkoutsFound": "Тренировки не найдены"
+  ,"noWorkoutsYet": "Тренировок пока нет"
+  ,"libraryEmpty": "Библиотека пуста"
+  ,"createWorkout": "Создать тренировку"
+  ,"couldNotLoadWorkouts": "Не удалось загрузить тренировки"
+  ,"retry": "Повторить"
+  ,"sortExercises": "Сортировка упражнений"
+  ,"searchExercises": "Поиск среди {count} упражнений", "@searchExercises": {"placeholders": {"count": {"type": "int"}}}
+  ,"catalog": "Каталог"
+  ,"myExercises": "Мои упражнения"
+  ,"noExercisesFound": "Упражнения не найдены"
+  ,"yourStats": "Ваша статистика"
+  ,"noDataYet": "Данных пока нет"
+  ,"personalRecords": "Личные рекорды"
+  ,"couldNotLoadExercises": "Не удалось загрузить упражнения"
+  ,"newExercise": "Новое упражнение"
+  ,"statistics": "Статистика"
+  ,"trainingWorkload": "Тренировочная нагрузка"
+  ,"workoutCalendar": "Календарь тренировок"
+  ,"trainingTrends": "Динамика тренировок"
+  ,"finishWorkoutForTrends": "Завершите тренировку, чтобы увидеть динамику"
+  ,"noStatsYet": "Статистики пока нет"
+  ,"highlights": "Главное"
+  ,"noSessionsYet": "Сессий пока нет"
+  ,"all": "Все"
+  ,"recordStartsHere": "Ваша история начинается здесь"
+  ,"recordStartsBody": "Завершите рабочий подход, чтобы открыть мастерство, личные рекорды и траекторию прогресса."
+  ,"estimatedOneRm": "РАСЧЁТНЫЙ 1ПМ"
+  ,"currentPowerMark": "Текущая отметка силы"
+  ,"heaviestSet": "САМЫЙ ТЯЖЁЛЫЙ ПОДХОД"
+  ,"sessionsLogged": "Тренировок: {count}", "@sessionsLogged": {"placeholders": {"count": {"type": "int"}}}
+  ,"workingSets": "РАБОЧИЕ ПОДХОДЫ"
+  ,"totalReps": "Всего повторений: {count}", "@totalReps": {"placeholders": {"count": {"type": "int"}}}
+  ,"bestSetVolume": "ЛУЧШИЙ ОБЪЁМ ПОДХОДА"
+  ,"peakSingleSetWork": "Пиковая работа за подход"
+  ,"masteryLevel": "УРОВЕНЬ МАСТЕРСТВА {level}", "@masteryLevel": {"placeholders": {"level": {"type": "int"}}}
+  ,"rankAndLevel": "РАНГ {rank} · УРОВЕНЬ {level}", "@rankAndLevel": {"placeholders": {"rank": {"type": "String"}, "level": {"type": "int"}}}
+  ,"setsToNextLevel": "Ещё {count} рабочих подходов до уровня {level}", "@setsToNextLevel": {"placeholders": {"count": {"type": "int"}, "level": {"type": "int"}}}
+  ,"masteryInitiate": "Новичок"
+  ,"masteryTrained": "Подготовленный"
+  ,"masteryProven": "Проверенный"
+  ,"masteryVeteran": "Ветеран"
+  ,"masteryMaster": "Мастер"
+  ,"lockedStatsPreview": "УРОВЕНЬ 1 · ПЕРВЫЙ РЕКОРД · ТРАЕКТОРИЯ ПРОГРЕССА"
+  ,"passportRatioSummary": "{ratio}× медианы группы · медиана {count} упражнений", "@passportRatioSummary": {"placeholders": {"ratio": {"type": "String"}, "count": {"type": "int"}}}
+  ,"passportTierProgress": "Ещё {remaining}× медианы до {next} · {progress}% ранга пройдено", "@passportTierProgress": {"placeholders": {"remaining": {"type": "String"}, "next": {"type": "String"}, "progress": {"type": "int"}}}
+  ,"exerciseMedianProgress": "{ratio}× медианы · следующий {next}", "@exerciseMedianProgress": {"placeholders": {"ratio": {"type": "String"}, "next": {"type": "String"}}}
+  ,"medianCalibrationPending": "Медиана ещё калибруется"
+  ,"passportNoLiftsTitle": "Результатов пока нет"
+  ,"passportNoLiftsBody": "Запишите контрольный подход, чтобы открыть запись в паспорте. Три упражнения откроют общий класс."
+  ,"passportPreviewTitle": "ЗАПИСЬ ПАСПОРТА · ПРИМЕР"
+  ,"passportPreviewExercise": "Жим лёжа"
+  ,"passportPreviewSubtitle": "Лучший подход · расчётный 1ПМ · место в группе"
+  ,"passportPreviewBody": "Каждая запись объясняет, почему вы получили этот класс и сколько отделяет вас от следующего."
+  ,"passportGuideTitle": "КАК РАБОТАЕТ ПАСПОРТ"
+  ,"passportStepLiftTitle": "Результат создаёт запись"
+  ,"passportStepLiftBody": "Лучший расчётный 1ПМ нормализуется относительно веса тела."
+  ,"passportStepMedianTitle": "Середина определяет уровень"
+  ,"passportStepMedianBody": "Ранги считаются по медиане группы после исключения крайних 10% с обеих сторон."
+  ,"passportStepBreadthTitle": "Разносторонность создаёт паспорт"
+  ,"passportStepBreadthBody": "Общий класс — медиана минимум трёх рейтинговых упражнений."
+  ,"aiSuggest": "AI-РАЗБОР"
+  ,"aiReviewPlan": "Сверить план с вашей историей и результатами"
+  ,"aiReviewStagedTitle": "AI-разбор подготовлен"
+  ,"aiReviewStagedBody": "GymControl уже безопасно собирает на сервере тренировку, недавнюю историю, статистику аккаунта и замеры. Подключите модель, чтобы активировать финальный шаг анализа."
+  ,"aiReviewFailed": "Не удалось подготовить разбор. Повторите, когда сервер будет доступен."
+  ,"buildWarmup": "Собрать разминку"
+  ,"previousCompact": "БЫЛО {value}", "@previousCompact": {"placeholders": {"value": {"type": "String"}}}
+  ,"trainingBrief": "ТРЕНИРОВОЧНЫЙ ОРИЕНТИР"
+  ,"passportSignal": "Сигнал паспорта"
+  ,"passportFirstBenchmark": "Запишите контрольный подход на следующей тренировке. Теперь обычная тренировка может автоматически открыть первую запись паспорта."
+  ,"passportCalibration": "Калибровка паспорта · {count}/3", "@passportCalibration": {"placeholders": {"count": {"type": "int"}}}
+  ,"passportCalibrationBody": "Добавьте ещё контрольных упражнений: {count}. После этого откроется общий класс.", "@passportCalibrationBody": {"placeholders": {"count": {"type": "int"}}}
+  ,"passportClosestPromotion": "Ближайшее повышение"
+  ,"passportPromotionBody": "{exercise} · класс {rank} → {next}. Самый ясный путь вперёд.", "@passportPromotionBody": {"placeholders": {"exercise": {"type": "String"}, "rank": {"type": "String"}, "next": {"type": "String"}}}
+  ,"passportHighestClass": "Высший класс паспорта"
+  ,"passportHighestClassBody": "Ваши контрольные упражнения достигли высшего доступного класса."
+  ,"workoutComplete": "Тренировка завершена"
+  ,"sessionSealed": "СЕССИЯ ЗАФИКСИРОВАНА"
+  ,"sessionSealedBody": "Сохранено на устройстве. Недельная серия и поддерживаемые контрольные упражнения синхронизируются с Силовым паспортом."
+  ,"setLogged": "{count, plural, =1{ПОДХОД ЗАПИСАН} few{ПОДХОДА ЗАПИСАНО} many{ПОДХОДОВ ЗАПИСАНО} other{ПОДХОДА ЗАПИСАНО}}", "@setLogged": {"placeholders": {"count": {"type": "int"}}}
+  ,"volumeLifted": "ПОДНЯТЫЙ ОБЪЁМ"
+  ,"done": "ГОТОВО"
+  ,"difficultyNormal": "Обычная"
+  ,"difficultyDeload": "Разгрузочная"
+  ,"back": "Назад"
+  ,"cancel": "Отмена"
+  ,"save": "Сохранить"
+  ,"delete": "Удалить"
+  ,"syncLedger": "Журнал синхронизации"
+  ,"syncCurrent": "Все изменения надёжно синхронизированы"
+  ,"syncOfflineSafe": "Офлайн · изменения сохранены на устройстве"
+  ,"syncPending": "Ожидают синхронизации: {count}", "@syncPending": {"placeholders": {"count": {"type": "int"}}}
+  ,"syncRejected": "Требуют внимания: {count} · нажмите, чтобы повторить", "@syncRejected": {"placeholders": {"count": {"type": "int"}}}
+  ,"offlinePending": "Офлайн · {count, plural, =1{1 изменение синхронизируется позже} few{{count} изменения синхронизируются позже} many{{count} изменений синхронизируются позже} other{{count} изменения синхронизируются позже}}", "@offlinePending": {"placeholders": {"count": {"type": "int"}}}
+  ,"offlineSaved": "Офлайн · изменения сохранены на устройстве"
+  ,"syncingChanges": "Синхронизация: {count, plural, =1{1 изменение} few{{count} изменения} many{{count} изменений} other{{count} изменения}}…", "@syncingChanges": {"placeholders": {"count": {"type": "int"}}}
+  ,"notSet": "Не указано"
+  ,"weightUnits": "Единицы веса"
+  ,"addNote": "Добавить заметку"
+  ,"editNote": "Изменить заметку"
+  ,"groupWithNext": "Объединить со следующим…"
+  ,"extendGroup": "Добавить следующее в группу…"
+  ,"removeExerciseGroup": "Разъединить группу"
+  ,"moveUp": "Переместить выше"
+  ,"moveDown": "Переместить ниже"
+  ,"removeExercise": "Удалить упражнение"
+  ,"trainingGroup": "Тренировочная группа"
+  ,"trainingGroupBody": "В группе отдых начинается только после завершения полного круга упражнений."
+  ,"superset": "Суперсет"
+  ,"circuit": "Круг"
+  ,"intervalBlock": "Интервальный блок"
+  ,"exerciseNote": "Заметка к упражнению"
+  ,"exerciseNoteHint": "Техника, боль, ориентир на следующий раз…"
+  ,"quitWorkoutQuestion": "Выйти из тренировки?"
+  ,"quitWorkoutBody": "Тренировка и все отмеченные подходы будут удалены."
+  ,"keepGoing": "Продолжить"
+  ,"quit": "Выйти"
+  ,"finishWorkoutQuestion": "Завершить тренировку?"
+  ,"finishWorkoutBody": "Завершено подходов: {done} из {total}. Выберите способ завершения.", "@finishWorkoutBody": {"placeholders": {"done": {"type": "int"}, "total": {"type": "int"}}}
+  ,"finishWithoutSaving": "Завершить без сохранения"
+  ,"saveKeepRoutine": "Сохранить · не менять план"
+  ,"finishAndSave": "Завершить и сохранить"
+  ,"saveUpdateRoutine": "Сохранить · обновить план"
+  ,"couldNotSaveWorkout": "Не удалось сохранить тренировку"
+  ,"setColumn": "ПОДХОД"
+  ,"setType": "Тип подхода"
+  ,"progressionTag": "Отметить прогресс…"
+  ,"progressionValue": "Прогресс: {value}", "@progressionValue": {"placeholders": {"value": {"type": "String"}}}
+  ,"setProgressQuestion": "В чём был прогресс подхода?"
+  ,"noProgressionTag": "Без отметки прогресса"
+  ,"perceivedExertion": "Субъективная тяжесть"
+  ,"perceivedExertionQuestion": "Насколько тяжёлым был подход?"
+  ,"clearRpe": "Очистить RPE"
+  ,"startNewWorkoutQuestion": "Начать новую тренировку?"
+  ,"activeWorkoutBody": "У вас уже идёт активная тренировка. Новая тренировка заменит её."
+  ,"resumeActive": "Продолжить активную"
+  ,"startNew": "Начать новую"
+  ,"configureWorkout": "Настройка тренировки"
+  ,"configureWorkoutBody": "Необязательные и альтернативные упражнения можно менять перед каждым запуском."
+  ,"optional": "Необязательно"
+  ,"chooseOne": "ВЫБЕРИТЕ ОДНО"
+  ,"alternative": "Альтернатива"
+  ,"saved": "Сохранено"
+  ,"copySavedBody": "Приватная копия добавлена в ваши тренировки. Откройте «Мои», чтобы запустить или изменить её."
+  ,"couldNotSaveCopy": "Не удалось сохранить копию"
+  ,"whatWorks": "Что хорошо"
+  ,"watch": "Обратите внимание"
+  ,"nextFocus": "Следующий фокус"
+  ,"deleteWorkoutQuestion": "Удалить тренировку?"
+  ,"workoutHistory": "История тренировок"
+  ,"volume": "Объём"
+  ,"averageTime": "Среднее время"
+  ,"streak": "Серия"
+  ,"ranked": "В рейтинге"
+  ,"sessions": "Сессии"
+  ,"time": "Время"
+  ,"hardSets": "Тяжёлые подходы"
+  ,"longestWorkout": "Самая долгая тренировка"
+  ,"favoriteExercise": "Любимое упражнение"
+  ,"strongestBodyweight": "Сильнейшее к весу тела"
+  ,"name": "Название"
+  ,"imageUrl": "Ссылка на изображение"
+  ,"description": "Описание"
+  ,"bodyMeasurements": "Замеры тела"
+  ,"deleteMeasurementQuestion": "Удалить замер?"
+  ,"deleteMeasurementBody": "Запись от {date} будет удалена.", "@deleteMeasurementBody": {"placeholders": {"date": {"type": "String"}}}
+  ,"couldNotLoadRetry": "Не удалось загрузить · Повторить"
+  ,"saveMeasurement": "Сохранить замер"
+  ,"privacyPolicy": "Политика конфиденциальности"
+  ,"termsOfUse": "Условия использования"
+  ,"support": "Поддержка"
+  ,"logoutQuestion": "Вы уверены, что хотите выйти?"
+  ,"deleteAccount": "Удалить аккаунт"
+  ,"deleteAccountCaption": "Навсегда удалит тренировки, историю упражнений и профиль. Это действие нельзя отменить."
+  ,"deleteAccountBody": "Аккаунт, тренировки, история упражнений и профиль будут удалены навсегда. Это действие нельзя отменить."
+  ,"couldNotDeleteAccount": "Не удалось удалить аккаунт"
+  ,"rename": "Переименовать"
+  ,"deleteFolder": "Удалить папку"
+  ,"deleteFolderQuestion": "Удалить «{name}»?", "@deleteFolderQuestion": {"placeholders": {"name": {"type": "String"}}}
+  ,"moveWorkout": "Переместить «{name}»", "@moveWorkout": {"placeholders": {"name": {"type": "String"}}}
+  ,"defaultFolder": "Основная папка"
+  ,"couldNotSaveChanges": "Не удалось сохранить изменения"
+  ,"sortWorkouts": "Сортировка тренировок"
+  ,"newFolder": "Новая папка"
+  ,"openWorkout": "Открыть {name}", "@openWorkout": {"placeholders": {"name": {"type": "String"}}}
+  ,"couldNotVerifyPro": "Не удалось проверить доступ Pro"
+  ,"warmupSet": "Разминка"
+  ,"warmupSetBody": "Не входит в рабочий объём"
+  ,"workingSet": "Рабочий"
+  ,"workingSetBody": "Учитывается в объёме и рекордах"
+  ,"failureSet": "До отказа"
+  ,"failureSetBody": "Выполнен до мышечного отказа"
+  ,"dropSet": "Дроп-сет"
+  ,"dropSetBody": "Снижение веса без полного отдыха"
+  ,"heavierWeight": "Больше вес"
+  ,"greaterAmplitude": "Больше амплитуда"
+  ,"betterEfficiency": "Выше эффективность"
+  ,"meoSet": "MEO / myo-rep подход"
+  ,"weightKgLabel": "Вес (кг)"
+  ,"heightCmLabel": "Рост (см)"
+  ,"couldNotOpenLink": "Не удалось открыть ссылку"
+  ,"noDiagnostics": "Нет данных для отправки"
+  ,"diagnosticsEmpty": "Локальный журнал диагностики сейчас пуст."
+  ,"sendDiagnosticsQuestion": "Отправить диагностику?"
+  ,"sendDiagnosticsBody": "В поддержку GymControl будут отправлены технические события: {count}. Токены, почта, содержимое тренировок, комментарии и трассировки не передаются.", "@sendDiagnosticsBody": {"placeholders": {"count": {"type": "int"}}}
+  ,"diagnosticsSent": "Диагностика отправлена"
+  ,"diagnosticsSentBody": "Отправлено событий: {count}. Номер: {reference}", "@diagnosticsSentBody": {"placeholders": {"count": {"type": "int"}, "reference": {"type": "String"}}}
+  ,"diagnosticsFailed": "Не удалось отправить диагностику"
+  ,"diagnosticsFailedBody": "События остались на устройстве. Проверьте подключение и повторите попытку."
+  ,"shareDiagnostics": "Автоматически делиться технической диагностикой"
+  ,"diagnosticsPrivacyBody": "Помогает находить ошибки приложения. Содержит только коды событий, версию приложения и платформу; без почты, тренировок, токенов и трассировок."
+  ,"exerciseIllustrations": "Иллюстрации упражнений"
+  ,"exerciseIllustrationsCredit": "Иллюстрации мышц © Everkinetic используются по лицензии Creative Commons Attribution-ShareAlike (CC BY-SA)."
+  ,"exerciseData": "Данные упражнений"
+  ,"exerciseDataCredit": "Каталог основан на free-exercise-db, опубликованном в общественном достоянии по лицензии The Unlicense."
+  ,"warmupCalculator": "Расчёт разминки"
+  ,"workingKg": "Рабочий вес, кг"
+  ,"barKg": "Гриф, кг"
+  ,"plateCalculator": "Расчёт блинов"
+  ,"totalKg": "Общий вес, кг"
+  ,"pickExercise": "Выберите упражнение"
+  ,"recent": "Недавние"
+  ,"favorites": "Избранное"
+  ,"anyEquipment": "Любое оборудование"
+  ,"optionalBody": "Можно включать или исключать перед запуском"
+  ,"alternativePrevious": "Альтернатива предыдущему"
+  ,"alternativePreviousBody": "Перед запуском выбирается одно из двух"
+  ,"restSeconds": "Отдых (с)"
+  ,"repsShort": "повт."
 }

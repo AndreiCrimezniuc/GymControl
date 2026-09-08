@@ -5,6 +5,7 @@ import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/domain/models/ranking/rank_data.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
+import 'package:gymboss/l10n/app_localizations.dart';
 
 // ── Rank tier color / label helpers (tier colours are intentional) ────────────
 
@@ -52,23 +53,31 @@ String _nextRank(String rank) {
   return i >= 0 && i < order.length - 1 ? order[i + 1] : 'SS';
 }
 
-double _nextThreshold(String rank) {
-  switch (rank) {
-    case 'E':
-      return 30;
-    case 'D':
-      return 50;
-    case 'C':
-      return 70;
-    case 'B':
-      return 85;
-    case 'A':
-      return 95;
-    case 'S':
-      return 99;
-    default:
-      return 100;
-  }
+const _rankFloors = <String, double>{
+  'E': 0,
+  'D': .55,
+  'C': .80,
+  'B': 1,
+  'A': 1.20,
+  'S': 1.45,
+  'SS': 1.80,
+};
+
+const _rankCeilings = <String, double>{
+  'E': .55,
+  'D': .80,
+  'C': 1,
+  'B': 1.20,
+  'A': 1.45,
+  'S': 1.80,
+  'SS': 1.80,
+};
+
+double rankProgressForRatio(String rank, double ratio) {
+  if (rank == 'SS') return 1;
+  final floor = _rankFloors[rank] ?? 0;
+  final ceiling = _rankCeilings[rank] ?? 1;
+  return ((ratio - floor) / (ceiling - floor)).clamp(0, 1);
 }
 
 // ── Rank Screen ───────────────────────────────────────────────────────────────
@@ -118,14 +127,14 @@ class _RankingState extends State<Ranking> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return AppPage(
-      title: 'Rank',
-      body:
-          _loading
-              ? const Center(child: CupertinoActivityIndicator())
-              : _error != null
-              ? _ErrorView(error: _error!, onRetry: _load)
-              : _RankContent(ranks: _ranks!, repo: _repo, onRefresh: _load),
+      title: l10n.strengthPassport,
+      body: _loading
+          ? const Center(child: CupertinoActivityIndicator())
+          : _error != null
+          ? _ErrorView(error: _error!, onRetry: _load)
+          : _RankContent(ranks: _ranks!, repo: _repo, onRefresh: _load),
     );
   }
 }
@@ -156,9 +165,11 @@ class _RankContent extends StatelessWidget {
               _WeightNudge(repo: repo, onDone: onRefresh),
               const SizedBox(height: 16),
             ],
-            if (ranks.exerciseRanks.isEmpty)
-              const _NoLiftsCard()
-            else
+            if (ranks.exerciseRanks.isEmpty) ...[
+              const _NoLiftsCard(),
+              const SizedBox(height: 14),
+              const _PassportPreview(),
+            ] else
               ...ranks.exerciseRanks.map(
                 (er) => Padding(
                   padding: const EdgeInsets.only(bottom: 12),
@@ -167,6 +178,8 @@ class _RankContent extends StatelessWidget {
               ),
             const SizedBox(height: 8),
             _MotivationalQuote(ranks: ranks),
+            const SizedBox(height: 10),
+            const _PassportGuide(),
           ],
         ),
         Positioned(
@@ -189,8 +202,14 @@ class _OverallHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final l10n = AppLocalizations.of(context);
     final overall = ranks.overallRank;
     final pct = ranks.overallPct;
+    final strongest = ranks.exerciseRanks.isEmpty
+        ? null
+        : ranks.exerciseRanks.reduce(
+            (a, b) => a.percentile >= b.percentile ? a : b,
+          );
 
     return Container(
       decoration: BoxDecoration(
@@ -202,7 +221,7 @@ class _OverallHero extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            'YOUR RANK',
+            l10n.strengthPassport.toUpperCase(),
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,
@@ -225,8 +244,103 @@ class _OverallHero extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            _OverallProgressBar(rank: overall, pct: pct),
+            _OverallProgressBar(rank: overall, ratio: ranks.overallRatio ?? 0),
+            const SizedBox(height: 20),
+            Container(height: 1, color: c.border),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                _PassportMetric(
+                  value: '${ranks.exerciseRanks.length}',
+                  label: l10n.rankedLifts,
+                ),
+                _PassportMetric(
+                  value: ranks.profile.weightKg == null
+                      ? '—'
+                      : '${ranks.profile.weightKg!.toStringAsFixed(0)} kg',
+                  label: l10n.bodyweight,
+                ),
+                _PassportMetric(
+                  value: strongest?.rank ?? '—',
+                  label: strongest?.exerciseName.toUpperCase() ?? l10n.bestLift,
+                ),
+              ],
+            ),
+            if (ranks.overallRatio != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                l10n.passportRatioSummary(
+                  ranks.overallRatio!.toStringAsFixed(2),
+                  ranks.exerciseRanks.length,
+                ),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: c.textSecondary,
+                ),
+              ),
+            ],
           ],
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                CupertinoIcons.chart_bar_alt_fill,
+                size: 12,
+                color: c.textSecondary,
+              ),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  l10n.medianRankedNote,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 10, color: c.textSecondary),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PassportMetric extends StatelessWidget {
+  final String value;
+  final String label;
+
+  const _PassportMetric({required this.value, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Expanded(
+      child: Column(
+        children: [
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: c.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 8,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.6,
+              color: c.textSecondary,
+            ),
+          ),
         ],
       ),
     );
@@ -257,7 +371,7 @@ class _UnlockedBadge extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Text(
-          'Record 3+ exercises\nto unlock your rank',
+          AppLocalizations.of(context).passportLocked,
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 13, color: c.textSecondary, height: 1.5),
         ),
@@ -286,30 +400,28 @@ class _BigRankBadge extends StatelessWidget {
         ],
       ),
       child: Center(
-        child:
-            isSS
-                ? ShaderMask(
-                  shaderCallback:
-                      (bounds) => const LinearGradient(
-                        colors: [Color(0xFF7C3AED), Color(0xFF3B82F6)],
-                      ).createShader(bounds),
-                  child: Text(
-                    rank,
-                    style: const TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w900,
-                      color: CupertinoColors.white,
-                    ),
-                  ),
-                )
-                : Text(
+        child: isSS
+            ? ShaderMask(
+                shaderCallback: (bounds) => const LinearGradient(
+                  colors: [Color(0xFF7C3AED), Color(0xFF3B82F6)],
+                ).createShader(bounds),
+                child: Text(
                   rank,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.w900,
-                    color: color,
+                    color: CupertinoColors.white,
                   ),
                 ),
+              )
+            : Text(
+                rank,
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.w900,
+                  color: color,
+                ),
+              ),
       ),
     );
   }
@@ -317,16 +429,17 @@ class _BigRankBadge extends StatelessWidget {
 
 class _OverallProgressBar extends StatelessWidget {
   final String rank;
-  final double pct;
-  const _OverallProgressBar({required this.rank, required this.pct});
+  final double ratio;
+  const _OverallProgressBar({required this.rank, required this.ratio});
 
   static const _order = ['E', 'D', 'C', 'B', 'A', 'S', 'SS'];
-  static const _thresholds = [0.0, 30.0, 50.0, 70.0, 85.0, 95.0, 99.0, 100.0];
+  static const _thresholds = [0.0, .55, .80, 1.0, 1.20, 1.45, 1.80, 2.0];
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final fill = (pct / 100).clamp(0.0, 1.0);
+    final l10n = AppLocalizations.of(context);
+    final fill = (ratio / 2).clamp(0.0, 1.0);
     return Column(
       children: [
         LayoutBuilder(
@@ -355,7 +468,7 @@ class _OverallProgressBar extends StatelessWidget {
                 ),
                 for (int i = 1; i < _thresholds.length - 1; i++)
                   Positioned(
-                    left: w * _thresholds[i] / 100 - 1,
+                    left: w * _thresholds[i] / 2 - 1,
                     child: Container(width: 1.5, height: 8, color: c.card),
                   ),
               ],
@@ -365,24 +478,29 @@ class _OverallProgressBar extends StatelessWidget {
         const SizedBox(height: 6),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children:
-              _order
-                  .map(
-                    (r) => Text(
-                      r,
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w600,
-                        color: r == rank ? _rankColor(r) : c.textSecondary,
-                      ),
-                    ),
-                  )
-                  .toList(),
+          children: _order
+              .map(
+                (r) => Text(
+                  r,
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w600,
+                    color: r == rank ? _rankColor(r) : c.textSecondary,
+                  ),
+                ),
+              )
+              .toList(),
         ),
         const SizedBox(height: 4),
         if (rank != 'SS')
           Text(
-            '${(_nextThreshold(rank) - pct).toStringAsFixed(1)} points to ${_nextRank(rank)} rank',
+            l10n.passportTierProgress(
+              ((_rankCeilings[rank] ?? ratio) - ratio)
+                  .clamp(0, 9)
+                  .toStringAsFixed(2),
+              _nextRank(rank),
+              (rankProgressForRatio(rank, ratio) * 100).round(),
+            ),
             style: TextStyle(fontSize: 11, color: c.textSecondary),
           ),
       ],
@@ -399,12 +517,11 @@ class _ExerciseCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final l10n = AppLocalizations.of(context);
     final color = _rankColor(er.rank);
-    final fill = (er.percentile / 100).clamp(0.0, 1.0);
-    final toNext =
-        er.rank != 'SS'
-            ? '${(_nextThreshold(er.rank) - er.percentile).toStringAsFixed(1)}% to ${_nextRank(er.rank)}'
-            : '🏆 Max rank!';
+    final fill = er.relativeToMedian > 0
+        ? er.rankProgress.clamp(0.0, 1.0)
+        : (er.percentile / 100).clamp(0.0, 1.0);
 
     return Container(
       decoration: BoxDecoration(
@@ -445,7 +562,14 @@ class _ExerciseCard extends StatelessWidget {
                       style: TextStyle(fontSize: 10, color: color),
                     ),
                     Text(
-                      toNext,
+                      er.relativeToMedian > 0
+                          ? er.nextRank == null
+                                ? '${er.relativeToMedian.toStringAsFixed(2)}× median'
+                                : l10n.exerciseMedianProgress(
+                                    er.relativeToMedian.toStringAsFixed(2),
+                                    er.nextRank!,
+                                  )
+                          : l10n.medianCalibrationPending,
                       style: TextStyle(fontSize: 10, color: c.textSecondary),
                     ),
                   ],
@@ -519,6 +643,7 @@ class _NoLiftsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final l10n = AppLocalizations.of(context);
     return Container(
       decoration: BoxDecoration(
         color: c.card,
@@ -528,10 +653,10 @@ class _NoLiftsCard extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          const Text('🏋', style: TextStyle(fontSize: 36)),
+          Icon(CupertinoIcons.shield_lefthalf_fill, size: 34, color: c.accent),
           const SizedBox(height: 12),
           Text(
-            'No lifts recorded yet',
+            l10n.passportNoLiftsTitle,
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
@@ -540,9 +665,189 @@ class _NoLiftsCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Tap the button below to add your first lift\nand discover where you rank globally.',
+            l10n.passportNoLiftsBody,
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 12, color: c.textSecondary, height: 1.5),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PassportPreview extends StatelessWidget {
+  const _PassportPreview();
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final l10n = AppLocalizations.of(context);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: c.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: c.accent.withValues(alpha: .35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.passportPreviewTitle,
+            style: TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.2,
+              color: c.accent,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Opacity(
+            opacity: .68,
+            child: Row(
+              children: [
+                const _SmallRankBadge(rank: 'B'),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.passportPreviewExercise,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: c.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        l10n.passportPreviewSubtitle,
+                        style: TextStyle(fontSize: 10, color: c.textSecondary),
+                      ),
+                      const SizedBox(height: 8),
+                      const _MiniProgressBar(
+                        fill: .54,
+                        color: Color(0xFFF97316),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            l10n.passportPreviewBody,
+            style: TextStyle(fontSize: 11, height: 1.4, color: c.textSecondary),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PassportGuide extends StatelessWidget {
+  const _PassportGuide();
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final l10n = AppLocalizations.of(context);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: c.iconBg.withValues(alpha: .72),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: c.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.passportGuideTitle,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.1,
+              color: c.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _GuideLine(
+            number: '01',
+            title: l10n.passportStepLiftTitle,
+            body: l10n.passportStepLiftBody,
+          ),
+          _GuideLine(
+            number: '02',
+            title: l10n.passportStepMedianTitle,
+            body: l10n.passportStepMedianBody,
+          ),
+          _GuideLine(
+            number: '03',
+            title: l10n.passportStepBreadthTitle,
+            body: l10n.passportStepBreadthBody,
+            last: true,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GuideLine extends StatelessWidget {
+  final String number;
+  final String title;
+  final String body;
+  final bool last;
+  const _GuideLine({
+    required this.number,
+    required this.title,
+    required this.body,
+    this.last = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Padding(
+      padding: EdgeInsets.only(bottom: last ? 0 : 13),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            number,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+              color: c.accent,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: c.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  body,
+                  style: TextStyle(
+                    fontSize: 10,
+                    height: 1.35,
+                    color: c.textSecondary,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -646,8 +951,8 @@ class _RecordLiftButton extends StatelessWidget {
     final c = context.colors;
     return CupertinoButton(
       padding: EdgeInsets.zero,
-      onPressed:
-          () => _showRecordLiftSheet(context, repo: repo, onDone: onDone),
+      onPressed: () =>
+          _showRecordLiftSheet(context, repo: repo, onDone: onDone),
       child: Container(
         height: 52,
         decoration: BoxDecoration(
@@ -808,20 +1113,16 @@ class _RecordLiftSheetState extends State<_RecordLiftSheet> {
                 initialItem: _exIdx,
               ),
               onSelectedItemChanged: (i) => setState(() => _exIdx = i),
-              children:
-                  _kExercises
-                      .map(
-                        (e) => Center(
-                          child: Text(
-                            e.$2,
-                            style: TextStyle(
-                              color: c.textPrimary,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                      )
-                      .toList(),
+              children: _kExercises
+                  .map(
+                    (e) => Center(
+                      child: Text(
+                        e.$2,
+                        style: TextStyle(color: c.textPrimary, fontSize: 14),
+                      ),
+                    ),
+                  )
+                  .toList(),
             ).frame(height: 120),
           ),
           const SizedBox(height: 14),
@@ -881,17 +1182,16 @@ class _RecordLiftSheetState extends State<_RecordLiftSheet> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
-                  child:
-                      _saving
-                          ? const CupertinoActivityIndicator()
-                          : Text(
-                            'Save PR',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: c.textOnAccent,
-                            ),
+                  child: _saving
+                      ? const CupertinoActivityIndicator()
+                      : Text(
+                          'Save PR',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: c.textOnAccent,
                           ),
+                        ),
                 ),
               ),
             ),
@@ -939,10 +1239,9 @@ class _SheetFieldState extends State<_SheetField> {
     return CupertinoTextField(
       controller: widget.controller,
       placeholder: widget.placeholder,
-      keyboardType:
-          widget.isDecimal
-              ? const TextInputType.numberWithOptions(decimal: true)
-              : TextInputType.number,
+      keyboardType: widget.isDecimal
+          ? const TextInputType.numberWithOptions(decimal: true)
+          : TextInputType.number,
       style: TextStyle(color: c.textPrimary, fontSize: 15),
       placeholderStyle: TextStyle(color: c.textSecondary, fontSize: 15),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -967,13 +1266,12 @@ void _showWeightSheet(
 }) {
   showCupertinoModalPopup<void>(
     context: context,
-    builder:
-        (_) => _WeightSheet(
-          repo: repo,
-          onDone: onDone,
-          initialWeight: initialWeight,
-          initialHeight: initialHeight,
-        ),
+    builder: (_) => _WeightSheet(
+      repo: repo,
+      onDone: onDone,
+      initialWeight: initialWeight,
+      initialHeight: initialHeight,
+    ),
   );
 }
 
@@ -1002,16 +1300,14 @@ class _WeightSheetState extends State<_WeightSheet> {
   void initState() {
     super.initState();
     _weightCtrl = TextEditingController(
-      text:
-          widget.initialWeight != null
-              ? widget.initialWeight!.toStringAsFixed(1)
-              : '',
+      text: widget.initialWeight != null
+          ? widget.initialWeight!.toStringAsFixed(1)
+          : '',
     );
     _heightCtrl = TextEditingController(
-      text:
-          widget.initialHeight != null
-              ? widget.initialHeight!.toStringAsFixed(0)
-              : '',
+      text: widget.initialHeight != null
+          ? widget.initialHeight!.toStringAsFixed(0)
+          : '',
     );
   }
 
@@ -1119,17 +1415,16 @@ class _WeightSheetState extends State<_WeightSheet> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
-                  child:
-                      _saving
-                          ? const CupertinoActivityIndicator()
-                          : Text(
-                            'Save',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: c.textOnAccent,
-                            ),
+                  child: _saving
+                      ? const CupertinoActivityIndicator()
+                      : Text(
+                          'Save',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: c.textOnAccent,
                           ),
+                        ),
                 ),
               ),
             ),
@@ -1161,7 +1456,10 @@ class _ErrorView extends StatelessWidget {
             style: TextStyle(fontSize: 15, color: c.textPrimary),
           ),
           const SizedBox(height: 16),
-          CupertinoButton(onPressed: onRetry, child: const Text('Retry')),
+          CupertinoButton(
+            onPressed: onRetry,
+            child: Text(AppLocalizations.of(context).retry),
+          ),
         ],
       ),
     );

@@ -64,6 +64,10 @@ void main() {
 
     expect(store.pending().map((mutation) => mutation.id), ['live']);
     expect(store.deadLetters().map((mutation) => mutation.id), ['dead']);
+
+    await store.retryDeadLetters();
+    expect(store.deadLetters(), isEmpty);
+    expect(store.pending().map((mutation) => mutation.id), ['dead', 'live']);
   });
 
   test(
@@ -121,6 +125,41 @@ void main() {
     expect(store.pending().map((m) => m.id), ['k1']);
   });
 
+  test('cancelPendingFor finds nested string and numeric references', () async {
+    await store.enqueue(
+      Mutation(
+        id: 'nested-string',
+        seq: 1,
+        kind: 'workout.create',
+        args: {
+          'exercises': [
+            {
+              'folder': {'id': 'local:nested'},
+            },
+          ],
+        },
+      ),
+    );
+    await store.enqueue(
+      Mutation(
+        id: 'nested-int',
+        seq: 2,
+        kind: 'workout.create',
+        args: {
+          'exercises': [
+            {'exercise_id': -42},
+          ],
+        },
+      ),
+    );
+
+    await store.cancelPendingFor('local:nested');
+    expect(store.pending().map((mutation) => mutation.id), ['nested-int']);
+
+    await store.cancelPendingFor('-42');
+    expect(store.pending(), isEmpty);
+  });
+
   test('cache and outbox are isolated between authenticated users', () async {
     await store.setScope('user-a', migrateLegacy: false);
     await store.clear();
@@ -168,6 +207,42 @@ void main() {
       expect(store.getDoc('workout', 'w1')?['folder_id'], 'folder-1');
       expect(store.pending().single.args['folderId'], 'folder-1');
       expect(store.getListIds('workout-folders'), ['folder-1']);
+    },
+  );
+
+  test(
+    'remapId preserves numeric exercise ids in nested workout data',
+    () async {
+      await store.putDoc('workout', 'w1', {
+        'id': 'w1',
+        'exercises': [
+          {'exercise_id': -42, 'name': 'Custom press'},
+        ],
+      });
+      await store.enqueue(
+        Mutation(
+          id: 'create-workout',
+          seq: 1,
+          kind: 'workout.create',
+          args: {
+            'exercises': [
+              {'exercise_id': -42},
+            ],
+          },
+        ),
+      );
+
+      await store.remapId('exercise', '-42', '731', {
+        'id': 731,
+        'name': 'Custom press',
+      });
+
+      final exercise =
+          (store.getDoc('workout', 'w1')!['exercises'] as List).single as Map;
+      expect(exercise['exercise_id'], 731);
+      final pendingExercise =
+          (store.pending().single.args['exercises'] as List).single as Map;
+      expect(pendingExercise['exercise_id'], 731);
     },
   );
 }

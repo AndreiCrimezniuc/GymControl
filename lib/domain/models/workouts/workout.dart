@@ -84,14 +84,17 @@ class WorkoutExercise {
     alternativeGroupId: j['alternative_group_id'] as String?,
     restSeconds: (j['rest_seconds'] as num?)?.toInt() ?? 90,
     comment: (j['comment'] as String?) ?? '',
-    sets:
-        ((j['sets'] as List?) ?? [])
-            .map((e) => WorkoutSet.fromJson(e as Map<String, dynamic>))
-            .toList(),
+    sets: ((j['sets'] as List?) ?? [])
+        .map((e) => WorkoutSet.fromJson(e as Map<String, dynamic>))
+        .toList(),
   );
 
   Map<String, dynamic> toJson() => {
     'exercise_id': exerciseId,
+    'name': name,
+    'image_url': imageUrl,
+    'image_url2': imageUrl2,
+    'muscle_group': muscleGroup,
     'exercise_type': exerciseType,
     'training_group_id': trainingGroupId,
     'training_group_type': trainingGroupType,
@@ -156,6 +159,22 @@ class Workout {
   });
 
   bool get isPublic => visibility == 'public';
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'comment': comment,
+    'type': type,
+    'visibility': visibility,
+    'owned': owned,
+    'share_code': shareCode,
+    'exercise_count': exerciseCount,
+    'times_performed': timesPerformed,
+    'deload_factor': deloadFactor,
+    'exercises': exercises.map((exercise) => exercise.toJson()).toList(),
+    'folder_id': folderId,
+  };
+
   factory Workout.fromJson(Map<String, dynamic> j) => Workout(
     id: (j['id'] as String?) ?? '',
     name: (j['name'] as String?) ?? '',
@@ -167,10 +186,9 @@ class Workout {
     exerciseCount: (j['exercise_count'] as num?)?.toInt() ?? 0,
     timesPerformed: (j['times_performed'] as num?)?.toInt() ?? 0,
     deloadFactor: (j['deload_factor'] as num?)?.toDouble() ?? 0.70,
-    exercises:
-        ((j['exercises'] as List?) ?? [])
-            .map((e) => WorkoutExercise.fromJson(e as Map<String, dynamic>))
-            .toList(),
+    exercises: ((j['exercises'] as List?) ?? [])
+        .map((e) => WorkoutExercise.fromJson(e as Map<String, dynamic>))
+        .toList(),
     folderId: j['folder_id'] as String?,
   );
 
@@ -269,10 +287,9 @@ class PerformedExerciseLog {
         exerciseId: (j['exercise_id'] as num?)?.toInt() ?? 0,
         name: (j['name'] as String?) ?? '',
         muscleGroup: (j['muscle_group'] as String?) ?? '',
-        sets:
-            ((j['sets'] as List?) ?? [])
-                .map((e) => PerformedSetLog.fromJson(e as Map<String, dynamic>))
-                .toList(),
+        sets: ((j['sets'] as List?) ?? [])
+            .map((e) => PerformedSetLog.fromJson(e as Map<String, dynamic>))
+            .toList(),
       );
 
   double get volumeKg => sets
@@ -359,10 +376,9 @@ class StatsSummary {
     longestWorkoutSeconds: (j['longest_workout_seconds'] as num?)?.toInt() ?? 0,
     favoriteExercise: (j['favorite_exercise'] as String?) ?? '',
     strongestExercise: (j['strongest_exercise'] as String?) ?? '',
-    workoutsPerMonth:
-        ((j['workouts_per_month'] as List?) ?? [])
-            .map((e) => MonthlyCount.fromJson(e as Map<String, dynamic>))
-            .toList(),
+    workoutsPerMonth: ((j['workouts_per_month'] as List?) ?? [])
+        .map((e) => MonthlyCount.fromJson(e as Map<String, dynamic>))
+        .toList(),
   );
 }
 
@@ -379,6 +395,12 @@ class WorkoutStats {
     this.averageDurationSeconds = 0,
   });
 
+  static const empty = WorkoutStats(
+    timesPerformed: 0,
+    potentialVolume: {'easy': 0, 'medium': 0, 'hard': 0},
+    history: [],
+  );
+
   factory WorkoutStats.fromJson(Map<String, dynamic> j) {
     final pv = (j['potential_volume'] as Map<String, dynamic>?) ?? const {};
     return WorkoutStats(
@@ -388,12 +410,36 @@ class WorkoutStats {
         'medium': (pv['medium'] as num?)?.toDouble() ?? 0,
         'hard': (pv['hard'] as num?)?.toDouble() ?? 0,
       },
-      history:
-          ((j['history'] as List?) ?? [])
-              .map((e) => WorkoutRunPoint.fromJson(e as Map<String, dynamic>))
-              .toList(),
+      history: ((j['history'] as List?) ?? [])
+          .map((e) => WorkoutRunPoint.fromJson(e as Map<String, dynamic>))
+          .toList(),
       averageDurationSeconds:
           (j['average_duration_seconds'] as num?)?.toInt() ?? 0,
     );
   }
+}
+
+class WorkoutSuggestion {
+  final String summary;
+  final List<String> highlights;
+  final List<String> cautions;
+  final List<String> nextFocus;
+
+  const WorkoutSuggestion({
+    required this.summary,
+    required this.highlights,
+    required this.cautions,
+    required this.nextFocus,
+  });
+
+  factory WorkoutSuggestion.fromJson(Map<String, dynamic> json) =>
+      WorkoutSuggestion(
+        summary: json['summary'] as String? ?? '',
+        highlights: _stringList(json['highlights']),
+        cautions: _stringList(json['cautions']),
+        nextFocus: _stringList(json['next_focus']),
+      );
+
+  static List<String> _stringList(Object? value) =>
+      (value as List? ?? const []).whereType<String>().toList();
 }

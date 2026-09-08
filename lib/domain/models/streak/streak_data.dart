@@ -18,5 +18,10 @@ class StreakData {
     );
   }
 
+  /// The next visible four-week landmark, expressed as an absolute target.
+  /// Showing "12 weeks" for a 9-week streak is unambiguous; "3 weeks" looked
+  /// like the current streak had somehow gone backwards.
+  int get nextMilestoneWeeks => ((currentStreakWeeks ~/ 4) + 1) * 4;
+
   static const empty = StreakData(currentStreakWeeks: 0, activeWeeks: []);
 }

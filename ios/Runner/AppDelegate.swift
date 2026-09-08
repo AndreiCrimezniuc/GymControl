@@ -7,6 +7,10 @@ import UIKit
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    // Live Activities are system-owned and may survive a killed Flutter
+    // process. Clear them before Dart restores the durable workout; a valid
+    // snapshot will immediately create a fresh, authoritative activity.
+    WorkoutLiveActivityBridge.endAll()
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 

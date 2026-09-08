@@ -3,12 +3,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
 import 'package:gymboss/data/sync/sync_service.dart';
+import 'package:gymboss/l10n/app_localizations.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/offline_banner.dart';
 
 Widget _wrap(Widget child) => ChangeNotifierProvider(
   create: (_) => ThemeController(),
-  child: CupertinoApp(home: child),
+  child: CupertinoApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    home: child,
+  ),
 );
 
 void main() {

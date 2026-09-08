@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -48,11 +49,10 @@ void main() {
       );
       addTearDown(client.dispose);
 
-      final workouts =
-          await WorkoutsRepository(
-            client: client,
-            isOnline: () async => false,
-          ).listOwned();
+      final workouts = await WorkoutsRepository(
+        client: client,
+        isOnline: () async => false,
+      ).listOwned();
 
       expect(workouts, hasLength(1));
       expect(workouts.single.name, 'Offline push');
@@ -75,14 +75,62 @@ void main() {
     );
     addTearDown(client.dispose);
 
-    final folders =
-        await WorkoutsRepository(
-          client: client,
-          isOnline: () async => false,
-        ).listFolders();
+    final folders = await WorkoutsRepository(
+      client: client,
+      isOnline: () async => false,
+    ).listFolders();
 
     expect(folders, hasLength(1));
     expect(folders.single.name, 'Strength');
+  });
+
+  test('cached workout renders without waiting for connectivity', () async {
+    await store.putDoc('workout', 'w1', {
+      'id': 'w1',
+      'name': 'Instant cache',
+      'exercises': <Object>[],
+    });
+    final client = AuthenticatedClient(
+      storage: TokenStorage(),
+      authService: AuthService(),
+      inner: MockClient((_) async => throw const SocketException('offline')),
+    );
+    addTearDown(client.dispose);
+    final stalledConnectivity = Completer<bool>();
+    final workout = await WorkoutsRepository(
+      client: client,
+      isOnline: () => stalledConnectivity.future,
+    ).get('w1').timeout(const Duration(milliseconds: 100));
+
+    expect(workout.name, 'Instant cache');
+  });
+
+  test('completed run updates cache before background sync', () async {
+    await store.putDoc('workout', 'w1', {
+      'id': 'w1',
+      'name': 'Push',
+      'times_performed': 2,
+      'exercises': <Object>[],
+    });
+    await store.putDoc('workout_stats', 'w1', {
+      'times_performed': 2,
+      'potential_volume': <String, Object>{},
+      'history': <Object>[],
+    });
+    final client = AuthenticatedClient(
+      storage: TokenStorage(),
+      authService: AuthService(),
+      inner: MockClient((_) async => throw const SocketException('offline')),
+    );
+    addTearDown(client.dispose);
+    await WorkoutsRepository(
+      client: client,
+      isOnline: () async => false,
+    ).logRun('w1', 'normal', durationSeconds: 900);
+
+    expect(store.getDoc('workout', 'w1')?['times_performed'], 3);
+    expect(store.getDoc('workout_stats', 'w1')?['times_performed'], 3);
+    expect(store.pending().single.kind, 'workout.run');
   });
 
   test(

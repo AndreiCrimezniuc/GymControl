@@ -15,6 +15,14 @@ void main() {
     expect(ru.labelDarkMode, 'Тёмная тема');
     expect(en.logOut, 'Log Out');
     expect(ru.logOut, 'Выйти');
+    expect(en.strengthPassport, 'Strength Passport');
+    expect(ru.strengthPassport, 'Силовой паспорт');
+    expect(ru.resumeSummary('12:34', 3, 8), contains('3/8 подходов'));
+    expect(ru.recordStartsHere, 'Ваша история начинается здесь');
+    expect(ru.passportGuideTitle, 'КАК РАБОТАЕТ ПАСПОРТ');
+    expect(ru.passportTierProgress('0.12', 'A', 50), contains('50%'));
+    expect(ru.aiSuggest, 'AI-РАЗБОР');
+    expect(ru.previousCompact('80×5'), 'БЫЛО 80×5');
   });
 
   test('every supported locale is loadable', () async {

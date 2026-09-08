@@ -30,10 +30,10 @@ class RankingRepository {
     _registerHandlers();
   }
 
-  Future<RankProfile> getProfile() async {
+  Future<RankProfile> getProfile({bool forceRefresh = false}) async {
     final cached = _store.getDoc(_collection, 'profile');
-    if (cached != null) {
-      if (await _isOnline()) unawaited(_refreshProfileInBackground());
+    if (!forceRefresh && cached != null) {
+      unawaited(_refreshProfileInBackground());
       return RankProfile.fromJson(cached);
     }
     if (!await _isOnline()) {
@@ -59,6 +59,7 @@ class RankingRepository {
 
   Future<void> _refreshProfileInBackground() async {
     try {
+      if (!await _isOnline()) return;
       await _refreshProfile();
     } catch (_) {}
   }
@@ -80,24 +81,8 @@ class RankingRepository {
       'updated_at': DateTime.now().toUtc().toIso8601String(),
     };
     await _store.putDoc(_collection, 'profile', local);
-    if (await _isOnline()) {
-      try {
-        final resp = await _client
-            .put(Uri.parse('$_base/profile'), body: jsonEncode(body))
-            .timeout(const Duration(seconds: 10));
-        if (resp.statusCode != 200) {
-          throw AppError(
-            AppErrorCode.dataSaveFailed,
-            message: 'PUT /rankings/profile HTTP ${resp.statusCode}',
-          );
-        }
-        final fresh = jsonDecode(resp.body) as Map<String, dynamic>;
-        await _store.putDoc(_collection, 'profile', fresh);
-        return RankProfile.fromJson(fresh);
-      } on Object catch (error) {
-        if (!isTransientNetworkFailure(error)) rethrow;
-      }
-    }
+    // Profiles are local-first too: changing body measurements must never
+    // stall behind a network probe. SyncService reconciles on connectivity.
     await _enqueue('ranking.profile', body);
     return RankProfile.fromJson(local);
   }
@@ -112,27 +97,15 @@ class RankingRepository {
       'weight_kg': weightKg,
       'reps': reps,
     };
-    if (await _isOnline()) {
-      try {
-        final resp = await _client
-            .post(Uri.parse('$_base/lifts'), body: jsonEncode(body))
-            .timeout(const Duration(seconds: 10));
-        if (resp.statusCode == 204) return;
-        throw AppError(
-          AppErrorCode.dataSaveFailed,
-          message: 'POST /rankings/lifts HTTP ${resp.statusCode}',
-        );
-      } on Object catch (error) {
-        if (!isTransientNetworkFailure(error)) rethrow;
-      }
-    }
+    // The completed set is authoritative locally. Passport synchronization is
+    // asynchronous so logging a lift feels identical online and offline.
     await _enqueue('ranking.lift', body);
   }
 
-  Future<UserRanks> getUserRanks() async {
+  Future<UserRanks> getUserRanks({bool forceRefresh = false}) async {
     final cached = _store.getDoc(_collection, 'me');
-    if (cached != null) {
-      if (await _isOnline()) unawaited(_refreshUserRanksInBackground());
+    if (!forceRefresh && cached != null) {
+      unawaited(_refreshUserRanksInBackground());
       return UserRanks.fromJson(cached);
     }
     if (!await _isOnline()) return UserRanks.empty;
@@ -156,6 +129,7 @@ class RankingRepository {
 
   Future<void> _refreshUserRanksInBackground() async {
     try {
+      if (!await _isOnline()) return;
       await _refreshUserRanks();
     } catch (_) {}
   }

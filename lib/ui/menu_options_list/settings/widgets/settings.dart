@@ -1,10 +1,12 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:gymboss/config/api_config.dart';
 import 'package:gymboss/core/errors/app_error.dart';
 import 'package:gymboss/data/diagnostics/diagnostic_service.dart';
 import 'package:gymboss/data/repositories/ranking_repository.dart';
+import 'package:gymboss/data/sync/sync_service.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/domain/models/ranking/rank_data.dart';
 import 'package:gymboss/l10n/app_localizations.dart';
@@ -60,12 +62,11 @@ class _SettingsState extends State<Settings> {
   void _openBodyMetrics() {
     Navigator.of(context, rootNavigator: true).push(
       CupertinoPageRoute(
-        builder:
-            (_) => BodyMeasurementsScreen(
-              ranking: _ranking,
-              profile: _profile,
-              onProfileSaved: (profile) => setState(() => _profile = profile),
-            ),
+        builder: (_) => BodyMeasurementsScreen(
+          ranking: _ranking,
+          profile: _profile,
+          onProfileSaved: (profile) => setState(() => _profile = profile),
+        ),
       ),
     );
   }
@@ -86,11 +87,12 @@ class _SettingsState extends State<Settings> {
   }
 
   Future<void> _openExternal(Uri url) async {
+    final l = AppLocalizations.of(context);
     final opened = await launchUrl(url, mode: LaunchMode.externalApplication);
     if (!opened && mounted) {
       await showAppDialog<void>(
         context,
-        title: 'Could not open link',
+        title: l.couldNotOpenLink,
         message: url.toString(),
         actions: [
           AppDialogAction('OK', onPressed: () => Navigator.pop(context)),
@@ -100,13 +102,14 @@ class _SettingsState extends State<Settings> {
   }
 
   Future<void> _sendDiagnostics() async {
+    final l = AppLocalizations.of(context);
     final diagnostics = DiagnosticService.instance;
     final count = diagnostics.eventCount;
     if (count == 0) {
       await showAppDialog<void>(
         context,
-        title: 'No diagnostics to send',
-        message: 'The local diagnostic buffer is currently empty.',
+        title: l.noDiagnostics,
+        message: l.diagnosticsEmpty,
         actions: [
           AppDialogAction('OK', onPressed: () => Navigator.pop(context)),
         ],
@@ -115,13 +118,11 @@ class _SettingsState extends State<Settings> {
     }
     final confirmed = await showAppDialog<bool>(
       context,
-      title: 'Send diagnostics?',
-      message:
-          'This sends $count technical event${count == 1 ? '' : 's'} to GymControl support. '
-          'Tokens, email, workout contents, comments and stack traces are not included.',
+      title: l.sendDiagnosticsQuestion,
+      message: l.sendDiagnosticsBody(count),
       actions: [
         AppDialogAction(
-          'Cancel',
+          l.cancel,
           onPressed: () => Navigator.pop(context, false),
         ),
         AppDialogAction('Send', onPressed: () => Navigator.pop(context, true)),
@@ -138,10 +139,11 @@ class _SettingsState extends State<Settings> {
       setState(() => _sendingDiagnostics = false);
       await showAppDialog<void>(
         context,
-        title: 'Diagnostics sent',
-        message:
-            '${result.eventCount} event${result.eventCount == 1 ? '' : 's'} sent. '
-            'Reference: ${result.reportId.substring(0, 8)}',
+        title: l.diagnosticsSent,
+        message: l.diagnosticsSentBody(
+          result.eventCount,
+          result.reportId.substring(0, 8),
+        ),
         actions: [
           AppDialogAction('OK', onPressed: () => Navigator.pop(context)),
         ],
@@ -151,9 +153,8 @@ class _SettingsState extends State<Settings> {
       setState(() => _sendingDiagnostics = false);
       await showAppDialog<void>(
         context,
-        title: 'Could not send diagnostics',
-        message:
-            'The events remain on this device. Check your connection and try again.',
+        title: l.diagnosticsFailed,
+        message: l.diagnosticsFailedBody,
         actions: [
           AppDialogAction('OK', onPressed: () => Navigator.pop(context)),
         ],
@@ -182,19 +183,17 @@ class _SettingsState extends State<Settings> {
               _ValueTile(
                 icon: CupertinoIcons.chart_bar_circle_fill,
                 label: l.labelWeight,
-                value:
-                    weight != null
-                        ? '${weight.toStringAsFixed(1)} kg'
-                        : 'Not set',
+                value: weight != null
+                    ? '${weight.toStringAsFixed(1)} kg'
+                    : l.notSet,
                 onTap: _openBodyMetrics,
               ),
               _ValueTile(
                 icon: CupertinoIcons.person_fill,
                 label: l.labelHeight,
-                value:
-                    height != null
-                        ? '${height.toStringAsFixed(0)} cm'
-                        : 'Not set',
+                value: height != null
+                    ? '${height.toStringAsFixed(0)} cm'
+                    : l.notSet,
                 onTap: _openBodyMetrics,
               ),
               if (dontAsk)
@@ -210,10 +209,9 @@ class _SettingsState extends State<Settings> {
             title: l.sectionAppearance,
             children: [
               _SwitchTile(
-                icon:
-                    theme.isDark
-                        ? CupertinoIcons.moon_fill
-                        : CupertinoIcons.sun_max_fill,
+                icon: theme.isDark
+                    ? CupertinoIcons.moon_fill
+                    : CupertinoIcons.sun_max_fill,
                 label: l.labelDarkMode,
                 value: theme.isDark,
                 onChanged: (_) => theme.toggle(),
@@ -222,22 +220,21 @@ class _SettingsState extends State<Settings> {
             ],
           ),
           const SizedBox(height: 20),
-          _Section(
-            title: 'GymControl Pro · Development',
-            children: [
-              _SwitchTile(
-                icon: CupertinoIcons.bolt_fill,
-                label:
-                    pro.isKnown
-                        ? 'Pro account'
-                        : pro.loading
-                        ? 'Checking Pro access…'
-                        : 'Pro status unavailable',
-                value: pro.isPro,
-                onChanged:
-                    !pro.isKnown || pro.loading
-                        ? null
-                        : (value) async {
+          if (!kReleaseMode) ...[
+            _Section(
+              title: 'GymControl Pro · Development',
+              children: [
+                _SwitchTile(
+                  icon: CupertinoIcons.bolt_fill,
+                  label: pro.isKnown
+                      ? 'Pro account'
+                      : pro.loading
+                      ? 'Checking Pro access…'
+                      : 'Pro status unavailable',
+                  value: pro.isPro,
+                  onChanged: !pro.isKnown || pro.loading
+                      ? null
+                      : (value) async {
                           try {
                             await pro.setPro(value);
                           } catch (_) {
@@ -254,25 +251,27 @@ class _SettingsState extends State<Settings> {
                             );
                           }
                         },
-              ),
-              if (pro.state == ProAccessState.unavailable)
-                _SettingsTile(
-                  icon: CupertinoIcons.refresh,
-                  label: 'Retry Pro status',
-                  onTap: () => pro.load(force: true),
                 ),
-              _SettingsTile(
-                icon: CupertinoIcons.creditcard_fill,
-                label: 'Preview paywall',
-                onTap:
-                    () => Navigator.of(context, rootNavigator: true).push(
-                      CupertinoPageRoute(builder: (_) => const PaywallScreen()),
-                    ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
+                if (pro.state == ProAccessState.unavailable)
+                  _SettingsTile(
+                    icon: CupertinoIcons.refresh,
+                    label: 'Retry Pro status',
+                    onTap: () => pro.load(force: true),
+                  ),
+                _SettingsTile(
+                  icon: CupertinoIcons.creditcard_fill,
+                  label: 'Preview paywall',
+                  onTap: () => Navigator.of(context, rootNavigator: true).push(
+                    CupertinoPageRoute(builder: (_) => const PaywallScreen()),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+          ],
           _Section(title: l.sectionLanguage, children: [const _LanguageTile()]),
+          const SizedBox(height: 20),
+          _Section(title: l.syncLedger, children: [const _SyncLedgerTile()]),
           const SizedBox(height: 20),
           _Section(
             title: l.sectionAccount,
@@ -295,30 +294,29 @@ class _SettingsState extends State<Settings> {
               ),
               _SettingsTile(
                 icon: CupertinoIcons.hand_raised_fill,
-                label: 'Privacy policy',
+                label: l.privacyPolicy,
                 onTap: () => _openExternal(ApiConfig.privacyPolicyUrl),
               ),
               _SettingsTile(
                 icon: CupertinoIcons.doc_text_fill,
-                label: 'Terms of use',
+                label: l.termsOfUse,
                 onTap: () => _openExternal(ApiConfig.termsUrl),
               ),
               _SettingsTile(
                 icon: CupertinoIcons.question_circle_fill,
-                label: 'Support',
+                label: l.support,
                 onTap: () => _openExternal(ApiConfig.supportUrl),
               ),
               _SettingsTile(
                 icon: CupertinoIcons.waveform_path_ecg,
-                label:
-                    _sendingDiagnostics
-                        ? 'Sending diagnostics…'
-                        : 'Send diagnostics (${DiagnosticService.instance.eventCount})',
+                label: _sendingDiagnostics
+                    ? 'Sending diagnostics…'
+                    : 'Send diagnostics (${DiagnosticService.instance.eventCount})',
                 onTap: _sendingDiagnostics ? () {} : _sendDiagnostics,
               ),
               _SwitchTile(
                 icon: CupertinoIcons.shield_lefthalf_fill,
-                label: 'Share technical diagnostics automatically',
+                label: l.shareDiagnostics,
                 value: _automaticDiagnostics,
                 onChanged: (value) async {
                   await DiagnosticService.instance.setAutomaticUploadEnabled(
@@ -332,7 +330,7 @@ class _SettingsState extends State<Settings> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                 child: Text(
-                  'Helps us detect app errors. Includes only event codes, app version and platform; never email, workout content, tokens or stack traces.',
+                  l.diagnosticsPrivacyBody,
                   style: TextStyle(
                     color: context.colors.textSecondary,
                     fontSize: 12,
@@ -348,6 +346,68 @@ class _SettingsState extends State<Settings> {
           const _DeleteAccountButton(),
         ],
       ),
+    );
+  }
+}
+
+class _SyncLedgerTile extends StatelessWidget {
+  const _SyncLedgerTile();
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<SyncStatus>(
+      valueListenable: SyncService.instance.status,
+      builder: (context, status, _) {
+        final c = context.colors;
+        final l = AppLocalizations.of(context);
+        final label = status.rejected > 0
+            ? l.syncRejected(status.rejected)
+            : status.pending > 0
+            ? l.syncPending(status.pending)
+            : status.online
+            ? l.syncCurrent
+            : l.syncOfflineSafe;
+        final icon = status.rejected > 0
+            ? CupertinoIcons.exclamationmark_triangle_fill
+            : status.pending > 0
+            ? CupertinoIcons.arrow_2_circlepath
+            : status.online
+            ? CupertinoIcons.check_mark_circled_solid
+            : CupertinoIcons.wifi_slash;
+        return CupertinoButton(
+          padding: EdgeInsets.zero,
+          onPressed: status.rejected > 0
+              ? SyncService.instance.retryRejected
+              : status.pending > 0
+              ? SyncService.instance.flush
+              : null,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                Icon(icon, size: 19, color: c.accent),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: c.textPrimary,
+                      fontSize: 14,
+                      height: 1.3,
+                    ),
+                  ),
+                ),
+                if (status.pending > 0 || status.rejected > 0)
+                  Icon(
+                    CupertinoIcons.refresh,
+                    size: 16,
+                    color: c.textSecondary,
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -385,12 +445,11 @@ class _Section extends StatelessWidget {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: children.length,
-            separatorBuilder:
-                (_, __) => Container(
-                  height: 1,
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  color: c.border,
-                ),
+            separatorBuilder: (_, __) => Container(
+              height: 1,
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              color: c.border,
+            ),
             itemBuilder: (_, i) => children[i],
           ),
         ),
@@ -573,37 +632,36 @@ class _LanguageTile extends StatelessWidget {
   void _pick(BuildContext context, LocaleController ctrl, AppLocalizations l) {
     showCupertinoModalPopup<void>(
       context: context,
-      builder:
-          (_) => CupertinoActionSheet(
-            actions: [
-              CupertinoActionSheetAction(
-                onPressed: () {
-                  ctrl.setLocale(null);
-                  Navigator.pop(context);
-                },
-                child: Text(l.languageSystem),
-              ),
-              CupertinoActionSheetAction(
-                onPressed: () {
-                  ctrl.setLocale(const Locale('en'));
-                  Navigator.pop(context);
-                },
-                child: Text(l.languageEnglish),
-              ),
-              CupertinoActionSheetAction(
-                onPressed: () {
-                  ctrl.setLocale(const Locale('ru'));
-                  Navigator.pop(context);
-                },
-                child: Text(l.languageRussian),
-              ),
-            ],
-            cancelButton: CupertinoActionSheetAction(
-              isDefaultAction: true,
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
+      builder: (_) => CupertinoActionSheet(
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () {
+              ctrl.setLocale(null);
+              Navigator.pop(context);
+            },
+            child: Text(l.languageSystem),
           ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              ctrl.setLocale(const Locale('en'));
+              Navigator.pop(context);
+            },
+            child: Text(l.languageEnglish),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              ctrl.setLocale(const Locale('ru'));
+              Navigator.pop(context);
+            },
+            child: Text(l.languageRussian),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          isDefaultAction: true,
+          onPressed: () => Navigator.pop(context),
+          child: Text(l.cancel),
+        ),
+      ),
     );
   }
 }
@@ -623,7 +681,7 @@ class _UnitsTile extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Weight units',
+              AppLocalizations.of(context).weightUnits,
               style: TextStyle(fontSize: 15, color: c.textPrimary),
             ),
           ),
@@ -744,7 +802,7 @@ class _BodyMetricsSheetState extends State<_BodyMetricsSheet> {
               Expanded(
                 child: _MetricInput(
                   controller: _weightCtrl,
-                  label: 'Weight (kg)',
+                  label: AppLocalizations.of(context).weightKgLabel,
                   placeholder: '80',
                 ),
               ),
@@ -752,7 +810,7 @@ class _BodyMetricsSheetState extends State<_BodyMetricsSheet> {
               Expanded(
                 child: _MetricInput(
                   controller: _heightCtrl,
-                  label: 'Height (cm)',
+                  label: AppLocalizations.of(context).heightCmLabel,
                   placeholder: '175',
                 ),
               ),
@@ -771,17 +829,16 @@ class _BodyMetricsSheetState extends State<_BodyMetricsSheet> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
-                  child:
-                      _saving
-                          ? const CupertinoActivityIndicator()
-                          : Text(
-                            'Save',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: c.textOnAccent,
-                            ),
+                  child: _saving
+                      ? const CupertinoActivityIndicator()
+                      : Text(
+                          'Save',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: c.textOnAccent,
                           ),
+                        ),
                 ),
               ),
             ),
@@ -834,18 +891,14 @@ class _AboutSheet extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           _Credit(
-            title: 'Exercise illustrations',
-            body:
-                'Muscle-highlight illustrations © Everkinetic, used under '
-                'the Creative Commons Attribution-ShareAlike license (CC BY-SA).',
+            title: AppLocalizations.of(context).exerciseIllustrations,
+            body: AppLocalizations.of(context).exerciseIllustrationsCredit,
             url: 'https://github.com/everkinetic/data',
           ),
           const SizedBox(height: 14),
           _Credit(
-            title: 'Exercise data',
-            body:
-                'Exercise catalog based on the free-exercise-db, released '
-                'into the public domain under The Unlicense.',
+            title: AppLocalizations.of(context).exerciseData,
+            body: AppLocalizations.of(context).exerciseDataCredit,
             url: 'https://github.com/yuhonas/free-exercise-db',
           ),
         ],
@@ -965,14 +1018,15 @@ class _LogoutButton extends StatelessWidget {
   }
 
   void _confirmLogout(BuildContext context) {
+    final l = AppLocalizations.of(context);
     showAppDialog<void>(
       context,
-      title: 'Log Out',
-      message: 'Are you sure you want to log out?',
+      title: l.logOut,
+      message: l.logoutQuestion,
       actions: [
-        AppDialogAction('Cancel', onPressed: () => Navigator.pop(context)),
+        AppDialogAction(l.cancel, onPressed: () => Navigator.pop(context)),
         AppDialogAction(
-          'Log Out',
+          l.logOut,
           isDestructive: true,
           onPressed: () {
             Navigator.of(context).popUntil((route) => route.isFirst);
@@ -990,6 +1044,7 @@ class _DeleteAccountButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const red = Color(0xFFEF4444);
+    final l = AppLocalizations.of(context);
     return Column(
       children: [
         GestureDetector(
@@ -1001,14 +1056,14 @@ class _DeleteAccountButton extends StatelessWidget {
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: const Color(0x33EF4444), width: 1),
             ),
-            child: const Row(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(CupertinoIcons.trash_fill, color: red, size: 18),
-                SizedBox(width: 8),
+                const Icon(CupertinoIcons.trash_fill, color: red, size: 18),
+                const SizedBox(width: 8),
                 Text(
-                  'Delete Account',
-                  style: TextStyle(
+                  l.deleteAccount,
+                  style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
                     color: red,
@@ -1020,7 +1075,7 @@ class _DeleteAccountButton extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          'Permanently deletes your workouts, exercise history and profile. This cannot be undone.',
+          l.deleteAccountCaption,
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 11, color: context.colors.textSecondary),
         ),
@@ -1029,18 +1084,18 @@ class _DeleteAccountButton extends StatelessWidget {
   }
 
   Future<void> _confirmDelete(BuildContext context) async {
+    final l = AppLocalizations.of(context);
     final ok = await showAppDialog<bool>(
       context,
-      title: 'Delete Account',
-      message:
-          'This will permanently delete your account, workouts, exercise history and profile. This cannot be undone.',
+      title: l.deleteAccount,
+      message: l.deleteAccountBody,
       actions: [
         AppDialogAction(
-          'Cancel',
+          l.cancel,
           onPressed: () => Navigator.pop(context, false),
         ),
         AppDialogAction(
-          'Delete',
+          l.delete,
           isDestructive: true,
           onPressed: () => Navigator.pop(context, true),
         ),
@@ -1057,7 +1112,7 @@ class _DeleteAccountButton extends StatelessWidget {
       vm.clearError();
       showAppDialog<void>(
         context,
-        title: 'Could not delete account',
+        title: l.couldNotDeleteAccount,
         message: AppErrorCodeExt.messageFor(code),
         actions: [
           AppDialogAction(

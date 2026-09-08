@@ -39,6 +39,11 @@ class ExerciseRank {
   final double oneRmKg;
   final double percentile;
   final String rank;
+  final double medianScore;
+  final double relativeToMedian;
+  final double rankProgress;
+  final String? nextRank;
+  final double ratioToNext;
 
   const ExerciseRank({
     required this.exerciseId,
@@ -48,6 +53,11 @@ class ExerciseRank {
     required this.oneRmKg,
     required this.percentile,
     required this.rank,
+    this.medianScore = 0,
+    this.relativeToMedian = 0,
+    this.rankProgress = 0,
+    this.nextRank,
+    this.ratioToNext = 0,
   });
 
   factory ExerciseRank.fromJson(Map<String, dynamic> j) => ExerciseRank(
@@ -58,6 +68,11 @@ class ExerciseRank {
     oneRmKg: (j['one_rm_kg'] as num).toDouble(),
     percentile: (j['percentile'] as num).toDouble(),
     rank: j['rank'] as String,
+    medianScore: (j['median_score'] as num?)?.toDouble() ?? 0,
+    relativeToMedian: (j['relative_to_median'] as num?)?.toDouble() ?? 0,
+    rankProgress: (j['rank_progress'] as num?)?.toDouble() ?? 0,
+    nextRank: j['next_rank'] as String?,
+    ratioToNext: (j['ratio_to_next'] as num?)?.toDouble() ?? 0,
   );
 }
 
@@ -66,12 +81,14 @@ class UserRanks {
   final List<ExerciseRank> exerciseRanks;
   final String? overallRank;
   final double? overallPct;
+  final double? overallRatio;
 
   const UserRanks({
     required this.profile,
     required this.exerciseRanks,
     this.overallRank,
     this.overallPct,
+    this.overallRatio,
   });
 
   factory UserRanks.fromJson(Map<String, dynamic> j) => UserRanks(
@@ -81,6 +98,7 @@ class UserRanks {
         .toList(),
     overallRank: j['overall_rank'] as String?,
     overallPct: (j['overall_pct'] as num?)?.toDouble(),
+    overallRatio: (j['overall_ratio'] as num?)?.toDouble(),
   );
 
   static UserRanks get empty => UserRanks(

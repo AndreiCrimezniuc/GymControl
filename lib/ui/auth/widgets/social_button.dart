@@ -24,12 +24,11 @@ class _GoogleLogoPainter extends CustomPainter {
       (4.1888, 6.2832, const Color(0xFFEA4335)),
     ];
     for (final (start, end, color) in segments) {
-      final paint =
-          Paint()
-            ..color = color
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = size.width * 0.2
-            ..strokeCap = StrokeCap.butt;
+      final paint = Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = size.width * 0.2
+        ..strokeCap = StrokeCap.butt;
       canvas.drawArc(
         Rect.fromCircle(center: Offset(cx, cy), radius: r * 0.75),
         start - 1.5708,
@@ -76,24 +75,23 @@ class SocialButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppDesign.radiusControl),
           border: Border.all(color: c.border, width: AppDesign.hairline),
         ),
-        child:
-            loading
-                ? const Center(child: CupertinoActivityIndicator())
-                : Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(width: 22, height: 22, child: icon),
-                    const SizedBox(width: 10),
-                    Text(
-                      label,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: c.textPrimary,
-                      ),
+        child: loading
+            ? const Center(child: CupertinoActivityIndicator())
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(width: 22, height: 22, child: icon),
+                  const SizedBox(width: 10),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: c.textPrimary,
                     ),
-                  ],
-                ),
+                  ),
+                ],
+              ),
       ),
     );
   }

@@ -32,10 +32,10 @@ class MeasurementsRepository {
     _registerHandlers();
   }
 
-  Future<List<BodyMeasurement>> list() async {
-    if (_store.hasList(_cacheKey)) {
+  Future<List<BodyMeasurement>> list({bool forceRefresh = false}) async {
+    if (!forceRefresh && _store.hasList(_cacheKey)) {
       final cached = _cachedList();
-      if (await _isOnline()) unawaited(_refreshInBackground());
+      unawaited(_refreshInBackground());
       return cached;
     }
     if (!await _isOnline()) return const [];
@@ -50,8 +50,8 @@ class MeasurementsRepository {
       if (response.statusCode != 200) {
         throw Exception('GET /measurements HTTP ${response.statusCode}');
       }
-      final raw =
-          (jsonDecode(response.body) as List).cast<Map<String, dynamic>>();
+      final raw = (jsonDecode(response.body) as List)
+          .cast<Map<String, dynamic>>();
       for (final item in raw) {
         await _store.putDoc(_cacheCollection, item['id'] as String, item);
       }
@@ -73,34 +73,23 @@ class MeasurementsRepository {
 
   Future<void> _refreshInBackground() async {
     try {
+      if (!await _isOnline()) return;
       await _refresh();
     } catch (_) {
       // The durable snapshot remains usable until the next refresh.
     }
   }
 
-  List<BodyMeasurement> _cachedList() =>
-      _store
-          .getListDocs(_cacheCollection, _cacheKey)
-          .map(BodyMeasurement.fromJson)
-          .toList();
+  List<BodyMeasurement> _cachedList() => _store
+      .getListDocs(_cacheCollection, _cacheKey)
+      .map(BodyMeasurement.fromJson)
+      .toList();
 
   Future<BodyMeasurement> save(BodyMeasurement measurement) async {
     final tempId = 'local:${_uuid.v4()}';
     final local = {...measurement.toJson(), 'id': tempId};
     await _store.putDoc(_cacheCollection, tempId, local);
     await _store.prependToList(_cacheKey, tempId);
-    if (await _isOnline()) {
-      try {
-        return await _createOnline(local, tempId);
-      } on Object catch (error) {
-        if (!isTransientNetworkFailure(error)) {
-          await _store.deleteDoc(_cacheCollection, tempId);
-          await _store.removeFromList(_cacheKey, tempId);
-          rethrow;
-        }
-      }
-    }
     await _enqueue('measurement.create', {
       'tempId': tempId,
       ...measurement.toJson(),
@@ -115,43 +104,7 @@ class MeasurementsRepository {
       await _store.cancelPendingFor(id);
       return;
     }
-    if (await _isOnline()) {
-      try {
-        final response = await _client
-            .delete(Uri.parse('$_base/$id'))
-            .timeout(const Duration(seconds: 15));
-        if (response.statusCode != 204) {
-          throw Exception(
-            'DELETE /measurements/$id HTTP ${response.statusCode}',
-          );
-        }
-        return;
-      } on Object catch (error) {
-        if (!isTransientNetworkFailure(error)) rethrow;
-      }
-    }
     await _enqueue('measurement.delete', {'id': id});
-  }
-
-  Future<BodyMeasurement> _createOnline(
-    Map<String, dynamic> local,
-    String tempId,
-  ) async {
-    final body = Map<String, dynamic>.from(local)..remove('id');
-    final response = await _client
-        .post(Uri.parse(_base), body: jsonEncode(body))
-        .timeout(const Duration(seconds: 15));
-    if (response.statusCode != 201) {
-      throw Exception('POST /measurements HTTP ${response.statusCode}');
-    }
-    final fresh = jsonDecode(response.body) as Map<String, dynamic>;
-    await _store.remapId(
-      _cacheCollection,
-      tempId,
-      fresh['id'] as String,
-      fresh,
-    );
-    return BodyMeasurement.fromJson(fresh);
   }
 
   Future<void> _enqueue(String kind, Map<String, dynamic> args) async {
@@ -211,6 +164,6 @@ class MeasurementsRepository {
 
   static SyncOutcome _outcomeFor(http.Response response) =>
       response.statusCode >= 400 && response.statusCode < 500
-          ? const SyncOutcome.drop()
-          : const SyncOutcome.retry();
+      ? const SyncOutcome.drop()
+      : const SyncOutcome.retry();
 }

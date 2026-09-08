@@ -34,13 +34,12 @@ Future<T?> showAppDialog<T>(
   return showCupertinoDialog<T>(
     context: context,
     barrierDismissible: barrierDismissible,
-    builder:
-        (_) => _AppDialog(
-          title: title,
-          message: message,
-          content: content,
-          actions: actions,
-        ),
+    builder: (_) => _AppDialog(
+      title: title,
+      message: message,
+      content: content,
+      actions: actions,
+    ),
   );
 }
 
@@ -253,14 +252,13 @@ class _AppActionSheet extends StatelessWidget {
       child: Container(
         height: 54,
         alignment: Alignment.center,
-        decoration:
-            standalone
-                ? BoxDecoration(
-                  color: c.card,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: c.border),
-                )
-                : null,
+        decoration: standalone
+            ? BoxDecoration(
+                color: c.card,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: c.border),
+              )
+            : null,
         child: Text(
           a.label,
           style: TextStyle(

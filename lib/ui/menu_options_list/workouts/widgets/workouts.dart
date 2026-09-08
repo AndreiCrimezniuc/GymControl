@@ -13,6 +13,7 @@ import 'package:gymboss/ui/core/ui/widgets/app_dialog.dart';
 import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
 import 'package:gymboss/ui/core/subscription/pro_controller.dart';
 import 'package:gymboss/ui/subscription/paywall_screen.dart';
+import 'package:gymboss/l10n/app_localizations.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/workout_editor.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/workout_detail.dart';
 
@@ -122,7 +123,7 @@ class _WorkoutsState extends State<Workouts> {
     if (!known) {
       await showAppDialog<void>(
         context,
-        title: 'Couldn’t verify Pro access',
+        title: AppLocalizations.of(context).couldNotVerifyPro,
         message:
             'Check your connection and try again. Your current workouts are still available.',
         actions: [
@@ -139,12 +140,8 @@ class _WorkoutsState extends State<Workouts> {
   Future<void> _openDetail(Workout w) async {
     await Navigator.of(context, rootNavigator: true).push(
       CupertinoPageRoute(
-        builder:
-            (_) => WorkoutDetailScreen(
-              id: w.id,
-              repo: _repo,
-              exercises: _exercises,
-            ),
+        builder: (_) =>
+            WorkoutDetailScreen(id: w.id, repo: _repo, exercises: _exercises),
       ),
     );
     _load();
@@ -170,30 +167,29 @@ class _WorkoutsState extends State<Workouts> {
     final controller = TextEditingController(text: initial);
     final value = await showCupertinoDialog<String>(
       context: context,
-      builder:
-          (dialogContext) => CupertinoAlertDialog(
-            title: Text(title),
-            content: Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: CupertinoTextField(
-                controller: controller,
-                autofocus: true,
-                placeholder: 'Folder name',
-              ),
-            ),
-            actions: [
-              CupertinoDialogAction(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('Cancel'),
-              ),
-              CupertinoDialogAction(
-                isDefaultAction: true,
-                onPressed:
-                    () => Navigator.pop(dialogContext, controller.text.trim()),
-                child: const Text('Save'),
-              ),
-            ],
+      builder: (dialogContext) => CupertinoAlertDialog(
+        title: Text(title),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: CupertinoTextField(
+            controller: controller,
+            autofocus: true,
+            placeholder: 'Folder name',
           ),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(AppLocalizations.of(context).cancel),
+          ),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () =>
+                Navigator.pop(dialogContext, controller.text.trim()),
+            child: Text(AppLocalizations.of(context).save),
+          ),
+        ],
+      ),
     );
     controller.dispose();
     return value?.isEmpty == true ? null : value;
@@ -214,41 +210,40 @@ class _WorkoutsState extends State<Workouts> {
   Future<void> _manageFolder(WorkoutFolder folder) async {
     await showCupertinoModalPopup<void>(
       context: context,
-      builder:
-          (sheetContext) => CupertinoActionSheet(
-            title: Text(folder.name),
-            actions: [
-              CupertinoActionSheetAction(
-                onPressed: () async {
-                  Navigator.pop(sheetContext);
-                  final name = await _askName(
-                    'Rename folder',
-                    initial: folder.name,
-                  );
-                  if (name == null) return;
-                  try {
-                    await _repo.renameFolder(folder.id, name);
-                    await _load(spinner: false);
-                  } catch (error) {
-                    await _showActionError(error);
-                  }
-                },
-                child: const Text('Rename'),
-              ),
-              CupertinoActionSheetAction(
-                isDestructiveAction: true,
-                onPressed: () {
-                  Navigator.pop(sheetContext);
-                  _deleteFolder(folder);
-                },
-                child: const Text('Delete folder'),
-              ),
-            ],
-            cancelButton: CupertinoActionSheetAction(
-              onPressed: () => Navigator.pop(sheetContext),
-              child: const Text('Cancel'),
-            ),
+      builder: (sheetContext) => CupertinoActionSheet(
+        title: Text(folder.name),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () async {
+              Navigator.pop(sheetContext);
+              final name = await _askName(
+                'Rename folder',
+                initial: folder.name,
+              );
+              if (name == null) return;
+              try {
+                await _repo.renameFolder(folder.id, name);
+                await _load(spinner: false);
+              } catch (error) {
+                await _showActionError(error);
+              }
+            },
+            child: Text(AppLocalizations.of(context).rename),
           ),
+          CupertinoActionSheetAction(
+            isDestructiveAction: true,
+            onPressed: () {
+              Navigator.pop(sheetContext);
+              _deleteFolder(folder);
+            },
+            child: Text(AppLocalizations.of(context).deleteFolder),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.pop(sheetContext),
+          child: Text(AppLocalizations.of(context).cancel),
+        ),
+      ),
     );
   }
 
@@ -256,7 +251,7 @@ class _WorkoutsState extends State<Workouts> {
     final count = _mine.where((w) => w.folderId == folder.id).length;
     final confirmed = await showAppDialog<bool>(
       context,
-      title: 'Delete “${folder.name}”?',
+      title: AppLocalizations.of(context).deleteFolderQuestion(folder.name),
       message:
           'This will permanently delete the folder and all $count workout${count == 1 ? '' : 's'} inside it. This cannot be undone.',
       actions: [
@@ -284,31 +279,30 @@ class _WorkoutsState extends State<Workouts> {
   Future<void> _assignFolder(Workout workout) async {
     await showCupertinoModalPopup<void>(
       context: context,
-      builder:
-          (sheetContext) => CupertinoActionSheet(
-            title: Text('Move “${workout.name}”'),
-            actions: [
-              CupertinoActionSheetAction(
-                onPressed: () async {
-                  Navigator.pop(sheetContext);
-                  await _moveWorkout(workout.id, null);
-                },
-                child: const Text('Default folder'),
-              ),
-              for (final folder in _folders)
-                CupertinoActionSheetAction(
-                  onPressed: () async {
-                    Navigator.pop(sheetContext);
-                    await _moveWorkout(workout.id, folder.id);
-                  },
-                  child: Text(folder.name),
-                ),
-            ],
-            cancelButton: CupertinoActionSheetAction(
-              onPressed: () => Navigator.pop(sheetContext),
-              child: const Text('Cancel'),
-            ),
+      builder: (sheetContext) => CupertinoActionSheet(
+        title: Text(AppLocalizations.of(context).moveWorkout(workout.name)),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () async {
+              Navigator.pop(sheetContext);
+              await _moveWorkout(workout.id, null);
+            },
+            child: Text(AppLocalizations.of(context).defaultFolder),
           ),
+          for (final folder in _folders)
+            CupertinoActionSheetAction(
+              onPressed: () async {
+                Navigator.pop(sheetContext);
+                await _moveWorkout(workout.id, folder.id);
+              },
+              child: Text(folder.name),
+            ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.pop(sheetContext),
+          child: Text(AppLocalizations.of(context).cancel),
+        ),
+      ),
     );
   }
 
@@ -323,7 +317,7 @@ class _WorkoutsState extends State<Workouts> {
 
   Future<void> _showActionError(Object error) => showAppDialog<void>(
     context,
-    title: 'Couldn’t save changes',
+    title: AppLocalizations.of(context).couldNotSaveChanges,
     message: error.toString().replaceFirst('Exception: ', ''),
     actions: [AppDialogAction('OK', onPressed: () => Navigator.pop(context))],
   );
@@ -331,26 +325,25 @@ class _WorkoutsState extends State<Workouts> {
   Future<void> _pickSort() async {
     final selected = await showCupertinoModalPopup<String>(
       context: context,
-      builder:
-          (sheetContext) => CupertinoActionSheet(
-            title: const Text('Sort workouts'),
-            actions: [
-              for (final option in const [
-                ('updated', 'Recently updated'),
-                ('performed', 'Most performed'),
-                ('name', 'Name'),
-              ])
-                CupertinoActionSheetAction(
-                  isDefaultAction: _sort == option.$1,
-                  onPressed: () => Navigator.pop(sheetContext, option.$1),
-                  child: Text(option.$2),
-                ),
-            ],
-            cancelButton: CupertinoActionSheetAction(
-              onPressed: () => Navigator.pop(sheetContext),
-              child: const Text('Cancel'),
+      builder: (sheetContext) => CupertinoActionSheet(
+        title: Text(AppLocalizations.of(context).sortWorkouts),
+        actions: [
+          for (final option in const [
+            ('updated', 'Recently updated'),
+            ('performed', 'Most performed'),
+            ('name', 'Name'),
+          ])
+            CupertinoActionSheetAction(
+              isDefaultAction: _sort == option.$1,
+              onPressed: () => Navigator.pop(sheetContext, option.$1),
+              child: Text(option.$2),
             ),
-          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.pop(sheetContext),
+          child: Text(AppLocalizations.of(context).cancel),
+        ),
+      ),
     );
     if (selected != null && mounted) setState(() => _sort = selected);
   }
@@ -359,7 +352,7 @@ class _WorkoutsState extends State<Workouts> {
   Widget build(BuildContext context) {
     final c = context.colors;
     return AppPage(
-      title: 'Workouts',
+      title: AppLocalizations.of(context).workouts,
       actions: [
         CupertinoButton(
           padding: EdgeInsets.zero,
@@ -368,36 +361,33 @@ class _WorkoutsState extends State<Workouts> {
           child: Icon(CupertinoIcons.add_circled, size: 24, color: c.accent),
         ),
       ],
-      body:
-          _loading
-              ? const SkeletonList()
-              : _error != null
-              ? _ErrorView(error: _error!, onRetry: _load)
-              : _buildBody(c),
+      body: _loading
+          ? const SkeletonList()
+          : _error != null
+          ? _ErrorView(error: _error!, onRetry: _load)
+          : _buildBody(c),
     );
   }
 
   Widget _buildBody(AppColors c) {
     final query = _query.trim().toLowerCase();
-    final source =
-        _tab == 0
-            ? query.isNotEmpty || !_foldersReady
-                ? _mine
-                : _mine.where((w) => w.folderId == _folderId).toList()
-            : _public;
-    final list =
-        query.isEmpty
-            ? List<Workout>.of(source)
-            : source
-                .where(
-                  (workout) =>
-                      workout.name.toLowerCase().contains(query) ||
-                      workout.comment.toLowerCase().contains(query) ||
-                      workout.muscleGroups.any(
-                        (muscle) => muscle.toLowerCase().contains(query),
-                      ),
-                )
-                .toList();
+    final source = _tab == 0
+        ? query.isNotEmpty || !_foldersReady
+              ? _mine
+              : _mine.where((w) => w.folderId == _folderId).toList()
+        : _public;
+    final list = query.isEmpty
+        ? List<Workout>.of(source)
+        : source
+              .where(
+                (workout) =>
+                    workout.name.toLowerCase().contains(query) ||
+                    workout.comment.toLowerCase().contains(query) ||
+                    workout.muscleGroups.any(
+                      (muscle) => muscle.toLowerCase().contains(query),
+                    ),
+              )
+              .toList();
     if (_tab == 1) {
       list.removeWhere((workout) {
         final haystack =
@@ -436,9 +426,11 @@ class _WorkoutsState extends State<Workouts> {
             thumbColor: c.card,
             onValueChanged: (v) => _selectTab(v ?? 0),
             children: {
-              0: _seg('Mine (${_mine.length})', c),
+              0: _seg(AppLocalizations.of(context).mineCount(_mine.length), c),
               1: _seg(
-                _libraryLoaded ? 'Library (${_public.length})' : 'Library',
+                _libraryLoaded
+                    ? AppLocalizations.of(context).libraryCount(_public.length)
+                    : AppLocalizations.of(context).library,
                 c,
               ),
             },
@@ -452,7 +444,9 @@ class _WorkoutsState extends State<Workouts> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               children: [
                 _FolderChip(
-                  label: _foldersReady ? 'Default' : 'All workouts',
+                  label: _foldersReady
+                      ? 'Default'
+                      : AppLocalizations.of(context).allWorkouts,
                   selected: _folderId == null,
                   onTap: () => setState(() => _folderId = null),
                 ),
@@ -465,7 +459,7 @@ class _WorkoutsState extends State<Workouts> {
                     onManage: () => _manageFolder(folder),
                   ),
                 _FolderChip(
-                  label: 'New folder',
+                  label: AppLocalizations.of(context).newFolder,
                   icon: CupertinoIcons.add,
                   onTap: _createFolder,
                 ),
@@ -509,7 +503,7 @@ class _WorkoutsState extends State<Workouts> {
             children: [
               Expanded(
                 child: CupertinoSearchTextField(
-                  placeholder: 'Search all workouts',
+                  placeholder: AppLocalizations.of(context).searchWorkouts,
                   backgroundColor: c.card,
                   style: TextStyle(color: c.textPrimary),
                   placeholderStyle: TextStyle(color: c.textSecondary),
@@ -543,58 +537,48 @@ class _WorkoutsState extends State<Workouts> {
             ),
           ),
         Expanded(
-          child:
-              _tab == 1 && _loadingLibrary
-                  ? const SkeletonList()
-                  : _tab == 1 && _libraryError != null
-                  ? _ErrorView(
-                    error: _libraryError!,
-                    onRetry: () => _loadLibrary(force: true),
-                  )
-                  : CustomScrollView(
-                    slivers: [
-                      CupertinoSliverRefreshControl(
-                        onRefresh:
-                            () =>
-                                _tab == 0
-                                    ? _load(spinner: false, forceRefresh: true)
-                                    : _loadLibrary(force: true),
-                      ),
-                      if (list.isEmpty)
-                        SliverFillRemaining(
-                          hasScrollBody: false,
-                          child:
-                              query.isNotEmpty
-                                  ? _SearchEmpty(query: _query)
-                                  : _EmptyView(
-                                    mine: _tab == 0,
-                                    onCreate: _create,
-                                  ),
-                        )
-                      else
-                        SliverPadding(
-                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                          sliver: SliverList.separated(
-                            itemCount: list.length,
-                            separatorBuilder:
-                                (_, __) => const SizedBox(height: 10),
-                            itemBuilder:
-                                (_, i) => _WorkoutCard(
-                                  w: list[i],
-                                  onTap: () => _openDetail(list[i]),
-                                  onLongPress:
-                                      _tab == 0
-                                          ? () => _assignFolder(list[i])
-                                          : null,
-                                  onManage:
-                                      _tab == 0
-                                          ? () => _assignFolder(list[i])
-                                          : null,
-                                ),
+          child: _tab == 1 && _loadingLibrary
+              ? const SkeletonList()
+              : _tab == 1 && _libraryError != null
+              ? _ErrorView(
+                  error: _libraryError!,
+                  onRetry: () => _loadLibrary(force: true),
+                )
+              : CustomScrollView(
+                  slivers: [
+                    CupertinoSliverRefreshControl(
+                      onRefresh: () => _tab == 0
+                          ? _load(spinner: false, forceRefresh: true)
+                          : _loadLibrary(force: true),
+                    ),
+                    if (list.isEmpty)
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: query.isNotEmpty
+                            ? _SearchEmpty(query: _query)
+                            : _EmptyView(mine: _tab == 0, onCreate: _create),
+                      )
+                    else
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                        sliver: SliverList.separated(
+                          itemCount: list.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 10),
+                          itemBuilder: (_, i) => _WorkoutCard(
+                            w: list[i],
+                            onTap: () => _openDetail(list[i]),
+                            onLongPress: _tab == 0
+                                ? () => _assignFolder(list[i])
+                                : null,
+                            onManage: _tab == 0
+                                ? () => _assignFolder(list[i])
+                                : null,
                           ),
                         ),
-                    ],
-                  ),
+                      ),
+                  ],
+                ),
         ),
       ],
     );
@@ -630,7 +614,7 @@ class _WorkoutCard extends StatelessWidget {
     final c = context.colors;
     return Semantics(
       button: true,
-      label: 'Open ${w.name}',
+      label: AppLocalizations.of(context).openWorkout(w.name),
       child: Pressable(
         onTap: onTap,
         onLongPress: onLongPress,
@@ -840,19 +824,17 @@ class _LibraryCoachCard extends StatelessWidget {
                         Icon(
                           entry.value.$2,
                           size: 14,
-                          color:
-                              goal == entry.key
-                                  ? c.textOnAccent
-                                  : c.textSecondary,
+                          color: goal == entry.key
+                              ? c.textOnAccent
+                              : c.textSecondary,
                         ),
                         const SizedBox(width: 6),
                         Text(
                           entry.value.$1,
                           style: TextStyle(
-                            color:
-                                goal == entry.key
-                                    ? c.textOnAccent
-                                    : c.textPrimary,
+                            color: goal == entry.key
+                                ? c.textOnAccent
+                                : c.textPrimary,
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                           ),
@@ -886,7 +868,7 @@ class _SearchEmpty extends StatelessWidget {
             Icon(CupertinoIcons.search, size: 34, color: c.textSecondary),
             const SizedBox(height: 12),
             Text(
-              'No workouts found',
+              AppLocalizations.of(context).noWorkoutsFound,
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w800,
@@ -969,8 +951,9 @@ class _FolderChip extends StatelessWidget {
                   child: Icon(
                     CupertinoIcons.ellipsis,
                     size: 16,
-                    color:
-                        selected ? colors.textOnAccent : colors.textSecondary,
+                    color: selected
+                        ? colors.textOnAccent
+                        : colors.textSecondary,
                   ),
                 ),
               ],
@@ -1003,7 +986,9 @@ class _EmptyView extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              mine ? 'No workouts yet' : 'Library is empty',
+              mine
+                  ? AppLocalizations.of(context).noWorkoutsYet
+                  : AppLocalizations.of(context).libraryEmpty,
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
@@ -1027,7 +1012,7 @@ class _EmptyView extends StatelessWidget {
               CupertinoButton(
                 color: c.accent,
                 onPressed: onCreate,
-                child: const Text('Create workout'),
+                child: Text(AppLocalizations.of(context).createWorkout),
               ),
             ],
           ],
@@ -1051,11 +1036,14 @@ class _ErrorView extends StatelessWidget {
           const Text('⚠️', style: TextStyle(fontSize: 32)),
           const SizedBox(height: 8),
           Text(
-            'Could not load workouts',
+            AppLocalizations.of(context).couldNotLoadWorkouts,
             style: TextStyle(color: c.textPrimary),
           ),
           const SizedBox(height: 16),
-          CupertinoButton(onPressed: onRetry, child: const Text('Retry')),
+          CupertinoButton(
+            onPressed: onRetry,
+            child: Text(AppLocalizations.of(context).retry),
+          ),
         ],
       ),
     );

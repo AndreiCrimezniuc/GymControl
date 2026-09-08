@@ -2,8 +2,9 @@ import 'package:flutter/widgets.dart';
 
 /// Full colour palette for one theme (light or dark). Read it from context via
 /// `context.colors` (see theme_controller.dart). The light palette uses a
-/// warm neutral appearance. Surfaces use a restrained amount of transparency
-/// rather than fake gradients so content feels layered without looking faded.
+/// architectural neutral appearance. Surfaces use restrained transparency and
+/// a precise cobalt signal colour: strict enough for training data, but with a
+/// subtle near-future edge.
 class AppColors {
   final bool isDark;
 
@@ -58,16 +59,15 @@ class AppColors {
   /// Whether system chrome and artwork need light foreground content.
   ///
   /// Theme selection and canvas luminance are deliberately separate: the
-  /// light appearance is a warm, neutral canvas with restrained signal red.
+  /// light appearance is a cool architectural canvas with restrained cobalt.
   bool get usesLightForeground => bg.computeLuminance() < 0.45;
 
   /// A soft, background-tinted card shadow for gentle depth.
   List<BoxShadow> get cardShadow => [
     BoxShadow(
-      color:
-          usesLightForeground
-              ? const Color(0x260F0808)
-              : const Color(0x1F211B19),
+      color: usesLightForeground
+          ? const Color(0x260F0808)
+          : const Color(0x1F211B19),
       blurRadius: usesLightForeground ? 20 : 18,
       offset: const Offset(0, 6),
     ),
@@ -75,22 +75,22 @@ class AppColors {
 
   static const light = AppColors(
     isDark: false,
-    bg: Color(0xFFF2F0ED),
-    bgTop: Color(0xFFF8F7F4),
-    bgBottom: Color(0xFFECE8E4),
-    card: Color(0xFAFFFFFF),
-    iconBg: Color(0xFFEAE4E1),
-    border: Color(0x33312927),
-    pillBorder: Color(0x45312927),
-    textPrimary: Color(0xFF1D1918),
-    textSecondary: Color(0xFF5F5855),
+    bg: Color(0xFFF1F3F5),
+    bgTop: Color(0xFFFCFCF9),
+    bgBottom: Color(0xFFE5EAF1),
+    card: Color(0xF7FFFFFF),
+    iconBg: Color(0xFFE7EBF0),
+    border: Color(0x3D243246),
+    pillBorder: Color(0x52243246),
+    textPrimary: Color(0xFF111820),
+    textSecondary: Color(0xFF526071),
     textOnAccent: Color(0xFFFFFFFF),
-    accent: Color(0xFFC93632),
-    accentSecondary: Color(0xFF833D39),
-    accentPressed: Color(0xFFA72B27),
-    ringTrack: Color(0x26312927),
-    navInactive: Color(0xFF716966),
-    invBg: Color(0xFF1D1918),
+    accent: Color(0xFF3156D9),
+    accentSecondary: Color(0xFF3E566F),
+    accentPressed: Color(0xFF2444B7),
+    ringTrack: Color(0x30243246),
+    navInactive: Color(0xFF697585),
+    invBg: Color(0xFF121A24),
     invText: Color(0xFFFFFFFF),
   );
 

@@ -44,10 +44,9 @@ class LocalStore {
 
   Future<void> setScope(String userID, {bool migrateLegacy = true}) async {
     final normalized = userID.trim();
-    final next =
-        normalized.isEmpty || normalized == 'anonymous'
-            ? 'anonymous'
-            : 'user:$normalized';
+    final next = normalized.isEmpty || normalized == 'anonymous'
+        ? 'anonymous'
+        : 'user:$normalized';
     if (_scope == next) return;
     _scope = next;
     if (!migrateLegacy) return;
@@ -57,8 +56,10 @@ class LocalStore {
   }
 
   Future<void> _migrateLegacyBox(Box<String> box) async {
-    final keys =
-        box.keys.cast<String>().where((key) => !key.contains('|')).toList();
+    final keys = box.keys
+        .cast<String>()
+        .where((key) => !key.contains('|'))
+        .toList();
     for (final key in keys) {
       if (!box.containsKey(_scoped(key))) {
         await box.put(_scoped(key), box.get(key)!);
@@ -123,15 +124,12 @@ class LocalStore {
   Future<void> removeMutation(String id) => _outbox.delete(_scoped(id));
 
   List<Mutation> _mutations() {
-    final list =
-        _outbox.keys
-            .cast<String>()
-            .where((key) => key.startsWith(_prefix))
-            .map((key) => _outbox.get(key)!)
-            .map(
-              (s) => Mutation.fromJson(jsonDecode(s) as Map<String, dynamic>),
-            )
-            .toList();
+    final list = _outbox.keys
+        .cast<String>()
+        .where((key) => key.startsWith(_prefix))
+        .map((key) => _outbox.get(key)!)
+        .map((s) => Mutation.fromJson(jsonDecode(s) as Map<String, dynamic>))
+        .toList();
     list.sort((a, b) => a.seq.compareTo(b.seq));
     return list;
   }
@@ -146,6 +144,18 @@ class LocalStore {
       _mutations().where((mutation) => mutation.deadLetter).toList();
 
   bool get hasPending => pending().isNotEmpty;
+
+  /// Moves quarantined mutations back into the ordered replay queue. This is
+  /// intentionally user-triggered: a corrected backend can recover the exact
+  /// local work instead of silently discarding it.
+  Future<void> retryDeadLetters() async {
+    for (final mutation in deadLetters()) {
+      mutation
+        ..deadLetter = false
+        ..retries = 0;
+      await updateMutation(mutation);
+    }
+  }
 
   /// Monotonic sequence for ordering new mutations.
   int nextSeq() => DateTime.now().microsecondsSinceEpoch;
@@ -203,14 +213,19 @@ class LocalStore {
     String toId,
   ) {
     if (value == fromId) return (value: toId, changed: true);
+    // Exercise ids are integers in workout documents, while the generic
+    // reconciliation API uses string ids. Preserve the numeric representation
+    // when an offline custom exercise receives its server id.
+    if (value is int && '$value' == fromId) {
+      return (value: int.tryParse(toId) ?? toId, changed: true);
+    }
     if (value is List) {
       var changed = false;
-      final result =
-          value.map((item) {
-            final replacement = _replaceReference(item, fromId, toId);
-            changed = changed || replacement.changed;
-            return replacement.value;
-          }).toList();
+      final result = value.map((item) {
+        final replacement = _replaceReference(item, fromId, toId);
+        changed = changed || replacement.changed;
+        return replacement.value;
+      }).toList();
       return (value: result, changed: changed);
     }
     if (value is Map) {
@@ -230,10 +245,21 @@ class LocalStore {
   /// offline-created entity is deleted before it ever reached the server).
   Future<void> cancelPendingFor(String tempId) async {
     for (final m in pending()) {
-      if (m.args.values.contains(tempId)) {
+      if (_containsReference(m.args, tempId)) {
         await removeMutation(m.id);
       }
     }
+  }
+
+  bool _containsReference(Object? value, String id) {
+    if (value == id || (value is int && '$value' == id)) return true;
+    if (value is List) {
+      return value.any((item) => _containsReference(item, id));
+    }
+    if (value is Map) {
+      return value.values.any((item) => _containsReference(item, id));
+    }
+    return false;
   }
 
   /// Test/reset helper.

@@ -39,6 +39,7 @@ class PaywallScreen extends StatelessWidget {
             'Unlimited personal workouts',
             'Custom workout folders',
             'Rename and organize your library',
+            'AI review of training and progression',
           ])
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 9),

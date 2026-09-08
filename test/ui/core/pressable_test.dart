@@ -29,11 +29,10 @@ void main() {
   ) async {
     await tester.pumpWidget(
       CupertinoApp(
-        builder:
-            (context, child) => MediaQuery(
-              data: MediaQuery.of(context).copyWith(disableAnimations: true),
-              child: child!,
-            ),
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(disableAnimations: true),
+          child: child!,
+        ),
         home: Center(
           child: Pressable(
             onTap: () {},

@@ -14,8 +14,7 @@ import 'package:gymboss/ui/menu_options_list/exercises/widgets/muscle_illustrati
 import 'package:gymboss/ui/menu_options_list/workouts/session/workout_session_controller.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/session/workout_calculators.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/exercise_picker.dart';
-
-const _diffLabels = {'normal': 'Normal', 'deload': 'Deload'};
+import 'package:gymboss/l10n/app_localizations.dart';
 
 /// A view over the global [WorkoutSessionController]. Holds no session state of
 /// its own (so the session survives minimize/resume) — only the text
@@ -39,9 +38,15 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     for (final g in session.groups) {
       for (final s in g.sets) {
         _weight[s] = TextEditingController(text: s.weight)
-          ..addListener(() => s.weight = _weight[s]!.text);
+          ..addListener(() {
+            s.weight = _weight[s]!.text;
+            session.checkpoint();
+          });
         _reps[s] = TextEditingController(text: s.reps)
-          ..addListener(() => s.reps = _reps[s]!.text);
+          ..addListener(() {
+            s.reps = _reps[s]!.text;
+            session.checkpoint();
+          });
       }
     }
   }
@@ -60,15 +65,19 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
   // Lazily bind text controllers to a set so sets added mid-session get theirs.
   TextEditingController _wc(SessionSet s) => _weight.putIfAbsent(
     s,
-    () =>
-        TextEditingController(text: s.weight)
-          ..addListener(() => s.weight = _weight[s]!.text),
+    () => TextEditingController(text: s.weight)
+      ..addListener(() {
+        s.weight = _weight[s]!.text;
+        context.read<WorkoutSessionController>().checkpoint();
+      }),
   );
   TextEditingController _rc(SessionSet s) => _reps.putIfAbsent(
     s,
-    () =>
-        TextEditingController(text: s.reps)
-          ..addListener(() => s.reps = _reps[s]!.text),
+    () => TextEditingController(text: s.reps)
+      ..addListener(() {
+        s.reps = _reps[s]!.text;
+        context.read<WorkoutSessionController>().checkpoint();
+      }),
   );
 
   void _disposeSetControllers(SessionSet s) {
@@ -82,22 +91,18 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
   }
 
   Future<void> _addExercise(WorkoutSessionController session) async {
-    final picked = await Navigator.of(
-      context,
-      rootNavigator: true,
-    ).push<ExerciseCatalogItem>(
-      CupertinoPageRoute(
-        builder:
-            (_) => ExercisePicker(
+    final picked = await Navigator.of(context, rootNavigator: true)
+        .push<ExerciseCatalogItem>(
+          CupertinoPageRoute(
+            builder: (_) => ExercisePicker(
               repo: session.exercisesRepo,
-              excludedIds:
-                  session.groups
-                      .expand((group) => group.sets)
-                      .map((set) => set.exerciseId)
-                      .toSet(),
+              excludedIds: session.groups
+                  .expand((group) => group.sets)
+                  .map((set) => set.exerciseId)
+                  .toSet(),
             ),
-      ),
-    );
+          ),
+        );
     if (picked == null) return;
     session.addExercise(
       exerciseId: picked.id,
@@ -114,131 +119,117 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     SessionExercise g,
   ) async {
     HapticFeedback.selectionClick();
+    final l = AppLocalizations.of(context);
     final i = session.groups.indexOf(g);
     final canUp = i > 0;
     final canDown = i >= 0 && i < session.groups.length - 1;
     await showCupertinoModalPopup<void>(
       context: context,
-      builder:
-          (ctx) => CupertinoActionSheet(
-            title: Text(g.name),
-            actions: [
-              CupertinoActionSheetAction(
-                onPressed: () {
-                  Navigator.of(ctx).pop();
-                  _editExerciseNote(session, g);
-                },
-                child: Text(g.note.isEmpty ? 'Add note' : 'Edit note'),
-              ),
-              CupertinoActionSheetAction(
-                onPressed: () async {
-                  Navigator.of(ctx).pop();
-                  final sets = await showWarmupCalculator(
-                    context,
-                    initialWeight:
-                        g.sets.isEmpty ? 0 : g.sets.first.plannedWeightKg,
-                  );
-                  if (sets != null) session.prependWarmupSets(g, sets);
-                },
-                child: const Text('Warm-up calculator'),
-              ),
-              CupertinoActionSheetAction(
-                onPressed: () {
-                  Navigator.of(ctx).pop();
-                  showPlateCalculator(
-                    context,
-                    initialWeight:
-                        g.sets.isEmpty ? 0 : g.sets.first.plannedWeightKg,
-                  );
-                },
-                child: const Text('Plate calculator'),
-              ),
-              if (session.canGroupWithNext(g))
-                CupertinoActionSheetAction(
-                  onPressed: () {
-                    Navigator.of(ctx).pop();
-                    _pickTrainingGroup(session, g);
-                  },
-                  child: Text(
-                    g.trainingGroupId == null
-                        ? 'Group with next…'
-                        : 'Extend group to next…',
-                  ),
-                ),
-              if (g.trainingGroupId != null)
-                CupertinoActionSheetAction(
-                  isDestructiveAction: true,
-                  onPressed: () {
-                    session.ungroup(g);
-                    Navigator.of(ctx).pop();
-                  },
-                  child: const Text('Remove exercise group'),
-                ),
-              if (canUp)
-                CupertinoActionSheetAction(
-                  onPressed: () {
-                    session.moveExercise(g, -1);
-                    Navigator.of(ctx).pop();
-                  },
-                  child: const Text('Move up'),
-                ),
-              if (canDown)
-                CupertinoActionSheetAction(
-                  onPressed: () {
-                    session.moveExercise(g, 1);
-                    Navigator.of(ctx).pop();
-                  },
-                  child: const Text('Move down'),
-                ),
-              CupertinoActionSheetAction(
-                isDestructiveAction: true,
-                onPressed: () {
-                  for (final s in g.sets) {
-                    _disposeSetControllers(s);
-                  }
-                  session.removeExercise(g);
-                  Navigator.of(ctx).pop();
-                },
-                child: const Text('Remove exercise'),
-              ),
-            ],
-            cancelButton: CupertinoActionSheetAction(
-              isDefaultAction: true,
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Cancel'),
-            ),
+      builder: (ctx) => CupertinoActionSheet(
+        title: Text(g.name),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              _editExerciseNote(session, g);
+            },
+            child: Text(g.note.isEmpty ? l.addNote : l.editNote),
           ),
+          if (session.canGroupWithNext(g))
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                _pickTrainingGroup(session, g);
+              },
+              child: Text(
+                g.trainingGroupId == null ? l.groupWithNext : l.extendGroup,
+              ),
+            ),
+          if (g.trainingGroupId != null)
+            CupertinoActionSheetAction(
+              isDestructiveAction: true,
+              onPressed: () {
+                session.ungroup(g);
+                Navigator.of(ctx).pop();
+              },
+              child: Text(l.removeExerciseGroup),
+            ),
+          if (canUp)
+            CupertinoActionSheetAction(
+              onPressed: () {
+                session.moveExercise(g, -1);
+                Navigator.of(ctx).pop();
+              },
+              child: Text(l.moveUp),
+            ),
+          if (canDown)
+            CupertinoActionSheetAction(
+              onPressed: () {
+                session.moveExercise(g, 1);
+                Navigator.of(ctx).pop();
+              },
+              child: Text(l.moveDown),
+            ),
+          CupertinoActionSheetAction(
+            isDestructiveAction: true,
+            onPressed: () {
+              for (final s in g.sets) {
+                _disposeSetControllers(s);
+              }
+              session.removeExercise(g);
+              Navigator.of(ctx).pop();
+            },
+            child: Text(l.removeExercise),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          isDefaultAction: true,
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: Text(l.cancel),
+        ),
+      ),
     );
+  }
+
+  Future<void> _addWarmups(
+    WorkoutSessionController session,
+    SessionExercise exercise,
+  ) async {
+    final sets = await showWarmupCalculator(
+      context,
+      initialWeight: exercise.sets.isEmpty
+          ? 0
+          : exercise.sets.first.plannedWeightKg,
+    );
+    if (sets != null) session.prependWarmupSets(exercise, sets);
   }
 
   Future<void> _pickTrainingGroup(
     WorkoutSessionController session,
     SessionExercise exercise,
   ) async {
+    final l = AppLocalizations.of(context);
     final type = await showCupertinoModalPopup<String>(
       context: context,
-      builder:
-          (ctx) => CupertinoActionSheet(
-            title: const Text('Training group'),
-            message: const Text(
-              'Grouped exercises advance without starting the rest timer until the round is complete.',
+      builder: (ctx) => CupertinoActionSheet(
+        title: Text(l.trainingGroup),
+        message: Text(l.trainingGroupBody),
+        actions: [
+          for (final item in [
+            ('superset', l.superset),
+            ('circuit', l.circuit),
+            ('interval', l.intervalBlock),
+          ])
+            CupertinoActionSheetAction(
+              onPressed: () => Navigator.pop(ctx, item.$1),
+              child: Text(item.$2),
             ),
-            actions: [
-              for (final item in const [
-                ('superset', 'Superset'),
-                ('circuit', 'Circuit'),
-                ('interval', 'Interval block'),
-              ])
-                CupertinoActionSheetAction(
-                  onPressed: () => Navigator.pop(ctx, item.$1),
-                  child: Text(item.$2),
-                ),
-            ],
-            cancelButton: CupertinoActionSheetAction(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
-            ),
-          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.pop(ctx),
+          child: Text(l.cancel),
+        ),
+      ),
     );
     if (type != null) session.groupWithNext(exercise, type);
   }
@@ -247,81 +238,83 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     WorkoutSessionController session,
     SessionExercise exercise,
   ) async {
+    final l = AppLocalizations.of(context);
     final controller = TextEditingController(text: exercise.note);
     final note = await showCupertinoDialog<String>(
       context: context,
-      builder:
-          (ctx) => CupertinoAlertDialog(
-            title: const Text('Exercise note'),
-            content: Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: CupertinoTextField(
-                controller: controller,
-                autofocus: true,
-                minLines: 2,
-                maxLines: 5,
-                placeholder: 'Form cues, pain, target for next time…',
-              ),
-            ),
-            actions: [
-              CupertinoDialogAction(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('Cancel'),
-              ),
-              CupertinoDialogAction(
-                isDefaultAction: true,
-                onPressed: () => Navigator.of(ctx).pop(controller.text),
-                child: const Text('Save'),
-              ),
-            ],
+      builder: (ctx) => CupertinoAlertDialog(
+        title: Text(l.exerciseNote),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: CupertinoTextField(
+            controller: controller,
+            autofocus: true,
+            minLines: 2,
+            maxLines: 5,
+            placeholder: l.exerciseNoteHint,
           ),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(l.cancel),
+          ),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () => Navigator.of(ctx).pop(controller.text),
+            child: Text(l.save),
+          ),
+        ],
+      ),
     );
     controller.dispose();
     if (note != null) session.setExerciseNote(exercise, note);
   }
 
   Future<void> _confirmQuit() async {
+    final l = AppLocalizations.of(context);
     final quit = await showAppDialog<bool>(
       context,
-      title: 'Quit workout?',
-      message: 'This workout and all checked sets will be discarded.',
+      title: l.quitWorkoutQuestion,
+      message: l.quitWorkoutBody,
       actions: [
         AppDialogAction(
-          'Keep going',
+          l.keepGoing,
           onPressed: () => Navigator.pop(context, false),
         ),
         AppDialogAction(
-          'Quit',
+          l.quit,
           isDestructive: true,
           onPressed: () => Navigator.pop(context, true),
         ),
       ],
     );
     if (quit == true && mounted) {
-      context.read<WorkoutSessionController>().clear();
+      await context.read<WorkoutSessionController>().discard();
+      if (!mounted) return;
       Navigator.of(context).pop();
     }
   }
 
   Future<void> _confirmFinish(WorkoutSessionController session) async {
+    final l = AppLocalizations.of(context);
     final choice = await showAppDialog<String>(
       context,
-      title: 'Finish workout?',
-      message:
-          '${session.doneSets} of ${session.totalSets} sets are complete. Choose how you want to finish.',
+      title: l.finishWorkoutQuestion,
+      message: l.finishWorkoutBody(session.doneSets, session.totalSets),
       actions: [
         AppDialogAction(
-          'Finish without saving',
+          l.finishWithoutSaving,
           isDestructive: true,
           onPressed: () => Navigator.pop(context, 'discard'),
         ),
         AppDialogAction(
-          session.routineChanged ? 'Save · keep routine' : 'Finish and save',
+          session.routineChanged ? l.saveKeepRoutine : l.finishAndSave,
           onPressed: () => Navigator.pop(context, 'save'),
         ),
         if (session.routineChanged)
           AppDialogAction(
-            'Save · update routine',
+            l.saveUpdateRoutine,
             onPressed: () => Navigator.pop(context, 'update'),
           ),
       ],
@@ -337,7 +330,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
       if (mounted) {
         await showAppDialog<void>(
           context,
-          title: 'Couldn’t save workout',
+          title: l.couldNotSaveWorkout,
           message: error.toString().replaceFirst('Exception: ', ''),
           actions: [
             AppDialogAction('OK', onPressed: () => Navigator.pop(context)),
@@ -365,64 +358,63 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
 
     return AppScaffold(
       child: SafeArea(
-        child:
-            session.isFinished
-                ? _DoneView(
-                  workoutName: session.workout?.name ?? '',
-                  difficulty: session.difficulty,
-                  sets: session.loggedSets,
-                  volumeKg: session.loggedVolumeKg,
-                  onClose: () {
-                    session.clear();
-                    Navigator.of(context).pop();
-                  },
-                )
-                : Stack(
-                  children: [
-                    Column(
-                      children: [
-                        _header(c, session),
-                        Expanded(child: _body(c, session, units)),
-                        _finishBar(c, session),
-                      ],
-                    ),
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 92,
-                      child: IgnorePointer(
-                        ignoring: !session.resting,
-                        child: AnimatedSlide(
-                          offset:
-                              session.resting
-                                  ? Offset.zero
-                                  : const Offset(0, 0.4),
-                          duration: const Duration(milliseconds: 220),
-                          curve: const Cubic(0.23, 1, 0.32, 1),
-                          child: AnimatedOpacity(
-                            opacity: session.resting ? 1 : 0,
-                            duration: const Duration(milliseconds: 200),
-                            child: Center(
-                              child: _RestPill(
-                                secondsLeft: session.restLeft,
-                                onSkip: session.skipRest,
-                                onAdd: () => session.adjustRest(15),
-                                onSub: () => session.adjustRest(-15),
-                              ),
+        child: session.isFinished
+            ? _DoneView(
+                workoutName: session.workout?.name ?? '',
+                difficulty: session.difficulty,
+                sets: session.loggedSets,
+                volumeKg: session.loggedVolumeKg,
+                onClose: () {
+                  session.clear();
+                  Navigator.of(context).pop();
+                },
+              )
+            : Stack(
+                children: [
+                  Column(
+                    children: [
+                      _header(c, session),
+                      Expanded(child: _body(c, session, units)),
+                      _finishBar(c, session),
+                    ],
+                  ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 92,
+                    child: IgnorePointer(
+                      ignoring: !session.resting,
+                      child: AnimatedSlide(
+                        offset: session.resting
+                            ? Offset.zero
+                            : const Offset(0, 0.4),
+                        duration: const Duration(milliseconds: 220),
+                        curve: const Cubic(0.23, 1, 0.32, 1),
+                        child: AnimatedOpacity(
+                          opacity: session.resting ? 1 : 0,
+                          duration: const Duration(milliseconds: 200),
+                          child: Center(
+                            child: _RestPill(
+                              secondsLeft: session.restLeft,
+                              onSkip: session.skipRest,
+                              onAdd: () => session.adjustRest(15),
+                              onSub: () => session.adjustRest(-15),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
+              ),
       ),
     );
   }
 
   Widget _header(AppColors c, WorkoutSessionController s) {
-    final progress =
-        s.totalSets == 0 ? 0.0 : (s.doneSets / s.totalSets).clamp(0.0, 1.0);
+    final progress = s.totalSets == 0
+        ? 0.0
+        : (s.doneSets / s.totalSets).clamp(0.0, 1.0);
     return Container(
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 10),
       decoration: BoxDecoration(
@@ -644,8 +636,9 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
   ) {
     final doneInEx = g.sets.where((s) => s.done).length;
     final allDone = doneInEx == g.sets.length;
-    final pr =
-        g.sets.isNotEmpty ? session.prFor(g.sets.first.exerciseId) : null;
+    final pr = g.sets.isNotEmpty
+        ? session.prFor(g.sets.first.exerciseId)
+        : null;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
@@ -683,10 +676,9 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
               color: c.iconBg.withValues(
                 alpha: c.usesLightForeground ? 0.52 : 0.62,
               ),
-              borderRadius:
-                  g.trainingGroupId == null
-                      ? const BorderRadius.vertical(top: Radius.circular(19))
-                      : BorderRadius.zero,
+              borderRadius: g.trainingGroupId == null
+                  ? const BorderRadius.vertical(top: Radius.circular(19))
+                  : BorderRadius.zero,
             ),
             child: Row(
               children: [
@@ -810,6 +802,45 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                 ),
               ),
             ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Pressable(
+                onTap: () => _addWarmups(session, g),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: c.accent.withValues(alpha: 0.09),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: c.accent.withValues(alpha: 0.22)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        CupertinoIcons.wand_stars,
+                        size: 14,
+                        color: c.accent,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        AppLocalizations.of(context).buildWarmup,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: c.accent,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
           Container(height: 1, color: c.border),
           Padding(
             padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
@@ -821,7 +852,10 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                     children: [
                       SizedBox(
                         width: 73,
-                        child: Text('SET', style: _columnLabelStyle(c)),
+                        child: Text(
+                          AppLocalizations.of(context).setColumn,
+                          style: _columnLabelStyle(c),
+                        ),
                       ),
                       if (_showPrimary(g.exerciseType)) ...[
                         Expanded(
@@ -894,125 +928,69 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
           color: s.done ? c.accent.withValues(alpha: 0.10) : c.iconBg,
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Column(
+        child: Row(
           children: [
-            Row(
-              children: [
-                _typeChip(c, session, s),
-                const SizedBox(width: 7),
-                Container(
-                  width: 26,
-                  height: 30,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: s.done ? c.accent : c.card,
-                    borderRadius: BorderRadius.circular(9),
-                    border: Border.all(color: s.done ? c.accent : c.border),
-                  ),
-                  child: Text(
-                    '$number',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                      color: s.done ? c.textOnAccent : c.textSecondary,
-                    ),
-                  ),
+            _typeChip(c, session, s),
+            const SizedBox(width: 7),
+            Container(
+              width: 26,
+              height: 30,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: s.done ? c.accent : c.card,
+                borderRadius: BorderRadius.circular(9),
+                border: Border.all(color: s.done ? c.accent : c.border),
+              ),
+              child: Text(
+                '$number',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: s.done ? c.textOnAccent : c.textSecondary,
                 ),
-                if (s.progression.isNotEmpty) ...[
-                  const SizedBox(width: 6),
-                  _progressionBadge(c, s.progression),
-                ],
-                const SizedBox(width: 8),
-                if (_showPrimary(g.exerciseType)) ...[
-                  Expanded(
-                    child: _numField(
-                      c,
-                      _wc(s),
-                      s.done,
-                      _primaryUnit(g.exerciseType, units),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                ],
-                Expanded(
-                  child: _numField(
-                    c,
-                    _rc(s),
-                    s.done,
-                    _secondaryUnit(g.exerciseType),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Pressable(
-                  onTap: () => session.toggleSet(s),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    curve: const Cubic(0.23, 1, 0.32, 1),
-                    width: 40,
-                    height: 40,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: s.done ? c.accent : c.card,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: s.done ? c.accent : c.border),
-                    ),
-                    child: AnimatedScale(
-                      scale: s.done ? 1.0 : 0.82,
-                      duration: const Duration(milliseconds: 200),
-                      curve:
-                          s.done
-                              ? const Cubic(
-                                0.34,
-                                1.56,
-                                0.64,
-                                1,
-                              ) // gentle overshoot pop
-                              : const Cubic(0.23, 1, 0.32, 1),
-                      child: Icon(
-                        CupertinoIcons.check_mark,
-                        size: 20,
-                        color: s.done ? c.textOnAccent : c.textSecondary,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
-            const SizedBox(height: 5),
-            Row(
-              children: [
-                if (s.previousReps != null)
-                  Expanded(
-                    child: Pressable(
-                      onTap:
-                          s.done
-                              ? null
-                              : () {
-                                session.usePrevious(s);
-                                _wc(s).text = s.weight;
-                                _rc(s).text = s.reps;
-                                HapticFeedback.selectionClick();
-                              },
-                      child: Text(
-                        _previousLabel(g.exerciseType, units, s),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: c.accentSecondary,
-                        ),
-                      ),
-                    ),
-                  )
-                else
-                  const Spacer(),
-                Pressable(
-                  onTap: s.done ? null : () => _pickEffort(session, s),
+            if (s.progression.isNotEmpty) ...[
+              const SizedBox(width: 6),
+              _progressionBadge(c, s.progression),
+            ],
+            const SizedBox(width: 8),
+            if (_showPrimary(g.exerciseType)) ...[
+              Expanded(
+                child: _numField(
+                  c,
+                  _wc(s),
+                  s.done,
+                  _primaryUnit(g.exerciseType, units),
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
+            Expanded(
+              child: _numField(
+                c,
+                _rc(s),
+                s.done,
+                _secondaryUnit(g.exerciseType),
+              ),
+            ),
+            const SizedBox(width: 6),
+            if (s.previousReps != null) ...[
+              Flexible(
+                child: Pressable(
+                  onTap: s.done
+                      ? null
+                      : () {
+                          session.usePrevious(s);
+                          _wc(s).text = s.weight;
+                          _rc(s).text = s.reps;
+                          HapticFeedback.selectionClick();
+                        },
                   child: Container(
+                    constraints: const BoxConstraints(minWidth: 42),
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 5,
+                      horizontal: 6,
+                      vertical: 7,
                     ),
                     decoration: BoxDecoration(
                       color: c.card,
@@ -1020,16 +998,69 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                       border: Border.all(color: c.border),
                     ),
                     child: Text(
-                      s.rpe != null ? 'RPE ${s.rpe}' : 'RPE',
+                      _compactPreviousLabel(g.exerciseType, units, s),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 10,
+                        fontSize: 9,
                         fontWeight: FontWeight.w700,
-                        color: c.textSecondary,
+                        color: c.accentSecondary,
                       ),
                     ),
                   ),
                 ),
-              ],
+              ),
+              const SizedBox(width: 6),
+            ],
+            Pressable(
+              onTap: s.done ? null : () => _pickEffort(session, s),
+              child: Container(
+                width: 42,
+                height: 40,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: c.card,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: c.border),
+                ),
+                child: Text(
+                  s.rpe != null ? '${s.rpe}' : 'RPE',
+                  style: TextStyle(
+                    fontSize: s.rpe != null ? 11 : 9,
+                    fontWeight: FontWeight.w800,
+                    color: s.rpe != null ? c.accent : c.textSecondary,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Pressable(
+              onTap: () => session.toggleSet(s),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: const Cubic(0.23, 1, 0.32, 1),
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: s.done ? c.accent : c.card,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: s.done ? c.accent : c.border),
+                ),
+                child: AnimatedScale(
+                  scale: s.done ? 1.0 : 0.82,
+                  duration: const Duration(milliseconds: 200),
+                  curve: s.done
+                      ? const Cubic(0.34, 1.56, 0.64, 1) // gentle overshoot pop
+                      : const Cubic(0.23, 1, 0.32, 1),
+                  child: Icon(
+                    CupertinoIcons.check_mark,
+                    size: 20,
+                    color: s.done ? c.textOnAccent : c.textSecondary,
+                  ),
+                ),
+              ),
             ),
           ],
         ),
@@ -1068,16 +1099,19 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
   String _secondaryUnit(String type) =>
       type == 'duration' || type == 'distance_duration' ? 'sec' : 'reps';
 
-  String _previousLabel(String type, UnitsController units, SessionSet set) {
-    final effort = set.previousRpe != null ? '  @ ${set.previousRpe} RPE' : '';
-    return switch (type) {
-      'reps_only' => 'Previous  ${set.previousReps} reps$effort',
-      'duration' => 'Previous  ${set.previousReps} sec$effort',
+  String _compactPreviousLabel(
+    String type,
+    UnitsController units,
+    SessionSet set,
+  ) {
+    final value = switch (type) {
+      'reps_only' => '${set.previousReps}',
+      'duration' => '${set.previousReps}s',
       'distance_duration' =>
-        'Previous  ${set.previousWeightKg ?? 0} km · ${set.previousReps} sec$effort',
-      _ =>
-        'Previous  ${units.format(set.previousWeightKg ?? 0)}${units.label} × ${set.previousReps}$effort',
+        '${set.previousWeightKg ?? 0}km · ${set.previousReps}s',
+      _ => '${units.format(set.previousWeightKg ?? 0)}×${set.previousReps}',
     };
+    return AppLocalizations.of(context).previousCompact(value);
   }
 
   // Compact tag on a set row indicating a non-weight progression.
@@ -1162,13 +1196,6 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
 
   // Explicit set-type selector so the type (warm-up / working / failure) is
   // chosen from named options instead of a blind tap-to-cycle.
-  static const _progressionNames = {
-    'weight': 'Heavier weight',
-    'amplitude': 'Greater amplitude',
-    'efficiency': 'Better efficiency',
-    'meo': 'MEO / myo-rep set',
-    'dropset': 'Drop set',
-  };
   // Short badge shown on a set row once progress has been tagged.
   static const _progressionBadges = {
     'weight': 'WT',
@@ -1180,13 +1207,14 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
 
   void _pickSetType(WorkoutSessionController session, SessionSet s) {
     HapticFeedback.selectionClick();
+    final l = AppLocalizations.of(context);
     _showPickerSheet(
-      title: 'Set type',
+      title: l.setType,
       rows: [
         for (final t in setTypes)
           _PickerRow(
-            title: setTypeMetadata[t]!.name,
-            subtitle: setTypeMetadata[t]!.description,
+            title: _setTypeName(l, t),
+            subtitle: _setTypeDescription(l, t),
             badge: _typeVisual(context.colors, t).badge,
             badgeBg: _typeVisual(context.colors, t).bg,
             badgeFg: _typeVisual(context.colors, t).fg,
@@ -1195,10 +1223,9 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
           ),
       ],
       footer: _PickerRow(
-        title:
-            s.progression.isEmpty
-                ? 'Progression tag…'
-                : 'Progression: ${_progressionNames[s.progression]}',
+        title: s.progression.isEmpty
+            ? l.progressionTag
+            : l.progressionValue(_progressionName(l, s.progression)),
         icon: CupertinoIcons.arrow_up_right,
         onTap: () => _pickProgression(session, s),
         keepOpenAfterTap: true,
@@ -1210,18 +1237,19 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
   // just adding load — issue #4.
   void _pickProgression(WorkoutSessionController session, SessionSet s) {
     HapticFeedback.selectionClick();
+    final l = AppLocalizations.of(context);
     _showPickerSheet(
-      title: 'How did this set progress?',
+      title: l.setProgressQuestion,
       rows: [
         for (final p in progressionTypes)
           _PickerRow(
-            title: _progressionNames[p]!,
+            title: _progressionName(l, p),
             badge: _progressionBadges[p],
             selected: s.progression == p,
             onTap: () => session.setProgression(s, p),
           ),
         _PickerRow(
-          title: 'No progression tag',
+          title: l.noProgressionTag,
           destructive: true,
           selected: s.progression.isEmpty,
           onTap: () => session.setProgression(s, ''),
@@ -1230,35 +1258,59 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     );
   }
 
+  String _setTypeName(AppLocalizations l, String type) => switch (type) {
+    'warmup' => l.warmupSet,
+    'failure' => l.failureSet,
+    'dropset' => l.dropSet,
+    _ => l.workingSet,
+  };
+
+  String _setTypeDescription(AppLocalizations l, String type) => switch (type) {
+    'warmup' => l.warmupSetBody,
+    'failure' => l.failureSetBody,
+    'dropset' => l.dropSetBody,
+    _ => l.workingSetBody,
+  };
+
+  String _progressionName(AppLocalizations l, String progression) =>
+      switch (progression) {
+        'weight' => l.heavierWeight,
+        'amplitude' => l.greaterAmplitude,
+        'efficiency' => l.betterEfficiency,
+        'meo' => l.meoSet,
+        'dropset' => l.dropSet,
+        _ => progression,
+      };
+
   Future<void> _pickEffort(
     WorkoutSessionController session,
     SessionSet s,
   ) async {
     HapticFeedback.selectionClick();
+    final l = AppLocalizations.of(context);
     final value = await showCupertinoModalPopup<double>(
       context: context,
-      builder:
-          (ctx) => CupertinoActionSheet(
-            title: const Text('Rate of perceived exertion'),
-            message: const Text('How hard did this set feel?'),
-            actions: [
-              for (final value in const [6, 7, 8, 8.5, 9, 9.5, 10])
-                CupertinoActionSheetAction(
-                  onPressed: () => Navigator.pop(ctx, value.toDouble()),
-                  child: Text('$value RPE'),
-                ),
-              if (s.rpe != null)
-                CupertinoActionSheetAction(
-                  isDestructiveAction: true,
-                  onPressed: () => Navigator.pop(ctx, -1.0),
-                  child: const Text('Clear RPE'),
-                ),
-            ],
-            cancelButton: CupertinoActionSheetAction(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
+      builder: (ctx) => CupertinoActionSheet(
+        title: Text(l.perceivedExertion),
+        message: Text(l.perceivedExertionQuestion),
+        actions: [
+          for (final value in const [6, 7, 8, 8.5, 9, 9.5, 10])
+            CupertinoActionSheetAction(
+              onPressed: () => Navigator.pop(ctx, value.toDouble()),
+              child: Text('$value RPE'),
             ),
-          ),
+          if (s.rpe != null)
+            CupertinoActionSheetAction(
+              isDestructiveAction: true,
+              onPressed: () => Navigator.pop(ctx, -1.0),
+              child: Text(l.clearRpe),
+            ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.pop(ctx),
+          child: Text(l.cancel),
+        ),
+      ),
     );
     if (!mounted || value == null) return;
     session.setEffort(s, rpe: value < 0 ? null : value);
@@ -1324,8 +1376,9 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                         r.title,
                         style: TextStyle(
                           fontSize: 15,
-                          fontWeight:
-                              r.selected ? FontWeight.w700 : FontWeight.w600,
+                          fontWeight: r.selected
+                              ? FontWeight.w700
+                              : FontWeight.w600,
                           color: r.destructive ? c.accent : c.textPrimary,
                         ),
                       ),
@@ -1406,28 +1459,30 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     TextEditingController ctrl,
     bool done,
     String unit,
-  ) => CupertinoTextField(
-    controller: ctrl,
-    readOnly: done,
-    placeholder: '0',
-    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-    inputFormatters: [NumericLimitFormatter(allowDecimal: unit != 'reps')],
-    textAlign: TextAlign.center,
-    style: TextStyle(
-      color: c.textPrimary,
-      fontSize: 16,
-      fontWeight: FontWeight.w800,
-    ),
-    placeholderStyle: TextStyle(color: c.textSecondary, fontSize: 15),
-    suffix: Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: Text(unit, style: TextStyle(fontSize: 11, color: c.textSecondary)),
-    ),
-    padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 7),
-    decoration: BoxDecoration(
-      color: c.card,
-      borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: c.border),
+  ) => Semantics(
+    textField: true,
+    label: unit == 'reps'
+        ? AppLocalizations.of(context).repetitions
+        : AppLocalizations.of(context).weightField(unit),
+    child: CupertinoTextField(
+      controller: ctrl,
+      readOnly: done,
+      placeholder: '0',
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      inputFormatters: [NumericLimitFormatter(allowDecimal: unit != 'reps')],
+      textAlign: TextAlign.center,
+      style: TextStyle(
+        color: c.textPrimary,
+        fontSize: 16,
+        fontWeight: FontWeight.w800,
+      ),
+      placeholderStyle: TextStyle(color: c.textSecondary, fontSize: 15),
+      padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 7),
+      decoration: BoxDecoration(
+        color: c.card,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: c.border),
+      ),
     ),
   );
 }
@@ -1540,6 +1595,10 @@ class _DoneView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final l10n = AppLocalizations.of(context);
+    final difficultyLabel = difficulty == 'deload'
+        ? l10n.difficultyDeload
+        : l10n.difficultyNormal;
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -1560,7 +1619,7 @@ class _DoneView extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           Text(
-            'Workout complete',
+            l10n.workoutComplete,
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w800,
@@ -1569,20 +1628,61 @@ class _DoneView extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            '$workoutName  ·  ${_diffLabels[difficulty] ?? difficulty}',
+            '$workoutName  ·  $difficultyLabel',
             style: TextStyle(fontSize: 13, color: c.textSecondary),
           ),
           const SizedBox(height: 28),
           Row(
             children: [
-              _stat(c, '$sets', sets == 1 ? 'SET LOGGED' : 'SETS LOGGED'),
+              _stat(c, '$sets', l10n.setLogged(sets)),
               const SizedBox(width: 12),
               _stat(
                 c,
                 context.watch<UnitsController>().formatVolume(volumeKg),
-                'VOLUME LIFTED',
+                l10n.volumeLifted,
               ),
             ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: c.card,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: c.accent.withValues(alpha: .42)),
+            ),
+            child: Row(
+              children: [
+                Icon(CupertinoIcons.doc_text, size: 20, color: c.accent),
+                const SizedBox(width: 11),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.sessionSealed,
+                        style: TextStyle(
+                          color: c.accent,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        l10n.sessionSealedBody,
+                        style: TextStyle(
+                          color: c.textSecondary,
+                          fontSize: 11,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
           const Spacer(),
           SizedBox(
@@ -1597,7 +1697,7 @@ class _DoneView extends StatelessWidget {
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Text(
-                  'DONE',
+                  l10n.done,
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w800,

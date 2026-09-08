@@ -52,10 +52,9 @@ class _PressableState extends State<Pressable> {
       excludeSemantics: widget.semanticLabel != null,
       child: FocusableActionDetector(
         enabled: widget.onTap != null,
-        mouseCursor:
-            widget.onTap == null
-                ? SystemMouseCursors.basic
-                : SystemMouseCursors.click,
+        mouseCursor: widget.onTap == null
+            ? SystemMouseCursors.basic
+            : SystemMouseCursors.click,
         shortcuts: const {
           SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
           SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
@@ -77,10 +76,9 @@ class _PressableState extends State<Pressable> {
           onTapCancel: () => _set(false),
           child: AnimatedScale(
             scale: _down ? widget.scale : 1.0,
-            duration:
-                reduceMotion
-                    ? Duration.zero
-                    : const Duration(milliseconds: 140),
+            duration: reduceMotion
+                ? Duration.zero
+                : const Duration(milliseconds: 140),
             // Strong ease-out (cubic-bezier(0.23, 1, 0.32, 1)) — snappy release.
             curve: const Cubic(0.23, 1, 0.32, 1),
             child: widget.child,

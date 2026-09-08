@@ -37,7 +37,16 @@ class AppGlassSurface extends StatelessWidget {
     final content = Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: highContrast ? fill.withValues(alpha: 1) : fill,
+        color: highContrast || colors.isDark || color != null
+            ? (highContrast ? fill.withValues(alpha: 1) : fill)
+            : null,
+        gradient: !highContrast && !colors.isDark && color == null
+            ? const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFFFFFFFF), Color(0xF7F2F5F8)],
+              )
+            : null,
         borderRadius: BorderRadius.circular(radius),
         border: Border.all(color: colors.border, width: AppDesign.hairline),
         boxShadow: colors.cardShadow,
@@ -46,27 +55,25 @@ class AppGlassSurface extends StatelessWidget {
     );
     final clipped = ClipRRect(
       borderRadius: BorderRadius.circular(radius),
-      child:
-          blur && !highContrast
-              ? BackdropFilter(
-                filter: ImageFilter.blur(
-                  sigmaX: AppDesign.glassBlur,
-                  sigmaY: AppDesign.glassBlur,
-                ),
-                child: content,
-              )
-              : content,
+      child: blur && !highContrast
+          ? BackdropFilter(
+              filter: ImageFilter.blur(
+                sigmaX: AppDesign.glassBlur,
+                sigmaY: AppDesign.glassBlur,
+              ),
+              child: content,
+            )
+          : content,
     );
     return Padding(
       padding: margin ?? EdgeInsets.zero,
-      child:
-          onTap == null
-              ? clipped
-              : Pressable(
-                onTap: onTap,
-                scale: reduceMotion ? 1 : 0.985,
-                child: clipped,
-              ),
+      child: onTap == null
+          ? clipped
+          : Pressable(
+              onTap: onTap,
+              scale: reduceMotion ? 1 : 0.985,
+              child: clipped,
+            ),
     );
   }
 }

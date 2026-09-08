@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/cupertino.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
+import 'package:gymboss/l10n/app_localizations.dart';
 
 class WarmupSetPlan {
   final double weight;
@@ -103,7 +104,7 @@ class _WarmupCalculatorState extends State<_WarmupCalculator> {
       barWeight: double.tryParse(_bar.text) ?? 20,
     );
     return _Sheet(
-      title: 'Warm-up calculator',
+      title: AppLocalizations.of(context).warmupCalculator,
       child: Column(
         children: [
           Row(
@@ -111,7 +112,7 @@ class _WarmupCalculatorState extends State<_WarmupCalculator> {
               Expanded(
                 child: _NumberField(
                   controller: _weight,
-                  label: 'Working kg',
+                  label: AppLocalizations.of(context).workingKg,
                   onChanged: (_) => setState(() {}),
                 ),
               ),
@@ -119,7 +120,7 @@ class _WarmupCalculatorState extends State<_WarmupCalculator> {
               Expanded(
                 child: _NumberField(
                   controller: _bar,
-                  label: 'Bar kg',
+                  label: AppLocalizations.of(context).barKg,
                   onChanged: (_) => setState(() {}),
                 ),
               ),
@@ -204,7 +205,7 @@ class _PlateCalculatorState extends State<_PlateCalculator> {
       barWeight: double.tryParse(_bar.text) ?? 20,
     );
     return _Sheet(
-      title: 'Plate calculator',
+      title: AppLocalizations.of(context).plateCalculator,
       child: Column(
         children: [
           Row(
@@ -212,7 +213,7 @@ class _PlateCalculatorState extends State<_PlateCalculator> {
               Expanded(
                 child: _NumberField(
                   controller: _weight,
-                  label: 'Total kg',
+                  label: AppLocalizations.of(context).totalKg,
                   onChanged: (_) => setState(() {}),
                 ),
               ),
@@ -220,7 +221,7 @@ class _PlateCalculatorState extends State<_PlateCalculator> {
               Expanded(
                 child: _NumberField(
                   controller: _bar,
-                  label: 'Bar kg',
+                  label: AppLocalizations.of(context).barKg,
                   onChanged: (_) => setState(() {}),
                 ),
               ),

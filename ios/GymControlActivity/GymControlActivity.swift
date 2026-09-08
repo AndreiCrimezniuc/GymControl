@@ -74,7 +74,11 @@ struct GymControlWorkoutActivity: Widget {
 
   @ViewBuilder
   private func status(_ context: ActivityViewContext<GymControlWorkoutAttributes>) -> some View {
-    if let restEnd = context.state.restEnd, restEnd > Date() {
+    if #available(iOS 16.2, *), context.isStale {
+      Text("Open GymControl")
+        .font(.caption)
+        .foregroundStyle(.secondary)
+    } else if let restEnd = context.state.restEnd, restEnd > Date() {
       HStack(spacing: 4) {
         Text("Rest")
         Text(timerInterval: Date()...restEnd, countsDown: true)
@@ -95,7 +99,9 @@ struct GymControlWorkoutActivity: Widget {
 
   @ViewBuilder
   private func timer(_ context: ActivityViewContext<GymControlWorkoutAttributes>) -> some View {
-    if let restEnd = context.state.restEnd, restEnd > Date() {
+    if #available(iOS 16.2, *), context.isStale {
+      Image(systemName: "exclamationmark")
+    } else if let restEnd = context.state.restEnd, restEnd > Date() {
       Text(timerInterval: Date()...restEnd, countsDown: true)
     } else {
       Text(timerInterval: context.attributes.startedAt...Date.distantFuture, countsDown: false)

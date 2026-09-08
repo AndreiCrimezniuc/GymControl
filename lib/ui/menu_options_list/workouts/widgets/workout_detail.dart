@@ -2,12 +2,17 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:gymboss/data/repositories/exercises_repository.dart';
+import 'package:gymboss/data/repositories/ranking_repository.dart';
+import 'package:gymboss/data/repositories/sessions_repository.dart';
 import 'package:gymboss/data/repositories/workouts_repository.dart';
+import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/domain/models/exercises/exercise_catalog.dart';
 import 'package:gymboss/domain/models/workouts/workout.dart';
+import 'package:gymboss/l10n/app_localizations.dart';
 import 'package:gymboss/ui/menu_options_list/exercises/widgets/exercises.dart';
 import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
+import 'package:gymboss/ui/core/subscription/pro_controller.dart';
 import 'package:gymboss/ui/core/units/units_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_dialog.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
@@ -18,6 +23,7 @@ import 'package:gymboss/ui/menu_options_list/workouts/widgets/workout_editor.dar
 import 'package:gymboss/ui/menu_options_list/workouts/session/workout_session_controller.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/session/aerobic_runner.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/workout_runner.dart';
+import 'package:gymboss/ui/subscription/paywall_screen.dart';
 
 const _modes = ['normal', 'deload'];
 const _diffLabels = {'normal': 'Normal', 'deload': 'Deload'};
@@ -106,6 +112,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   bool _loading = true;
   String? _error;
   String _difficulty = 'normal'; // 'normal' | 'deload'
+  bool _suggesting = false;
 
   @override
   void initState() {
@@ -139,37 +146,51 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   }
 
   Future<void> _launch() async {
+    final l = AppLocalizations.of(context);
     final session = context.read<WorkoutSessionController>();
+    final sessions = SessionsRepository(
+      client: context.read<AuthenticatedClient>(),
+    );
+    final ranking = RankingRepository(
+      client: context.read<AuthenticatedClient>(),
+    );
     if (session.isActive && !session.isFinished) {
       final replace = await showAppDialog<bool>(
         context,
-        title: 'Start a new workout?',
-        message:
-            'You have an active session in progress. Starting this one will discard it.',
+        title: l.startNewWorkoutQuestion,
+        message: l.activeWorkoutBody,
         actions: [
           AppDialogAction(
-            'Keep active',
+            l.resumeActive,
             onPressed: () => Navigator.pop(context, false),
           ),
           AppDialogAction(
-            'Start new',
+            l.startNew,
             isDestructive: true,
             onPressed: () => Navigator.pop(context, true),
           ),
         ],
       );
-      if (!mounted || replace != true) return;
+      if (!mounted || replace == null) return;
+      if (!replace) {
+        session.resume();
+        await Navigator.of(
+          context,
+          rootNavigator: true,
+        ).push(CupertinoPageRoute(builder: (_) => const WorkoutRunnerScreen()));
+        return;
+      }
     }
     // Aerobic workouts use the stopwatch/laps runner instead of the set logger.
     if (_w!.type == 'aerobic') {
       await Navigator.of(context, rootNavigator: true).push(
         CupertinoPageRoute(
-          builder:
-              (_) => AerobicRunnerScreen(
-                workoutId: _w!.id,
-                workoutName: _w!.name,
-                repo: widget.repo,
-              ),
+          builder: (_) => AerobicRunnerScreen(
+            workoutId: _w!.id,
+            workoutName: _w!.name,
+            repo: widget.repo,
+            sessions: sessions,
+          ),
         ),
       );
       if (mounted) _load();
@@ -181,6 +202,8 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
       workout: configured,
       difficulty: _difficulty,
       exercises: widget.exercises,
+      ranking: ranking,
+      sessions: sessions,
       workouts: widget.repo,
       units: context.read<UnitsController>(),
     );
@@ -192,6 +215,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   }
 
   Future<Workout?> _configureExercises(Workout workout) async {
+    final l = AppLocalizations.of(context);
     final optional = workout.exercises.where((e) => e.isOptional).toList();
     final groups = <String, List<WorkoutExercise>>{};
     for (final exercise in workout.exercises) {
@@ -208,131 +232,123 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
     };
     final accepted = await showCupertinoModalPopup<bool>(
       context: context,
-      builder:
-          (sheetContext) => StatefulBuilder(
-            builder: (context, setSheetState) {
-              final c = context.colors;
-              return Container(
-                padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
-                decoration: BoxDecoration(
-                  color: c.bg,
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(22),
-                  ),
-                ),
-                child: SafeArea(
-                  top: false,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Center(
-                        child: Container(
-                          width: 38,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: c.border,
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          final c = context.colors;
+          return Container(
+            padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
+            decoration: BoxDecoration(
+              color: c.bg,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(22),
+              ),
+            ),
+            child: SafeArea(
+              top: false,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 38,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: c.border,
+                        borderRadius: BorderRadius.circular(2),
                       ),
-                      const SizedBox(height: 14),
-                      Text(
-                        'Configure workout',
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    l.configureWorkout,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: c.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    l.configureWorkoutBody,
+                    style: TextStyle(fontSize: 12, color: c.textSecondary),
+                  ),
+                  const SizedBox(height: 12),
+                  for (final exercise in optional)
+                    _LaunchChoice(
+                      label: exercise.name,
+                      detail: l.optional,
+                      selected: included.contains(exercise.exerciseId),
+                      onTap: () => setSheetState(
+                        () => included.contains(exercise.exerciseId)
+                            ? included.remove(exercise.exerciseId)
+                            : included.add(exercise.exerciseId),
+                      ),
+                    ),
+                  for (final entry in groups.entries) ...[
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8, bottom: 4),
+                      child: Text(
+                        l.chooseOne,
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 10,
                           fontWeight: FontWeight.w800,
-                          color: c.textPrimary,
+                          letterSpacing: .8,
+                          color: c.accentSecondary,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Optional exercises and alternatives can change each session.',
-                        style: TextStyle(fontSize: 12, color: c.textSecondary),
-                      ),
-                      const SizedBox(height: 12),
-                      for (final exercise in optional)
-                        _LaunchChoice(
-                          label: exercise.name,
-                          detail: 'Optional',
-                          selected: included.contains(exercise.exerciseId),
-                          onTap:
-                              () => setSheetState(
-                                () =>
-                                    included.contains(exercise.exerciseId)
-                                        ? included.remove(exercise.exerciseId)
-                                        : included.add(exercise.exerciseId),
-                              ),
+                    ),
+                    for (final exercise in entry.value)
+                      _LaunchChoice(
+                        label: exercise.name,
+                        detail: l.alternative,
+                        selected: selected[entry.key] == exercise.exerciseId,
+                        onTap: () => setSheetState(
+                          () => selected[entry.key] = exercise.exerciseId,
                         ),
-                      for (final entry in groups.entries) ...[
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8, bottom: 4),
-                          child: Text(
-                            'CHOOSE ONE',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: .8,
-                              color: c.accentSecondary,
-                            ),
-                          ),
-                        ),
-                        for (final exercise in entry.value)
-                          _LaunchChoice(
-                            label: exercise.name,
-                            detail: 'Alternative',
-                            selected:
-                                selected[entry.key] == exercise.exerciseId,
-                            onTap:
-                                () => setSheetState(
-                                  () =>
-                                      selected[entry.key] = exercise.exerciseId,
-                                ),
-                          ),
-                      ],
-                      const SizedBox(height: 10),
-                      CupertinoButton.filled(
-                        onPressed: () => Navigator.pop(sheetContext, true),
-                        child: const Text('Start workout'),
                       ),
-                      CupertinoButton(
-                        onPressed: () => Navigator.pop(sheetContext, false),
-                        child: const Text('Cancel'),
-                      ),
-                    ],
+                  ],
+                  const SizedBox(height: 10),
+                  CupertinoButton.filled(
+                    onPressed: () => Navigator.pop(sheetContext, true),
+                    child: Text(l.startWorkout),
                   ),
-                ),
-              );
-            },
-          ),
+                  CupertinoButton(
+                    onPressed: () => Navigator.pop(sheetContext, false),
+                    child: Text(l.cancel),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
     );
     if (accepted != true) return null;
     final chosenAlternativeIds = selected.values.toSet();
     return workout.copyWith(
-      exercises:
-          workout.exercises.where((exercise) {
-            if (exercise.isOptional &&
-                !included.contains(exercise.exerciseId)) {
-              return false;
-            }
-            if (exercise.alternativeGroupId != null &&
-                groups.containsKey(exercise.alternativeGroupId)) {
-              return chosenAlternativeIds.contains(exercise.exerciseId);
-            }
-            return true;
-          }).toList(),
+      exercises: workout.exercises.where((exercise) {
+        if (exercise.isOptional && !included.contains(exercise.exerciseId)) {
+          return false;
+        }
+        if (exercise.alternativeGroupId != null &&
+            groups.containsKey(exercise.alternativeGroupId)) {
+          return chosenAlternativeIds.contains(exercise.exerciseId);
+        }
+        return true;
+      }).toList(),
     );
   }
 
   Future<void> _saveCopy() async {
+    final l = AppLocalizations.of(context);
     try {
       await widget.repo.copy(_w!.id);
       if (!mounted) return;
       await showAppDialog<void>(
         context,
-        title: 'Saved',
-        message:
-            'A private copy was added to your workouts. Open “Mine” to launch or edit it.',
+        title: l.saved,
+        message: l.copySavedBody,
         actions: [
           AppDialogAction(
             'OK',
@@ -343,19 +359,18 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
       );
       if (mounted) Navigator.of(context).pop();
     } catch (_) {
-      _toast('Could not save a copy');
+      _toast(l.couldNotSaveCopy);
     }
   }
 
   Future<void> _edit() async {
     final saved = await Navigator.of(context, rootNavigator: true).push<bool>(
       CupertinoPageRoute(
-        builder:
-            (_) => WorkoutEditorScreen(
-              repo: widget.repo,
-              exercises: widget.exercises,
-              existing: _w,
-            ),
+        builder: (_) => WorkoutEditorScreen(
+          repo: widget.repo,
+          exercises: widget.exercises,
+          existing: _w,
+        ),
       ),
     );
     if (saved == true) _load();
@@ -364,13 +379,12 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   void _openRunDetail(String date, String difficulty) {
     Navigator.of(context, rootNavigator: true).push(
       CupertinoPageRoute(
-        builder:
-            (_) => _RunDetailScreen(
-              workoutId: _w!.id,
-              date: date,
-              difficulty: difficulty,
-              repo: widget.repo,
-            ),
+        builder: (_) => _RunDetailScreen(
+          workoutId: _w!.id,
+          date: date,
+          difficulty: difficulty,
+          repo: widget.repo,
+        ),
       ),
     );
   }
@@ -379,9 +393,8 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
     final history = _stats?.history ?? const <WorkoutRunPoint>[];
     Navigator.of(context, rootNavigator: true).push(
       CupertinoPageRoute(
-        builder:
-            (_) =>
-                _WorkoutHistoryScreen(history: history, onOpen: _openRunDetail),
+        builder: (_) =>
+            _WorkoutHistoryScreen(history: history, onOpen: _openRunDetail),
       ),
     );
   }
@@ -389,22 +402,21 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   void _openExerciseStats(WorkoutExercise ex) {
     Navigator.of(context, rootNavigator: true).push(
       CupertinoPageRoute(
-        builder:
-            (_) => ExerciseDetailScreen(
-              entry: ExerciseCatalogItem(
-                id: ex.exerciseId,
-                name: ex.name,
-                muscleGroup: ex.muscleGroup,
-                equipment: '',
-                category: '',
-                level: '',
-                force: '',
-                imageUrl: ex.imageUrl,
-                imageUrl2: '',
-                instructions: '',
-              ),
-              repo: widget.exercises,
-            ),
+        builder: (_) => ExerciseDetailScreen(
+          entry: ExerciseCatalogItem(
+            id: ex.exerciseId,
+            name: ex.name,
+            muscleGroup: ex.muscleGroup,
+            equipment: '',
+            category: '',
+            level: '',
+            force: '',
+            imageUrl: ex.imageUrl,
+            imageUrl2: '',
+            instructions: '',
+          ),
+          repo: widget.exercises,
+        ),
       ),
     );
   }
@@ -419,10 +431,114 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
     }
   }
 
+  Future<void> _requestAiSuggestion() async {
+    final pro = context.read<ProController>();
+    final known = pro.isKnown || await pro.load(force: true);
+    if (!mounted) return;
+    if (!known) {
+      _toast('Could not verify Pro access');
+      return;
+    }
+    if (!pro.isPro) {
+      await Navigator.of(
+        context,
+        rootNavigator: true,
+      ).push(CupertinoPageRoute(builder: (_) => const PaywallScreen()));
+      return;
+    }
+    setState(() => _suggesting = true);
+    try {
+      final suggestion = await widget.repo.requestAiSuggestion(widget.id);
+      if (mounted) _showSuggestion(suggestion);
+    } catch (error) {
+      if (!mounted) return;
+      final message = error.toString();
+      final l10n = AppLocalizations.of(context);
+      await showAppDialog<void>(
+        context,
+        title: l10n.aiReviewStagedTitle,
+        message: message.contains('provider is not configured')
+            ? l10n.aiReviewStagedBody
+            : l10n.aiReviewFailed,
+        actions: [
+          AppDialogAction('OK', onPressed: () => Navigator.pop(context)),
+        ],
+      );
+    } finally {
+      if (mounted) setState(() => _suggesting = false);
+    }
+  }
+
+  void _showSuggestion(WorkoutSuggestion suggestion) {
+    final c = context.colors;
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (sheetContext) => Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(sheetContext).height * .82,
+        ),
+        decoration: BoxDecoration(
+          color: c.bg,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+            children: [
+              Center(
+                child: Container(
+                  width: 38,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: c.border,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                'AI TRAINING REVIEW',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.2,
+                  color: c.accent,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                suggestion.summary,
+                style: TextStyle(
+                  fontSize: 19,
+                  height: 1.35,
+                  fontWeight: FontWeight.w700,
+                  color: c.textPrimary,
+                ),
+              ),
+              _SuggestionSection(
+                title: AppLocalizations.of(context).whatWorks,
+                items: suggestion.highlights,
+              ),
+              _SuggestionSection(
+                title: AppLocalizations.of(context).watch,
+                items: suggestion.cautions,
+              ),
+              _SuggestionSection(
+                title: AppLocalizations.of(context).nextFocus,
+                items: suggestion.nextFocus,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _delete() async {
     final ok = await showAppDialog<bool>(
       context,
-      title: 'Delete workout?',
+      title: AppLocalizations.of(context).deleteWorkoutQuestion,
       message: '“${_w!.name}” will be permanently removed.',
       actions: [
         AppDialogAction(
@@ -509,17 +625,16 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
             ),
           ),
       ],
-      body:
-          _loading
-              ? const Center(child: CupertinoActivityIndicator())
-              : _error != null || w == null
-              ? Center(
-                child: Text(
-                  'Could not load',
-                  style: TextStyle(color: c.textSecondary),
-                ),
-              )
-              : _buildBody(c, w),
+      body: _loading
+          ? const Center(child: CupertinoActivityIndicator())
+          : _error != null || w == null
+          ? Center(
+              child: Text(
+                'Could not load',
+                style: TextStyle(color: c.textSecondary),
+              ),
+            )
+          : _buildBody(c, w),
     );
   }
 
@@ -551,6 +666,8 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                 _potentialVolumeLine(c),
                 const SizedBox(height: 16),
               ],
+              _AiSuggestCard(loading: _suggesting, onTap: _requestAiSuggestion),
+              const SizedBox(height: 16),
               Row(
                 children: [
                   const _SectionLabel('Exercises'),
@@ -570,10 +687,9 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                 (e) => _ExerciseBlock(
                   index: e.key + 1,
                   exercise: e.value,
-                  deloadScale:
-                      _difficulty == 'deload'
-                          ? (_w?.deloadFactor ?? 0.70)
-                          : 1.0,
+                  deloadScale: _difficulty == 'deload'
+                      ? (_w?.deloadFactor ?? 0.70)
+                      : 1.0,
                   onTap: () => _openExerciseStats(e.value),
                 ),
               ),
@@ -657,7 +773,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
     children: [
       _StatChip(
         icon: CupertinoIcons.chart_bar_alt_fill,
-        label: 'Volume',
+        label: AppLocalizations.of(context).volume,
         value: context.units.formatVolume(
           _stats?.potentialVolume['medium'] ?? 0,
         ),
@@ -665,13 +781,13 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
       const SizedBox(width: 10),
       _StatChip(
         icon: CupertinoIcons.clock_fill,
-        label: 'Avg time',
+        label: AppLocalizations.of(context).averageTime,
         value: _formatDuration(_stats?.averageDurationSeconds ?? 0),
       ),
       const SizedBox(width: 10),
       _StatChip(
         icon: CupertinoIcons.checkmark_alt_circle_fill,
-        label: 'Done',
+        label: AppLocalizations.of(context).done,
         value: '${_stats?.timesPerformed ?? w.timesPerformed}x',
       ),
     ],
@@ -711,8 +827,9 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   Widget _potentialVolumeLine(AppColors c) {
     // The stored plan lives under the legacy 'medium' key; Deload scales it.
     final base = _stats?.potentialVolume['medium'] ?? 0;
-    final vol =
-        _difficulty == 'deload' ? base * (_w?.deloadFactor ?? 0.70) : base;
+    final vol = _difficulty == 'deload'
+        ? base * (_w?.deloadFactor ?? 0.70)
+        : base;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -804,6 +921,154 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
       ),
     ),
   );
+}
+
+class _AiSuggestCard extends StatelessWidget {
+  final bool loading;
+  final VoidCallback onTap;
+  const _AiSuggestCard({required this.loading, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final l10n = AppLocalizations.of(context);
+    return Pressable(
+      onTap: loading ? null : onTap,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: c.invBg,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: c.accent.withValues(alpha: .48)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: c.accent.withValues(alpha: .20),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: loading
+                  ? const CupertinoActivityIndicator(radius: 9)
+                  : Icon(CupertinoIcons.sparkles, size: 19, color: c.accent),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        l10n.aiSuggest,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: .9,
+                          color: c.invText,
+                        ),
+                      ),
+                      const SizedBox(width: 7),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: c.accent,
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                        child: Text(
+                          'PRO',
+                          style: TextStyle(
+                            fontSize: 8,
+                            fontWeight: FontWeight.w900,
+                            color: c.textOnAccent,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    l10n.aiReviewPlan,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: c.invText.withValues(alpha: .62),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(CupertinoIcons.arrow_up_right, size: 16, color: c.accent),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SuggestionSection extends StatelessWidget {
+  final String title;
+  final List<String> items;
+  const _SuggestionSection({required this.title, required this.items});
+
+  @override
+  Widget build(BuildContext context) {
+    if (items.isEmpty) return const SizedBox.shrink();
+    final c = context.colors;
+    return Padding(
+      padding: const EdgeInsets.only(top: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title.toUpperCase(),
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1,
+              color: c.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          for (final item in items)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 5),
+                    child: Container(
+                      width: 5,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: c.accent,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 9),
+                  Expanded(
+                    child: Text(
+                      item,
+                      style: TextStyle(
+                        fontSize: 13,
+                        height: 1.4,
+                        color: c.textPrimary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 class _ExerciseBlock extends StatelessWidget {
@@ -906,71 +1171,70 @@ class _ExerciseBlock extends StatelessWidget {
             if (sets.isNotEmpty) ...[
               const SizedBox(height: 10),
               Column(
-                children:
-                    sets.asMap().entries.map((entry) {
-                      final set = entry.value;
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 6),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 11,
-                          vertical: 9,
-                        ),
-                        decoration: BoxDecoration(
-                          color: c.iconBg,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: c.border),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 24,
-                              height: 24,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: c.accent.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                '${entry.key + 1}',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w800,
-                                  color: c.accent,
-                                ),
-                              ),
+                children: sets.asMap().entries.map((entry) {
+                  final set = entry.value;
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 11,
+                      vertical: 9,
+                    ),
+                    decoration: BoxDecoration(
+                      color: c.iconBg,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: c.border),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 24,
+                          height: 24,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: c.accent.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            '${entry.key + 1}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: c.accent,
                             ),
-                            const SizedBox(width: 10),
-                            if (set.weightKg > 0)
-                              Text(
-                                '${units.format(set.weightKg * deloadScale)} ${units.label}',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: c.textPrimary,
-                                ),
-                              )
-                            else
-                              Text(
-                                'Bodyweight',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: c.textSecondary,
-                                ),
-                              ),
-                            const Spacer(),
-                            Text(
-                              '${set.reps} reps',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: c.textPrimary,
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
-                      );
-                    }).toList(),
+                        const SizedBox(width: 10),
+                        if (set.weightKg > 0)
+                          Text(
+                            '${units.format(set.weightKg * deloadScale)} ${units.label}',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: c.textPrimary,
+                            ),
+                          )
+                        else
+                          Text(
+                            'Bodyweight',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: c.textSecondary,
+                            ),
+                          ),
+                        const Spacer(),
+                        Text(
+                          '${set.reps} reps',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: c.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
               ),
             ],
             if (exercise.comment.isNotEmpty) ...[
@@ -1123,7 +1387,7 @@ class _WorkoutHistoryScreenState extends State<_WorkoutHistoryScreen> {
     final cellCount = ((leading + dayCount + 6) ~/ 7) * 7;
 
     return AppPage(
-      title: 'Workout history',
+      title: AppLocalizations.of(context).workoutHistory,
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
         children: [
@@ -1173,22 +1437,21 @@ class _WorkoutHistoryScreenState extends State<_WorkoutHistoryScreen> {
                 ),
                 const SizedBox(height: 4),
                 Row(
-                  children:
-                      _weekdays
-                          .map(
-                            (day) => Expanded(
-                              child: Text(
-                                day,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: c.textSecondary,
-                                ),
-                              ),
+                  children: _weekdays
+                      .map(
+                        (day) => Expanded(
+                          child: Text(
+                            day,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: c.textSecondary,
                             ),
-                          )
-                          .toList(),
+                          ),
+                        ),
+                      )
+                      .toList(),
                 ),
                 const SizedBox(height: 8),
                 GridView.builder(
@@ -1210,13 +1473,10 @@ class _WorkoutHistoryScreenState extends State<_WorkoutHistoryScreen> {
                     return _CalendarDay(
                       day: day,
                       session: session,
-                      onTap:
-                          session == null
-                              ? null
-                              : () => widget.onOpen(
-                                session.date,
-                                session.difficulty,
-                              ),
+                      onTap: session == null
+                          ? null
+                          : () =>
+                                widget.onOpen(session.date, session.difficulty),
                     );
                   },
                 ),
@@ -1352,34 +1612,33 @@ class _RunDetailScreenState extends State<_RunDetailScreen> {
     final totalVol = items.fold<double>(0, (a, e) => a + e.volumeKg);
     return AppPage(
       title: widget.date,
-      body:
-          _loading
-              ? const Center(child: CupertinoActivityIndicator())
-              : items.isEmpty
-              ? Center(
-                child: Text(
-                  'No logged sets for this session',
-                  style: TextStyle(color: c.textSecondary),
-                ),
-              )
-              : ListView(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                children: [
-                  Row(
-                    children: [
-                      _summaryTile(
-                        c,
-                        _runDiffLabels[widget.difficulty] ?? widget.difficulty,
-                        'DIFFICULTY',
-                      ),
-                      const SizedBox(width: 10),
-                      _summaryTile(c, units.formatVolume(totalVol), 'VOLUME'),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  ...items.map((e) => _exerciseTile(c, units, e)),
-                ],
+      body: _loading
+          ? const Center(child: CupertinoActivityIndicator())
+          : items.isEmpty
+          ? Center(
+              child: Text(
+                'No logged sets for this session',
+                style: TextStyle(color: c.textSecondary),
               ),
+            )
+          : ListView(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              children: [
+                Row(
+                  children: [
+                    _summaryTile(
+                      c,
+                      _runDiffLabels[widget.difficulty] ?? widget.difficulty,
+                      'DIFFICULTY',
+                    ),
+                    const SizedBox(width: 10),
+                    _summaryTile(c, units.formatVolume(totalVol), 'VOLUME'),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                ...items.map((e) => _exerciseTile(c, units, e)),
+              ],
+            ),
     );
   }
 
@@ -1453,49 +1712,43 @@ class _RunDetailScreenState extends State<_RunDetailScreen> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children:
-                e.sets.map<Widget>((s) {
-                  final warm = s.setType == 'warmup';
-                  final fail = s.setType == 'failure';
-                  final prefix = warm ? 'W ' : (fail ? 'F ' : '');
-                  const progLabels = {
-                    'weight': 'WT',
-                    'amplitude': 'AMP',
-                    'efficiency': 'EFF',
-                    'meo': 'MEO',
-                    'dropset': 'DROP',
-                  };
-                  final progSuffix =
-                      progLabels[s.progression] != null
-                          ? '  · ${progLabels[s.progression]}'
-                          : '';
-                  return Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color:
-                          warm
-                              ? c.iconBg
-                              : (fail
-                                  ? c.accent.withValues(alpha: 0.12)
-                                  : c.iconBg),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      '$prefix${units.format(s.weightKg)}${units.label} × ${s.reps}$progSuffix',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color:
-                            warm
-                                ? c.textSecondary
-                                : (fail ? c.accent : c.textPrimary),
-                      ),
-                    ),
-                  );
-                }).toList(),
+            children: e.sets.map<Widget>((s) {
+              final warm = s.setType == 'warmup';
+              final fail = s.setType == 'failure';
+              final prefix = warm ? 'W ' : (fail ? 'F ' : '');
+              const progLabels = {
+                'weight': 'WT',
+                'amplitude': 'AMP',
+                'efficiency': 'EFF',
+                'meo': 'MEO',
+                'dropset': 'DROP',
+              };
+              final progSuffix = progLabels[s.progression] != null
+                  ? '  · ${progLabels[s.progression]}'
+                  : '';
+              return Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: warm
+                      ? c.iconBg
+                      : (fail ? c.accent.withValues(alpha: 0.12) : c.iconBg),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '$prefix${units.format(s.weightKg)}${units.label} × ${s.reps}$progSuffix',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: warm
+                        ? c.textSecondary
+                        : (fail ? c.accent : c.textPrimary),
+                  ),
+                ),
+              );
+            }).toList(),
           ),
         ],
       ),

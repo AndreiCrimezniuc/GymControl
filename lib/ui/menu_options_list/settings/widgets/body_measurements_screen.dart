@@ -6,6 +6,7 @@ import 'package:gymboss/data/repositories/ranking_repository.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/domain/models/measurements/body_measurement.dart';
 import 'package:gymboss/domain/models/ranking/rank_data.dart';
+import 'package:gymboss/l10n/app_localizations.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
 
@@ -63,42 +64,42 @@ class _BodyMeasurementsScreenState extends State<BodyMeasurementsScreen> {
   void _add() {
     showCupertinoModalPopup<void>(
       context: context,
-      builder:
-          (_) => _MeasurementEditor(
-            repository: _repository,
-            ranking: widget.ranking,
-            onSaved: (measurement, profile) {
-              widget.onProfileSaved(profile);
-              setState(() {
-                _items = [
-                  measurement,
-                  ..._items.where((item) => item.id != measurement.id),
-                ]..sort((a, b) => b.measuredAt.compareTo(a.measuredAt));
-              });
-            },
-          ),
+      builder: (_) => _MeasurementEditor(
+        repository: _repository,
+        ranking: widget.ranking,
+        onSaved: (measurement, profile) {
+          widget.onProfileSaved(profile);
+          setState(() {
+            _items = [
+              measurement,
+              ..._items.where((item) => item.id != measurement.id),
+            ]..sort((a, b) => b.measuredAt.compareTo(a.measuredAt));
+          });
+        },
+      ),
     );
   }
 
   Future<void> _delete(BodyMeasurement item) async {
     final confirmed = await showCupertinoDialog<bool>(
       context: context,
-      builder:
-          (context) => CupertinoAlertDialog(
-            title: const Text('Delete measurement?'),
-            content: Text('The entry from ${item.measuredAt} will be removed.'),
-            actions: [
-              CupertinoDialogAction(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel'),
-              ),
-              CupertinoDialogAction(
-                isDestructiveAction: true,
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('Delete'),
-              ),
-            ],
+      builder: (context) => CupertinoAlertDialog(
+        title: Text(AppLocalizations.of(context).deleteMeasurementQuestion),
+        content: Text(
+          AppLocalizations.of(context).deleteMeasurementBody(item.measuredAt),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(AppLocalizations.of(context).cancel),
           ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(AppLocalizations.of(context).delete),
+          ),
+        ],
+      ),
     );
     if (confirmed != true) return;
     await _repository.delete(item.id);
@@ -111,7 +112,7 @@ class _BodyMeasurementsScreenState extends State<BodyMeasurementsScreen> {
   Widget build(BuildContext context) {
     final c = context.colors;
     return AppPage(
-      title: 'Body Measurements',
+      title: AppLocalizations.of(context).bodyMeasurements,
       actions: [
         CupertinoButton(
           padding: EdgeInsets.zero,
@@ -120,72 +121,71 @@ class _BodyMeasurementsScreenState extends State<BodyMeasurementsScreen> {
           child: const Icon(CupertinoIcons.add_circled),
         ),
       ],
-      body:
-          _loading
-              ? const Center(child: CupertinoActivityIndicator())
-              : _error != null
-              ? Center(
-                child: CupertinoButton(
-                  onPressed: _load,
-                  child: const Text('Could not load · Retry'),
-                ),
-              )
-              : CustomScrollView(
-                slivers: [
-                  CupertinoSliverRefreshControl(onRefresh: _load),
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                    sliver: SliverList(
-                      delegate: SliverChildListDelegate([
-                        _MeasurementChart(items: _items),
-                        const SizedBox(height: 18),
-                        if (_items.isEmpty)
-                          Container(
-                            padding: const EdgeInsets.all(28),
-                            decoration: BoxDecoration(
-                              color: c.card,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: c.border),
-                            ),
-                            child: Column(
-                              children: [
-                                Icon(
-                                  CupertinoIcons.chart_bar_alt_fill,
-                                  size: 30,
-                                  color: c.accent,
-                                ),
-                                const SizedBox(height: 10),
-                                Text(
-                                  'Track changes over time',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w800,
-                                    color: c.textPrimary,
-                                  ),
-                                ),
-                                const SizedBox(height: 5),
-                                Text(
-                                  'Weight, body fat, chest, waist, hips, arms and thighs.',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: c.textSecondary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                        else
-                          ..._items.map(
-                            (item) => GestureDetector(
-                              onLongPress: () => _delete(item),
-                              child: _MeasurementCard(item: item),
-                            ),
-                          ),
-                      ]),
-                    ),
-                  ),
-                ],
+      body: _loading
+          ? const Center(child: CupertinoActivityIndicator())
+          : _error != null
+          ? Center(
+              child: CupertinoButton(
+                onPressed: _load,
+                child: Text(AppLocalizations.of(context).couldNotLoadRetry),
               ),
+            )
+          : CustomScrollView(
+              slivers: [
+                CupertinoSliverRefreshControl(onRefresh: _load),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate([
+                      _MeasurementChart(items: _items),
+                      const SizedBox(height: 18),
+                      if (_items.isEmpty)
+                        Container(
+                          padding: const EdgeInsets.all(28),
+                          decoration: BoxDecoration(
+                            color: c.card,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: c.border),
+                          ),
+                          child: Column(
+                            children: [
+                              Icon(
+                                CupertinoIcons.chart_bar_alt_fill,
+                                size: 30,
+                                color: c.accent,
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                'Track changes over time',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  color: c.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                'Weight, body fat, chest, waist, hips, arms and thighs.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: c.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        ..._items.map(
+                          (item) => GestureDetector(
+                            onLongPress: () => _delete(item),
+                            child: _MeasurementCard(item: item),
+                          ),
+                        ),
+                    ]),
+                  ),
+                ),
+              ],
+            ),
     );
   }
 }
@@ -197,8 +197,11 @@ class _MeasurementChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final points =
-        items.where((item) => item.weightKg != null).toList().reversed.toList();
+    final points = items
+        .where((item) => item.weightKg != null)
+        .toList()
+        .reversed
+        .toList();
     return Container(
       height: 170,
       padding: const EdgeInsets.all(16),
@@ -221,22 +224,21 @@ class _MeasurementChart extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Expanded(
-            child:
-                points.length < 2
-                    ? Center(
-                      child: Text(
-                        'Add two weight entries to see the trend',
-                        style: TextStyle(fontSize: 12, color: c.textSecondary),
-                      ),
-                    )
-                    : CustomPaint(
-                      size: Size.infinite,
-                      painter: _WeightPainter(
-                        values: points.map((item) => item.weightKg!).toList(),
-                        color: c.accent,
-                        gridColor: c.border,
-                      ),
+            child: points.length < 2
+                ? Center(
+                    child: Text(
+                      'Add two weight entries to see the trend',
+                      style: TextStyle(fontSize: 12, color: c.textSecondary),
                     ),
+                  )
+                : CustomPaint(
+                    size: Size.infinite,
+                    painter: _WeightPainter(
+                      values: points.map((item) => item.weightKg!).toList(),
+                      color: c.accent,
+                      gridColor: c.border,
+                    ),
+                  ),
           ),
         ],
       ),
@@ -257,10 +259,9 @@ class _WeightPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final grid =
-        Paint()
-          ..color = gridColor
-          ..strokeWidth = 1;
+    final grid = Paint()
+      ..color = gridColor
+      ..strokeWidth = 1;
     for (var i = 0; i < 3; i++) {
       final y = size.height * i / 2;
       canvas.drawLine(Offset(0, y), Offset(size.width, y), grid);
@@ -457,25 +458,24 @@ class _MeasurementEditorState extends State<_MeasurementEditor> {
               childAspectRatio: 2.6,
               crossAxisSpacing: 10,
               mainAxisSpacing: 10,
-              children:
-                  _controllers.entries
-                      .map(
-                        (entry) => CupertinoTextField(
-                          controller: entry.value,
-                          placeholder: entry.key,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          padding: const EdgeInsets.all(12),
-                          style: TextStyle(color: c.textPrimary),
-                          decoration: BoxDecoration(
-                            color: c.iconBg,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: c.border),
-                          ),
-                        ),
-                      )
-                      .toList(),
+              children: _controllers.entries
+                  .map(
+                    (entry) => CupertinoTextField(
+                      controller: entry.value,
+                      placeholder: entry.key,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      padding: const EdgeInsets.all(12),
+                      style: TextStyle(color: c.textPrimary),
+                      decoration: BoxDecoration(
+                        color: c.iconBg,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: c.border),
+                      ),
+                    ),
+                  )
+                  .toList(),
             ),
           ),
           CupertinoTextField(
@@ -502,10 +502,9 @@ class _MeasurementEditorState extends State<_MeasurementEditor> {
             width: double.infinity,
             child: CupertinoButton.filled(
               onPressed: _saving ? null : _save,
-              child:
-                  _saving
-                      ? const CupertinoActivityIndicator()
-                      : const Text('Save measurement'),
+              child: _saving
+                  ? const CupertinoActivityIndicator()
+                  : Text(AppLocalizations.of(context).saveMeasurement),
             ),
           ),
         ],

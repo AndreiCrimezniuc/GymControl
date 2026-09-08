@@ -10,6 +10,7 @@ import 'package:gymboss/ui/auth/widgets/error_banner.dart';
 import 'package:gymboss/ui/auth/widgets/gradient_button.dart';
 import 'package:gymboss/ui/auth/widgets/gym_logo.dart';
 import 'package:gymboss/ui/auth/widgets/social_button.dart';
+import 'package:gymboss/l10n/app_localizations.dart';
 
 class RegisterScreen extends StatefulWidget {
   final VoidCallback onGoToLogin;
@@ -66,6 +67,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Consumer<AuthViewModel>(
       builder: (ctx, vm, _) {
         final errorMsg = _localError ?? vm.errorCode;
@@ -80,7 +82,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 AuthCard(
                   children: [
                     Text(
-                      'Create Account',
+                      l10n.createAccount,
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w700,
@@ -94,7 +96,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         children: [
                           AuthField(
                             controller: _emailCtrl,
-                            placeholder: 'Email',
+                            placeholder: l10n.email,
                             icon: CupertinoIcons.envelope_fill,
                             keyboardType: TextInputType.emailAddress,
                             textInputAction: TextInputAction.next,
@@ -105,7 +107,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           AuthField(
                             controller: _passCtrl,
                             focusNode: _passFocus,
-                            placeholder: 'Password (min 8 chars)',
+                            placeholder: l10n.passwordMin,
                             icon: CupertinoIcons.lock_fill,
                             obscureText: true,
                             textInputAction: TextInputAction.next,
@@ -116,7 +118,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           AuthField(
                             controller: _confirmCtrl,
                             focusNode: _confirmFocus,
-                            placeholder: 'Confirm Password',
+                            placeholder: l10n.confirmPassword,
                             icon: CupertinoIcons.lock_shield_fill,
                             obscureText: true,
                             textInputAction: TextInputAction.done,
@@ -132,13 +134,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ],
                     const SizedBox(height: 28),
                     GradientButton(
-                      label: 'Create Account',
+                      label: l10n.createAccount,
                       loading: vm.loading,
                       onTap: () => _submit(vm),
                     ),
                     const SizedBox(height: 16),
                     SocialButton(
-                      label: 'Continue with Google',
+                      label: l10n.continueGoogle,
                       loading: vm.loading,
                       onTap: () => vm.loginWithGoogle(),
                       icon: const GoogleIcon(),
@@ -156,9 +158,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             color: ctx.colors.textSecondary,
                           ),
                           children: [
-                            const TextSpan(text: 'Already have an account? '),
+                            TextSpan(text: l10n.alreadyAccount),
                             TextSpan(
-                              text: 'Sign In',
+                              text: l10n.signIn,
                               style: TextStyle(
                                 color: ctx.colors.accent,
                                 fontWeight: FontWeight.w700,
@@ -190,7 +192,7 @@ class _Divider extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Text(
-            'or',
+            AppLocalizations.of(context).or,
             style: TextStyle(color: c.textSecondary, fontSize: 13),
           ),
         ),

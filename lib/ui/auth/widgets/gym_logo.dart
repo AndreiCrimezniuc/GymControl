@@ -10,19 +10,17 @@ class GymLogo extends StatelessWidget {
     return Column(
       children: [
         Container(
-          width: 112,
-          height: 76,
+          width: 92,
+          height: 92,
           decoration: BoxDecoration(
             color: const Color(0xFF111113),
             borderRadius: BorderRadius.circular(22),
             border: Border.all(color: c.border),
           ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            child: Image.asset(
-              'assets/branding/gymcontrol-logo.png',
-              fit: BoxFit.contain,
-            ),
+          clipBehavior: Clip.antiAlias,
+          child: Image.asset(
+            'assets/branding/gymcontrol-logo.png',
+            fit: BoxFit.cover,
           ),
         ),
         const SizedBox(height: 16),
@@ -54,11 +52,11 @@ class GymLogo extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          'Your fitness companion',
+          'TRAIN WITH INTENT',
           style: TextStyle(
             fontSize: 14,
             color: c.textSecondary,
-            letterSpacing: 0.5,
+            letterSpacing: 2.1,
           ),
         ),
       ],

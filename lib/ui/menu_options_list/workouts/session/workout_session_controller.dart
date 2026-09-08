@@ -1,14 +1,19 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:gymboss/data/repositories/exercises_repository.dart';
+import 'package:gymboss/data/repositories/ranking_repository.dart';
+import 'package:gymboss/data/repositories/sessions_repository.dart';
 import 'package:gymboss/data/repositories/workouts_repository.dart';
 import 'package:gymboss/domain/models/workouts/workout.dart';
+import 'package:gymboss/domain/models/ranking/passport_lift_matcher.dart';
 import 'package:gymboss/ui/core/units/units_controller.dart';
 import 'package:gymboss/ui/core/input/numeric_limit_formatter.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/session/workout_calculators.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/session/workout_live_activity.dart';
 import 'package:uuid/uuid.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// One set within an active session. Entered weight/reps are kept as strings so
 /// they survive minimize/resume (the runner rebinds controllers to them).
@@ -100,6 +105,8 @@ class SessionExercise {
 /// runner state so the session survives navigation — the user can minimize the
 /// runner, do something else, and resume with everything intact.
 class WorkoutSessionController extends ChangeNotifier {
+  static const _storageKey = 'active_workout_session_v1';
+  static const _snapshotVersion = 2;
   Workout? _workout;
   String _difficulty = 'normal'; // 'normal' | 'deload'
   bool _active = false;
@@ -120,8 +127,12 @@ class WorkoutSessionController extends ChangeNotifier {
   int _restLeft = 0;
   Timer? _restTimer;
   Timer? _ticker;
+  Timer? _persistDebounce;
+  String? _lastSnapshot;
 
   late ExercisesRepository _exercises;
+  late RankingRepository _ranking;
+  late SessionsRepository _sessions;
   late WorkoutsRepository _workouts;
   late UnitsController _units;
 
@@ -161,16 +172,95 @@ class WorkoutSessionController extends ChangeNotifier {
     return h > 0 ? '$h:$mm:$ss' : '$mm:$ss';
   }
 
+  /// Rehydrates an interrupted workout after dependencies are ready. Invalid
+  /// or obsolete snapshots are discarded instead of blocking app startup.
+  Future<bool> restore({
+    required ExercisesRepository exercises,
+    required RankingRepository ranking,
+    required SessionsRepository sessions,
+    required WorkoutsRepository workouts,
+    required UnitsController units,
+  }) async {
+    await units.ready;
+    _exercises = exercises;
+    _ranking = ranking;
+    _sessions = sessions;
+    _workouts = workouts;
+    _units = units;
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_storageKey);
+    if (raw == null) return false;
+    try {
+      final data = jsonDecode(raw) as Map<String, dynamic>;
+      if (data['version'] != _snapshotVersion || data['active'] != true) {
+        throw const FormatException();
+      }
+      _workout = Workout.fromJson(
+        Map<String, dynamic>.from(data['workout'] as Map),
+      );
+      _difficulty = data['difficulty'] as String? ?? 'normal';
+      _sessionId = data['session_id'] as String?;
+      _startedAt = DateTime.parse(data['started_at'] as String);
+      _routineChanged = data['routine_changed'] as bool? ?? false;
+      _minimized = true;
+      _finished = false;
+      _active = true;
+      _groups
+        ..clear()
+        ..addAll(
+          ((data['groups'] as List?) ?? const []).map(
+            (item) => _exerciseFromJson(Map<String, dynamic>.from(item as Map)),
+          ),
+        );
+      _recalculate();
+      final restUntilRaw = data['rest_until'] as String?;
+      int? restoredRestSeconds;
+      if (restUntilRaw != null) {
+        final remaining = DateTime.parse(
+          restUntilRaw,
+        ).difference(DateTime.now()).inSeconds;
+        if (remaining > 0) {
+          restoredRestSeconds = remaining;
+          _startRest(remaining);
+        }
+      }
+      _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (_active && !_finished) notifyListeners();
+      });
+      _lastSnapshot = _snapshot();
+      unawaited(
+        WorkoutLiveActivity.start(
+          workoutName: _workout!.name,
+          totalSets: _totalSets,
+          completedSets: _loggedSets,
+          startedAt: _startedAt!,
+          restSeconds: restoredRestSeconds,
+        ),
+      );
+      notifyListeners();
+      _loadPrs();
+      return true;
+    } catch (_) {
+      await prefs.remove(_storageKey);
+      clear();
+      return false;
+    }
+  }
+
   // ── lifecycle ────────────────────────────────────────────────────────────────
   void start({
     required Workout workout,
     required String difficulty,
     required ExercisesRepository exercises,
+    required RankingRepository ranking,
+    required SessionsRepository sessions,
     required WorkoutsRepository workouts,
     required UnitsController units,
   }) {
     _cancelTimers();
     _exercises = exercises;
+    _ranking = ranking;
+    _sessions = sessions;
     _workouts = workouts;
     _units = units;
     _workout = workout;
@@ -192,6 +282,8 @@ class WorkoutSessionController extends ChangeNotifier {
       WorkoutLiveActivity.start(
         workoutName: workout.name,
         totalSets: _totalSets,
+        completedSets: 0,
+        startedAt: _startedAt!,
       ),
     );
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -200,6 +292,7 @@ class WorkoutSessionController extends ChangeNotifier {
     notifyListeners();
     _loadPrs();
     _loadPreviousValues();
+    _schedulePersist();
   }
 
   void _loadPrs() {
@@ -250,8 +343,9 @@ class WorkoutSessionController extends ChangeNotifier {
     for (final ex in w.exercises) {
       // The plan is stored under the legacy 'medium' grade; fall back to any
       // sets so older data still loads.
-      final planned =
-          ex.setsFor('medium').isNotEmpty ? ex.setsFor('medium') : ex.sets;
+      final planned = ex.setsFor('medium').isNotEmpty
+          ? ex.setsFor('medium')
+          : ex.sets;
       if (planned.isEmpty) continue;
       out.add(
         SessionExercise(
@@ -630,15 +724,17 @@ class WorkoutSessionController extends ChangeNotifier {
   Future<void> finish({required bool save}) async {
     _cancelTimers();
     _resting = false;
-    unawaited(WorkoutLiveActivity.end());
+    // Keep local and system state ordered. ActivityKit survives our process;
+    // removing the local snapshot before this completes can produce an orphan
+    // timer in Dynamic Island if iOS suspends the app between both operations.
+    await WorkoutLiveActivity.end();
     if (!save) {
-      clear();
+      clear(endLiveActivity: false);
       return;
     }
-    final durationSeconds =
-        _startedAt == null
-            ? 0
-            : DateTime.now().difference(_startedAt!).inSeconds;
+    final durationSeconds = _startedAt == null
+        ? 0
+        : DateTime.now().difference(_startedAt!).inSeconds;
     for (final group in _groups) {
       for (final set in group.sets.where((set) => set.done)) {
         await _exercises.logSet(
@@ -650,33 +746,74 @@ class WorkoutSessionController extends ChangeNotifier {
           rpe: set.rpe,
           durationSeconds:
               group.exerciseType == 'duration' ||
-                      group.exerciseType == 'distance_duration'
-                  ? clampWorkoutInteger(set.reps)
-                  : 0,
-          distanceKm:
-              group.exerciseType == 'distance_duration'
-                  ? clampWorkoutDecimal(set.weight)
-                  : 0,
+                  group.exerciseType == 'distance_duration'
+              ? clampWorkoutInteger(set.reps)
+              : 0,
+          distanceKm: group.exerciseType == 'distance_duration'
+              ? clampWorkoutDecimal(set.weight)
+              : 0,
           operationId: set.operationId,
           sessionId: _sessionId,
+          workoutId: _workout!.id,
+          workoutName: _workout!.name,
         );
       }
     }
+    await _recordPassportBenchmarks();
     await _workouts.logRun(
       _workout!.id,
       _difficulty,
       durationSeconds: durationSeconds,
       sessionId: _sessionId,
     );
+    await _sessions.recordSession();
     HapticFeedback.heavyImpact();
     _finished = true;
     _minimized = false;
+    _lastSnapshot = null;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_storageKey);
     notifyListeners();
   }
 
+  /// Sends one best working set per supported benchmark to the passport. The
+  /// ranking repository and backend both de-duplicate PRs, so normal workout
+  /// logging becomes the only input the athlete needs to maintain.
+  Future<void> _recordPassportBenchmarks() async {
+    for (final group in _groups) {
+      final passportId = passportExerciseIdForName(group.name);
+      if (passportId == null) continue;
+      SessionSet? best;
+      var bestEstimate = 0.0;
+      for (final set in group.sets.where(
+        (set) => set.done && set.type != 'warmup',
+      )) {
+        final weightKg = _units.toKg(double.tryParse(set.weight) ?? 0);
+        final reps = int.tryParse(set.reps) ?? 0;
+        if (weightKg <= 0 || reps <= 0) continue;
+        final estimate = weightKg * (1 + reps / 30);
+        if (estimate > bestEstimate) {
+          bestEstimate = estimate;
+          best = set;
+        }
+      }
+      if (best == null) continue;
+      await _ranking.recordLift(
+        exerciseId: passportId,
+        weightKg: _units.toKg(double.parse(best.weight)),
+        reps: int.parse(best.reps),
+      );
+    }
+  }
+
   /// Fully clears the session (after the summary is dismissed, or on quit).
-  void clear() {
-    unawaited(WorkoutLiveActivity.end());
+  Future<void> discard() async {
+    await WorkoutLiveActivity.end();
+    clear(endLiveActivity: false);
+  }
+
+  void clear({bool endLiveActivity = true}) {
+    if (endLiveActivity) unawaited(WorkoutLiveActivity.end());
     _cancelTimers();
     _active = false;
     _minimized = false;
@@ -688,7 +825,135 @@ class WorkoutSessionController extends ChangeNotifier {
     _prKg.clear();
     _loggedSets = 0;
     _loggedVolumeKg = 0;
+    _lastSnapshot = null;
+    _persistDebounce?.cancel();
+    unawaited(
+      SharedPreferences.getInstance().then(
+        (prefs) => prefs.remove(_storageKey),
+      ),
+    );
     notifyListeners();
+  }
+
+  /// Called by text fields whose model values are updated directly.
+  void checkpoint() => _schedulePersist();
+
+  void _recalculate() {
+    _totalSets = _groups.fold(0, (sum, group) => sum + group.sets.length);
+    _loggedSets = 0;
+    _loggedVolumeKg = 0;
+    for (final group in _groups) {
+      for (final set in group.sets.where((item) => item.done)) {
+        _loggedSets++;
+        if (set.type != 'warmup' && _countsVolume(group.exerciseType)) {
+          _loggedVolumeKg +=
+              _units.toKg(double.tryParse(set.weight) ?? 0) *
+              (int.tryParse(set.reps) ?? 0);
+        }
+      }
+    }
+  }
+
+  SessionExercise _exerciseFromJson(Map<String, dynamic> data) =>
+      SessionExercise(
+        exerciseId: (data['exercise_id'] as num).toInt(),
+        name: data['name'] as String? ?? '',
+        muscleGroup: data['muscle_group'] as String? ?? '',
+        exerciseType: data['exercise_type'] as String? ?? 'weight_reps',
+        imageUrl: data['image_url'] as String? ?? '',
+        imageUrl2: data['image_url2'] as String? ?? '',
+        restSeconds: (data['rest_seconds'] as num?)?.toInt() ?? 90,
+        note: data['note'] as String? ?? '',
+        trainingGroupId: data['training_group_id'] as String?,
+        trainingGroupType: data['training_group_type'] as String? ?? '',
+        sets: ((data['sets'] as List?) ?? const []).map((item) {
+          final set = Map<String, dynamic>.from(item as Map);
+          return SessionSet(
+            exerciseId: (set['exercise_id'] as num).toInt(),
+            restSeconds: (set['rest_seconds'] as num?)?.toInt() ?? 90,
+            plannedWeightKg:
+                (set['planned_weight_kg'] as num?)?.toDouble() ?? 0,
+            plannedReps: (set['planned_reps'] as num?)?.toInt() ?? 0,
+            weight: set['weight'] as String? ?? '',
+            reps: set['reps'] as String? ?? '',
+            type: set['type'] as String? ?? 'working',
+            progression: set['progression'] as String? ?? '',
+            previousWeightKg: (set['previous_weight_kg'] as num?)?.toDouble(),
+            previousReps: (set['previous_reps'] as num?)?.toInt(),
+            previousRpe: (set['previous_rpe'] as num?)?.toDouble(),
+            rpe: (set['rpe'] as num?)?.toDouble(),
+            done: set['done'] as bool? ?? false,
+            operationId: set['operation_id'] as String?,
+          );
+        }).toList(),
+      );
+
+  String _snapshot() => jsonEncode({
+    'version': _snapshotVersion,
+    'active': _active,
+    'workout': _workout?.toJson(),
+    'difficulty': _difficulty,
+    'session_id': _sessionId,
+    'started_at': _startedAt?.toIso8601String(),
+    'routine_changed': _routineChanged,
+    'rest_until': _resting
+        ? DateTime.now().add(Duration(seconds: _restLeft)).toIso8601String()
+        : null,
+    'groups': _groups
+        .map(
+          (group) => {
+            'exercise_id': group.exerciseId,
+            'name': group.name,
+            'muscle_group': group.muscleGroup,
+            'exercise_type': group.exerciseType,
+            'image_url': group.imageUrl,
+            'image_url2': group.imageUrl2,
+            'rest_seconds': group.restSeconds,
+            'note': group.note,
+            'training_group_id': group.trainingGroupId,
+            'training_group_type': group.trainingGroupType,
+            'sets': group.sets
+                .map(
+                  (set) => {
+                    'exercise_id': set.exerciseId,
+                    'rest_seconds': set.restSeconds,
+                    'planned_weight_kg': set.plannedWeightKg,
+                    'planned_reps': set.plannedReps,
+                    'weight': set.weight,
+                    'reps': set.reps,
+                    'type': set.type,
+                    'progression': set.progression,
+                    'previous_weight_kg': set.previousWeightKg,
+                    'previous_reps': set.previousReps,
+                    'previous_rpe': set.previousRpe,
+                    'rpe': set.rpe,
+                    'done': set.done,
+                    'operation_id': set.operationId,
+                  },
+                )
+                .toList(),
+          },
+        )
+        .toList(),
+  });
+
+  void _schedulePersist() {
+    if (!_active || _finished || _workout == null) return;
+    final snapshot = _snapshot();
+    if (snapshot == _lastSnapshot) return;
+    _persistDebounce?.cancel();
+    _persistDebounce = Timer(const Duration(milliseconds: 250), () async {
+      final latest = _snapshot();
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_storageKey, latest);
+      _lastSnapshot = latest;
+    });
+  }
+
+  @override
+  void notifyListeners() {
+    _schedulePersist();
+    super.notifyListeners();
   }
 
   void _cancelTimers() {
@@ -707,6 +972,7 @@ class WorkoutSessionController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _persistDebounce?.cancel();
     _cancelTimers();
     super.dispose();
   }

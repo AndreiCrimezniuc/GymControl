@@ -6,6 +6,7 @@ import 'package:gymboss/data/repositories/exercises_repository.dart';
 import 'package:gymboss/data/repositories/workouts_repository.dart';
 import 'package:gymboss/domain/models/exercises/exercise_catalog.dart';
 import 'package:gymboss/domain/models/workouts/workout.dart';
+import 'package:gymboss/l10n/app_localizations.dart';
 import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/input/numeric_limit_formatter.dart';
@@ -74,19 +75,17 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
   }
 
   Future<void> _addExercise() async {
-    final picked = await Navigator.of(
-      context,
-      rootNavigator: true,
-    ).push<ExerciseCatalogItem>(
-      CupertinoPageRoute(
-        builder:
-            (_) => ExercisePicker(
+    final picked = await Navigator.of(context, rootNavigator: true)
+        .push<ExerciseCatalogItem>(
+          CupertinoPageRoute(
+            builder: (_) => ExercisePicker(
               repo: widget.exercises,
-              excludedIds:
-                  _exercises.map((exercise) => exercise.exerciseId).toSet(),
+              excludedIds: _exercises
+                  .map((exercise) => exercise.exerciseId)
+                  .toSet(),
             ),
-      ),
-    );
+          ),
+        );
     if (picked != null) {
       setState(() => _exercises.add(_EditExercise.blank(picked)));
     }
@@ -219,10 +218,9 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
-                                  color:
-                                      _type == t
-                                          ? c.textOnAccent
-                                          : c.textSecondary,
+                                  color: _type == t
+                                      ? c.textOnAccent
+                                      : c.textSecondary,
                                 ),
                               ),
                             ),
@@ -309,13 +307,12 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
                             e.value.alternativeGroupId != null &&
                             e.value.alternativeGroupId ==
                                 _exercises[e.key - 1].alternativeGroupId,
-                        onAlternativeChanged:
-                            e.key == 0
-                                ? null
-                                : (enabled) =>
-                                    _setAlternativeToPrevious(e.key, enabled),
-                        onRemove:
-                            () => setState(() => _exercises.removeAt(e.key)),
+                        onAlternativeChanged: e.key == 0
+                            ? null
+                            : (enabled) =>
+                                  _setAlternativeToPrevious(e.key, enabled),
+                        onRemove: () =>
+                            setState(() => _exercises.removeAt(e.key)),
                         onUp: () => _move(e.key, -1),
                         onDown: () => _move(e.key, 1),
                       ),
@@ -375,20 +372,19 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
                       color: _saving ? c.iconBg : c.accent,
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child:
-                        _saving
-                            ? const CupertinoActivityIndicator()
-                            : Text(
-                              widget.existing != null
-                                  ? 'SAVE CHANGES'
-                                  : 'CREATE WORKOUT',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 1.2,
-                                color: c.textOnAccent,
-                              ),
+                    child: _saving
+                        ? const CupertinoActivityIndicator()
+                        : Text(
+                            widget.existing != null
+                                ? 'SAVE CHANGES'
+                                : 'CREATE WORKOUT',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 1.2,
+                              color: c.textOnAccent,
                             ),
+                          ),
                   ),
                 ),
               ),
@@ -507,16 +503,16 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
           ),
           const SizedBox(height: 10),
           _ProgrammingToggle(
-            title: 'Optional',
-            subtitle: 'Choose whether to include it when starting',
+            title: AppLocalizations.of(context).optional,
+            subtitle: AppLocalizations.of(context).optionalBody,
             value: widget.model.isOptional,
-            onChanged:
-                (value) => setState(() => widget.model.isOptional = value),
+            onChanged: (value) =>
+                setState(() => widget.model.isOptional = value),
           ),
           if (widget.onAlternativeChanged != null)
             _ProgrammingToggle(
-              title: 'Alternative to previous',
-              subtitle: 'Pick one of the two when starting',
+              title: AppLocalizations.of(context).alternativePrevious,
+              subtitle: AppLocalizations.of(context).alternativePreviousBody,
               value: widget.alternativeToPrevious,
               onChanged: widget.onAlternativeChanged!,
             ),
@@ -524,7 +520,7 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
           Row(
             children: [
               _MiniField(
-                label: 'Rest (s)',
+                label: AppLocalizations.of(context).restSeconds,
                 controller: widget.model.restCtrl,
                 width: 78,
               ),
@@ -581,7 +577,7 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: _MiniField(
-                      label: 'reps',
+                      label: AppLocalizations.of(context).repsShort,
                       controller: set.repsCtrl,
                       dense: true,
                     ),
@@ -606,10 +602,9 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w800,
-                            color:
-                                set.type == 'working'
-                                    ? c.textPrimary
-                                    : c.accent,
+                            color: set.type == 'working'
+                                ? c.textPrimary
+                                : c.accent,
                           ),
                         ),
                       ),
@@ -617,21 +612,19 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
                   ),
                   SizedBox(
                     width: 28,
-                    child:
-                        widget.model.sets.length == 1
-                            ? const SizedBox.shrink()
-                            : GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap:
-                                  () => setState(() {
-                                    widget.model.removeSet(entry.key);
-                                  }),
-                              child: Icon(
-                                CupertinoIcons.minus_circle,
-                                size: 18,
-                                color: c.textSecondary,
-                              ),
+                    child: widget.model.sets.length == 1
+                        ? const SizedBox.shrink()
+                        : GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () => setState(() {
+                              widget.model.removeSet(entry.key);
+                            }),
+                            child: Icon(
+                              CupertinoIcons.minus_circle,
+                              size: 18,
+                              color: c.textSecondary,
                             ),
+                          ),
                   ),
                 ],
               ),
@@ -915,8 +908,9 @@ class _PlannedSetDraft {
   factory _PlannedSetDraft.fromSet(WorkoutSet set, UnitsController units) {
     final weight = units.fromKg(set.weightKg);
     return _PlannedSetDraft(
-      weight:
-          weight == 0 ? '' : weight.toStringAsFixed(weight % 1 == 0 ? 0 : 1),
+      weight: weight == 0
+          ? ''
+          : weight.toStringAsFixed(weight % 1 == 0 ? 0 : 1),
       reps: set.reps == 0 ? '' : '${set.reps}',
       type: set.setType,
     );

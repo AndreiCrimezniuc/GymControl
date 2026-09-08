@@ -4,9 +4,9 @@ import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/app_design.dart';
 
 void main() {
-  test('light selection uses a warm high-contrast canvas', () {
+  test('light selection uses a strict high-contrast canvas', () {
     expect(AppColors.light.isDark, isFalse);
-    expect(AppColors.light.bg, const Color(0xFFF2F0ED));
+    expect(AppColors.light.bg, const Color(0xFFF1F3F5));
     expect(AppColors.light.usesLightForeground, isFalse);
     expect(AppColors.light.card.a, lessThan(1));
     // Controls use an opaque secondary material so translucent layers are not

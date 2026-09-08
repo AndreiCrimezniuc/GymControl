@@ -116,12 +116,11 @@ class DiagnosticService {
 
     // Snapshot keys so events recorded during upload remain in the buffer.
     final keys = box.keys.cast<String>().take(_maxEvents).toList();
-    final events =
-        keys
-            .map((key) => box.get(key))
-            .whereType<String>()
-            .map((value) => jsonDecode(value) as Map<String, dynamic>)
-            .toList();
+    final events = keys
+        .map((key) => box.get(key))
+        .whereType<String>()
+        .map((value) => jsonDecode(value) as Map<String, dynamic>)
+        .toList();
     final reportId = _uuid.v4();
     final response = await client
         .post(

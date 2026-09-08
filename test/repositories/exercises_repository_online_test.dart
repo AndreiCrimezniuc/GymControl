@@ -11,6 +11,7 @@ import 'package:gymboss/data/repositories/exercises_repository.dart';
 import 'package:gymboss/data/services/auth/auth_service.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/data/services/auth/token_storage.dart';
+import 'package:gymboss/data/sync/sync_service.dart';
 
 AuthenticatedClient client(http.Response Function(http.Request) fn) =>
     AuthenticatedClient(
@@ -81,7 +82,7 @@ void main() {
     expect(history.single.sets.single.weightKg, 100);
   });
 
-  test('logSet posts a set (online branch)', () async {
+  test('logSet commits locally, then syncs through the outbox', () async {
     var posted = false;
     final c = client((req) {
       if (req.method == 'POST' && req.url.path.contains('/log')) {
@@ -98,6 +99,13 @@ void main() {
       setType: 'working',
       progression: 'amplitude',
     );
+    expect(posted, isFalse);
+    expect(store.pending().single.kind, 'exercise.logSet');
+
+    SyncService.instance.bind(c);
+    await SyncService.instance.flush();
+
     expect(posted, isTrue);
+    expect(store.pending(), isEmpty);
   });
 }

@@ -25,7 +25,7 @@ void main() {
   });
   setUp(store.clear);
 
-  test('list and save use the body measurement API contract', () async {
+  test('list is cached and save commits immediately to the outbox', () async {
     final payload = {
       'id': 'm1',
       'measured_at': '2026-07-30',
@@ -65,7 +65,10 @@ void main() {
         waistCm: 81,
       ),
     );
-    expect(saved.id, 'm1');
+    expect(saved.id, startsWith('local:'));
+    expect(store.pending().single.kind, 'measurement.create');
+
+    expect(store.getDoc('body_measurements', saved.id), isNotNull);
   });
 
   test('save is optimistic and queued while offline', () async {

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
@@ -39,7 +40,7 @@ class ExercisesRepository {
   }) async {
     if (!forceRefresh && _store.hasList(_catalogKey)) {
       final cached = _cachedCatalog();
-      if (await _isOnline()) unawaited(_refreshCatalogInBackground());
+      unawaited(_refreshCatalogInBackground());
       return cached;
     }
     if (!await _isOnline() && _store.hasList(_catalogKey)) {
@@ -83,6 +84,7 @@ class ExercisesRepository {
 
   Future<void> _refreshCatalogInBackground() async {
     try {
+      if (!await _isOnline()) return;
       await _refreshCatalog();
     } catch (_) {
       // A durable snapshot is already on screen; refresh again on the next
@@ -96,11 +98,17 @@ class ExercisesRepository {
         .map(ExerciseCatalogItem.fromJson),
   );
 
-  Future<ExerciseStats> getStats(int id) async {
+  Future<ExerciseStats> getStats(int id, {bool forceRefresh = false}) async {
     final cached = _store.getDoc('exercise_stats', '$id');
-    if (!await _isOnline() && cached != null) {
+    if (!forceRefresh && cached != null) {
+      unawaited(_refreshStatsInBackground(id));
       return ExerciseStats.fromJson(cached);
     }
+    if (!await _isOnline()) return _emptyStats(id);
+    return _refreshStats(id);
+  }
+
+  Future<ExerciseStats> _refreshStats(int id) async {
     try {
       final resp = await _client
           .get(Uri.parse('$_base/$id/stats'))
@@ -112,6 +120,7 @@ class ExercisesRepository {
       await _store.putDoc('exercise_stats', '$id', doc);
       return ExerciseStats.fromJson(doc);
     } on Object catch (error) {
+      final cached = _store.getDoc('exercise_stats', '$id');
       if (isTransientNetworkFailure(error) && cached != null) {
         return ExerciseStats.fromJson(cached);
       }
@@ -119,11 +128,29 @@ class ExercisesRepository {
     }
   }
 
-  Future<List<ExerciseHistorySession>> getHistory(int id) async {
+  Future<void> _refreshStatsInBackground(int id) async {
+    try {
+      if (await _isOnline()) await _refreshStats(id);
+    } catch (_) {}
+  }
+
+  ExerciseStats _emptyStats(int id) =>
+      ExerciseStats.fromJson({'exercise_id': id});
+
+  Future<List<ExerciseHistorySession>> getHistory(
+    int id, {
+    bool forceRefresh = false,
+  }) async {
     final cached = _store.getDoc('exercise_history', '$id');
-    if (!await _isOnline() && cached != null) {
+    if (!forceRefresh && cached != null) {
+      unawaited(_refreshHistoryInBackground(id));
       return _historyFromCache(cached);
     }
+    if (!await _isOnline()) return const [];
+    return _refreshHistory(id);
+  }
+
+  Future<List<ExerciseHistorySession>> _refreshHistory(int id) async {
     try {
       final response = await _client
           .get(Uri.parse('$_base/$id/history'))
@@ -133,16 +160,23 @@ class ExercisesRepository {
           'GET /exercises/$id/history HTTP ${response.statusCode}',
         );
       }
-      final raw =
-          (jsonDecode(response.body) as List).cast<Map<String, dynamic>>();
+      final raw = (jsonDecode(response.body) as List)
+          .cast<Map<String, dynamic>>();
       await _store.putDoc('exercise_history', '$id', {'items': raw});
       return raw.map(ExerciseHistorySession.fromJson).toList();
     } on Object catch (error) {
+      final cached = _store.getDoc('exercise_history', '$id');
       if (isTransientNetworkFailure(error) && cached != null) {
         return _historyFromCache(cached);
       }
       rethrow;
     }
+  }
+
+  Future<void> _refreshHistoryInBackground(int id) async {
+    try {
+      if (await _isOnline()) await _refreshHistory(id);
+    } catch (_) {}
   }
 
   List<ExerciseHistorySession> _historyFromCache(Map<String, dynamic> cached) =>
@@ -164,6 +198,8 @@ class ExercisesRepository {
     double distanceKm = 0,
     String? operationId,
     String? sessionId,
+    String? workoutId,
+    String? workoutName,
   }) async {
     operationId ??= _uuid.v4();
     final args = {
@@ -178,21 +214,15 @@ class ExercisesRepository {
       'operation_id': operationId,
       'session_id': sessionId,
     };
-    if (await _isOnline()) {
-      try {
-        final resp = await _postLog(_client, args);
-        if (resp.statusCode == 204 || resp.statusCode == 200) {
-          return;
-        }
-        throw Exception(
-          'POST /exercises/$id/log HTTP ${resp.statusCode}: ${resp.body}',
-        );
-      } on Object catch (error) {
-        if (!isTransientNetworkFailure(error)) {
-          rethrow;
-        }
-      }
-    }
+    await _cacheLoggedSet(
+      id,
+      args,
+      workoutId: workoutId,
+      workoutName: workoutName,
+    );
+    // Logging is local-first even when a network interface exists. This keeps
+    // finishing a workout instant on captive portals and flaky gym Wi-Fi; the
+    // durable outbox owns delivery and retry.
     await _store.enqueue(
       Mutation(
         id: _uuid.v4(),
@@ -204,6 +234,99 @@ class ExercisesRepository {
     SyncService.instance.flushSoon();
   }
 
+  Future<void> _cacheLoggedSet(
+    int exerciseId,
+    Map<String, dynamic> set, {
+    String? workoutId,
+    String? workoutName,
+  }) async {
+    final sessionId = set['session_id'] as String? ?? _uuid.v4();
+    final now = DateTime.now().toUtc();
+    final date = now.toIso8601String().split('T').first;
+    final history =
+        _store.getDoc('exercise_history', '$exerciseId') ??
+        {'items': <Map<String, dynamic>>[]};
+    final items = List<Map<String, dynamic>>.from(
+      (history['items'] as List? ?? const []).map(
+        (item) => Map<String, dynamic>.from(item as Map),
+      ),
+    );
+    var sessionIndex = items.indexWhere(
+      (item) => item['session_id'] == sessionId,
+    );
+    if (sessionIndex < 0) {
+      items.insert(0, {
+        'date': date,
+        'workout_id': workoutId ?? '',
+        'workout_name': workoutName ?? '',
+        'session_id': sessionId,
+        'sets': <Map<String, dynamic>>[],
+      });
+      sessionIndex = 0;
+    }
+    final historySets =
+        List<Map<String, dynamic>>.from(
+          (items[sessionIndex]['sets'] as List? ?? const []).map(
+            (item) => Map<String, dynamic>.from(item as Map),
+          ),
+        )..add({
+          'weight_kg': set['weight_kg'],
+          'reps': set['reps'],
+          'set_type': set['set_type'],
+          'progression': set['progression'],
+          'rpe': set['rpe'],
+        });
+    items[sessionIndex]['sets'] = historySets;
+    await _store.putDoc('exercise_history', '$exerciseId', {'items': items});
+
+    if (set['set_type'] == 'warmup') return;
+    final stats =
+        _store.getDoc('exercise_stats', '$exerciseId') ??
+        {
+          'exercise_id': exerciseId,
+          'progression': <Map<String, dynamic>>[],
+          'records': <Map<String, dynamic>>[],
+        };
+    final weight = (set['weight_kg'] as num?)?.toDouble() ?? 0;
+    final reps = (set['reps'] as num?)?.toInt() ?? 0;
+    final oneRm = reps <= 1 ? weight : weight * (1 + reps / 30);
+    final previousSession = stats['_local_session_id'] == sessionId;
+    final progression =
+        List<Map<String, dynamic>>.from(
+          (stats['progression'] as List? ?? const []).map(
+            (item) => Map<String, dynamic>.from(item as Map),
+          ),
+        )..add({
+          'date': date,
+          'top_weight_kg': weight,
+          'top_reps': reps,
+          'volume_kg': weight * reps,
+        });
+    await _store.putDoc('exercise_stats', '$exerciseId', {
+      ...stats,
+      'exercise_id': exerciseId,
+      'times_performed':
+          ((stats['times_performed'] as num?)?.toInt() ?? 0) +
+          (previousSession ? 0 : 1),
+      'total_sets': ((stats['total_sets'] as num?)?.toInt() ?? 0) + 1,
+      'total_reps': ((stats['total_reps'] as num?)?.toInt() ?? 0) + reps,
+      'max_weight_kg': math.max(
+        (stats['max_weight_kg'] as num?)?.toDouble() ?? 0,
+        weight,
+      ),
+      'max_set_volume_kg': math.max(
+        (stats['max_set_volume_kg'] as num?)?.toDouble() ?? 0,
+        weight * reps,
+      ),
+      'estimated_one_rm_kg': math.max(
+        (stats['estimated_one_rm_kg'] as num?)?.toDouble() ?? 0,
+        oneRm,
+      ),
+      'progression': progression,
+      '_local_session_id': sessionId,
+    });
+  }
+
   Future<ExerciseCatalogItem> createCustom({
     required String name,
     String description = '',
@@ -213,33 +336,46 @@ class ExercisesRepository {
     String exerciseType = 'weight_reps',
     List<String> secondaryMuscles = const [],
   }) async {
-    final resp = await _client
-        .post(
-          Uri.parse(_base),
-          body: jsonEncode({
-            'name': name,
-            'description': description,
-            'image_url': imageUrl,
-            'muscle_group': muscleGroup,
-            'equipment': equipment,
-            'exercise_type': exerciseType,
-            'secondary_muscles': secondaryMuscles,
-          }),
-        )
-        .timeout(const Duration(seconds: 15));
-    if (resp.statusCode != 201) {
-      String msg = 'HTTP ${resp.statusCode}';
-      try {
-        msg =
-            (jsonDecode(resp.body) as Map<String, dynamic>)['error']
-                as String? ??
-            msg;
-      } catch (_) {}
-      throw Exception(msg);
-    }
-    return ExerciseCatalogItem.fromJson(
-      jsonDecode(resp.body) as Map<String, dynamic>,
+    final body = <String, dynamic>{
+      'name': name,
+      'description': description,
+      'image_url': imageUrl,
+      'muscle_group': muscleGroup,
+      'equipment': equipment,
+      'exercise_type': exerciseType,
+      'secondary_muscles': secondaryMuscles,
+    };
+    // Negative ids can be used everywhere an exercise id is expected while
+    // remaining disjoint from server-issued positive ids.
+    final tempId = -DateTime.now().microsecondsSinceEpoch;
+    final doc = <String, dynamic>{
+      'id': tempId,
+      ...body,
+      'category': 'custom',
+      'level': '',
+      'force': '',
+      'image_url2': '',
+      'instructions': description,
+      'aliases': const <String>[],
+      'is_custom': true,
+    };
+    await _cacheCustom(doc);
+    await _store.enqueue(
+      Mutation(
+        id: _uuid.v4(),
+        seq: _store.nextSeq(),
+        kind: 'exercise.createCustom',
+        args: {'tempId': '$tempId', ...body},
+      ),
     );
+    SyncService.instance.flushSoon();
+    return ExerciseCatalogItem.fromJson(doc);
+  }
+
+  Future<void> _cacheCustom(Map<String, dynamic> doc) async {
+    final id = '${doc['id']}';
+    await _store.putDoc(_catalogCollection, id, doc);
+    await _store.prependToList(_catalogKey, id);
   }
 
   void _registerHandlers() {
@@ -265,7 +401,50 @@ class ExercisesRepository {
             : const SyncOutcome.drop();
       }
     });
+    SyncService.instance.registerHandler('exercise.createCustom', (
+      client,
+      mutation,
+    ) async {
+      try {
+        final resp = await _postCustom(client, mutation.args);
+        if (resp.statusCode == 201) {
+          final doc = jsonDecode(resp.body) as Map<String, dynamic>;
+          await _store.remapId(
+            _catalogCollection,
+            '${mutation.args['tempId']}',
+            '${doc['id']}',
+            doc,
+          );
+          return const SyncOutcome.done();
+        }
+        return resp.statusCode >= 400 && resp.statusCode < 500
+            ? const SyncOutcome.drop()
+            : const SyncOutcome.retry();
+      } on Object catch (error) {
+        return isTransientNetworkFailure(error)
+            ? const SyncOutcome.retry()
+            : const SyncOutcome.drop();
+      }
+    });
   }
+
+  static Future<http.Response> _postCustom(
+    AuthenticatedClient client,
+    Map<String, dynamic> args,
+  ) => client
+      .post(
+        Uri.parse('${ApiConfig.apiBaseUrl}/api/v1/exercises'),
+        body: jsonEncode({
+          'name': args['name'],
+          'description': args['description'] ?? '',
+          'image_url': args['image_url'] ?? '',
+          'muscle_group': args['muscle_group'] ?? '',
+          'equipment': args['equipment'] ?? '',
+          'exercise_type': args['exercise_type'] ?? 'weight_reps',
+          'secondary_muscles': args['secondary_muscles'] ?? const <String>[],
+        }),
+      )
+      .timeout(const Duration(seconds: 15));
 
   static Future<http.Response> _postLog(
     AuthenticatedClient client,
