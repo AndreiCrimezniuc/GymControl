@@ -1158,4 +1158,228 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get repsShort => 'reps';
+
+  @override
+  String get quickSetupTitle => 'Quick setup';
+
+  @override
+  String get quickSetupBody => 'Optional — helps calculate your strength rank';
+
+  @override
+  String get skip => 'Skip';
+
+  @override
+  String get updateYourWeight => 'Update your weight?';
+
+  @override
+  String get weightReminderBody =>
+      'Your weight keeps strength rankings accurate. It takes five seconds.';
+
+  @override
+  String get update => 'Update';
+
+  @override
+  String get notNow => 'Not now';
+
+  @override
+  String get dontAskAgain => 'Don\'t ask again';
+
+  @override
+  String get rankLegend => 'Legend';
+
+  @override
+  String get rankElite => 'Elite';
+
+  @override
+  String get rankExpert => 'Expert';
+
+  @override
+  String get rankAdvanced => 'Advanced';
+
+  @override
+  String get rankIntermediate => 'Intermediate';
+
+  @override
+  String get rankBeginner => 'Beginner';
+
+  @override
+  String get rankNovice => 'Novice';
+
+  @override
+  String get addYourWeight => 'Add your weight';
+
+  @override
+  String get weightRankAccuracy => 'Required for accurate strength rankings';
+
+  @override
+  String get rankQuoteE => 'Every champion was once a beginner. Start now.';
+
+  @override
+  String get rankQuoteD => 'Consistency beats talent. Keep showing up.';
+
+  @override
+  String get rankQuoteC => 'You\'re in the top half. Push harder.';
+
+  @override
+  String get rankQuoteB => 'Advanced territory. You\'re doing great.';
+
+  @override
+  String get rankQuoteA => 'Expert level. The elite tier awaits.';
+
+  @override
+  String get rankQuoteS => 'Elite athlete. One step from legendary.';
+
+  @override
+  String get rankQuoteSS => 'You are legendary. Inspire others.';
+
+  @override
+  String get keepTraining => 'Keep training.';
+
+  @override
+  String get recordLift => 'Record lift';
+
+  @override
+  String get exercise => 'Exercise';
+
+  @override
+  String get benchPress => 'Bench press';
+
+  @override
+  String get squat => 'Squat';
+
+  @override
+  String get deadlift => 'Deadlift';
+
+  @override
+  String get overheadPress => 'Overhead press';
+
+  @override
+  String get barbellRow => 'Barbell row';
+
+  @override
+  String get enterValidWeightReps => 'Enter valid weight and reps';
+
+  @override
+  String estimatedOneRmValue(String value) {
+    return 'Est. 1RM: $value kg';
+  }
+
+  @override
+  String get savePr => 'Save PR';
+
+  @override
+  String get bodyMetricsRankBody =>
+      'Used to compute your relative strength score.';
+
+  @override
+  String topPercent(String value) {
+    return 'Top $value%';
+  }
+
+  @override
+  String liftSummary(String weight, int reps, String oneRm) {
+    return '$weight kg × $reps · est. 1RM: $oneRm kg';
+  }
+
+  @override
+  String medianMultiple(String value) {
+    return '$value× median';
+  }
+
+  @override
+  String get couldNotLoadRankings => 'Could not load strength rankings';
+
+  @override
+  String get loadBaseline => 'Building your baseline';
+
+  @override
+  String get loadIncreased => 'Load increased quickly';
+
+  @override
+  String get loadTrendingDown => 'Load is trending down';
+
+  @override
+  String get loadSteady => 'Load is progressing steadily';
+
+  @override
+  String get compareLast28Days =>
+      'Last 28 days compared with the previous 28 days';
+
+  @override
+  String get distance => 'Distance';
+
+  @override
+  String get averageRpe => 'Avg RPE';
+
+  @override
+  String get workingVolume => 'Working volume';
+
+  @override
+  String get workoutsPerMonth => 'Workouts per month';
+
+  @override
+  String get year => 'Year';
+
+  @override
+  String get kgShort => 'kg';
+
+  @override
+  String get hourShort => 'h';
+
+  @override
+  String get kmShort => 'km';
+
+  @override
+  String get liftsUnit => 'lifts';
+
+  @override
+  String get trainingVolumeChartNote =>
+      'Weight × reps per training day · warm-ups excluded';
+
+  @override
+  String get recordLiftForStats =>
+      'Record a lift in Strength Passport to start\ntracking your strength progress.';
+
+  @override
+  String rankLabel(String rank) {
+    return 'Rank $rank';
+  }
+
+  @override
+  String durationHoursMinutes(int hours, int minutes) {
+    return '${hours}h ${minutes}m';
+  }
+
+  @override
+  String durationMinutes(int minutes) {
+    return '${minutes}m';
+  }
+
+  @override
+  String get proTrainWithoutLimits => 'Train without limits';
+
+  @override
+  String get proDescription =>
+      'Organize unlimited workouts into folders and create more than five personal programs.';
+
+  @override
+  String get proUnlimitedWorkouts => 'Unlimited personal workouts';
+
+  @override
+  String get proCustomFolders => 'Custom workout folders';
+
+  @override
+  String get proOrganizeLibrary => 'Rename and organize your library';
+
+  @override
+  String get proAiReview => 'AI review of training and progression';
+
+  @override
+  String get proPriceMonthly => '\$5 / month';
+
+  @override
+  String get proCancelAnytime => 'Cancel anytime · No trial';
+
+  @override
+  String get proPurchasesSoon => 'PURCHASES COMING SOON';
 }

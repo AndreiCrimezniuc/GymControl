@@ -11,6 +11,7 @@ import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/data/sync/connectivity_service.dart';
 import 'package:gymboss/data/sync/network_failure.dart';
 import 'package:gymboss/data/sync/sync_service.dart';
+import 'package:gymboss/domain/models/json_readers.dart';
 import 'package:gymboss/domain/models/measurements/body_measurement.dart';
 
 class MeasurementsRepository {
@@ -50,8 +51,15 @@ class MeasurementsRepository {
       if (response.statusCode != 200) {
         throw Exception('GET /measurements HTTP ${response.statusCode}');
       }
-      final raw = (jsonDecode(response.body) as List)
-          .cast<Map<String, dynamic>>();
+      final decoded = jsonDecode(response.body);
+      if (decoded is! List) {
+        throw const FormatException('measurements is not a list');
+      }
+      final raw = jsonObjectList(
+        decoded,
+        (item) => item,
+        maxItems: 2000,
+      ).where((item) => item['id'] is String).toList(growable: false);
       for (final item in raw) {
         await _store.putDoc(_cacheCollection, item['id'] as String, item);
       }

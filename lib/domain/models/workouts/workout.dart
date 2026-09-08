@@ -1,3 +1,5 @@
+import 'package:gymboss/domain/models/json_readers.dart';
+
 const workoutDifficulties = ['easy', 'medium', 'hard'];
 
 class WorkoutSet {
@@ -14,10 +16,10 @@ class WorkoutSet {
   });
 
   factory WorkoutSet.fromJson(Map<String, dynamic> j) => WorkoutSet(
-    difficulty: (j['difficulty'] as String?) ?? 'medium',
-    weightKg: (j['weight_kg'] as num?)?.toDouble() ?? 0,
-    reps: (j['reps'] as num?)?.toInt() ?? 0,
-    setType: (j['set_type'] as String?) ?? 'working',
+    difficulty: jsonString(j['difficulty'], 'medium'),
+    weightKg: jsonDouble(j['weight_kg'], min: 0, max: 2000),
+    reps: jsonInt(j['reps'], min: 0, max: 10000),
+    setType: jsonString(j['set_type'], 'working'),
   );
 
   Map<String, dynamic> toJson() => {
@@ -73,20 +75,18 @@ class WorkoutExercise {
 
   factory WorkoutExercise.fromJson(Map<String, dynamic> j) => WorkoutExercise(
     exerciseId: (j['exercise_id'] as num?)?.toInt() ?? 0,
-    name: (j['name'] as String?) ?? '',
-    imageUrl: (j['image_url'] as String?) ?? '',
-    imageUrl2: (j['image_url2'] as String?) ?? '',
-    muscleGroup: (j['muscle_group'] as String?) ?? '',
-    exerciseType: (j['exercise_type'] as String?) ?? 'weight_reps',
-    trainingGroupId: j['training_group_id'] as String?,
-    trainingGroupType: (j['training_group_type'] as String?) ?? '',
-    isOptional: (j['is_optional'] as bool?) ?? false,
-    alternativeGroupId: j['alternative_group_id'] as String?,
-    restSeconds: (j['rest_seconds'] as num?)?.toInt() ?? 90,
-    comment: (j['comment'] as String?) ?? '',
-    sets: ((j['sets'] as List?) ?? [])
-        .map((e) => WorkoutSet.fromJson(e as Map<String, dynamic>))
-        .toList(),
+    name: jsonString(j['name']),
+    imageUrl: jsonString(j['image_url']),
+    imageUrl2: jsonString(j['image_url2']),
+    muscleGroup: jsonString(j['muscle_group']),
+    exerciseType: jsonString(j['exercise_type'], 'weight_reps'),
+    trainingGroupId: jsonNullableString(j['training_group_id']),
+    trainingGroupType: jsonString(j['training_group_type']),
+    isOptional: jsonBool(j['is_optional']),
+    alternativeGroupId: jsonNullableString(j['alternative_group_id']),
+    restSeconds: jsonInt(j['rest_seconds'], fallback: 90, min: 0, max: 86400),
+    comment: jsonString(j['comment']),
+    sets: jsonObjectList(j['sets'], WorkoutSet.fromJson, maxItems: 100),
   );
 
   Map<String, dynamic> toJson() => {
@@ -176,20 +176,27 @@ class Workout {
   };
 
   factory Workout.fromJson(Map<String, dynamic> j) => Workout(
-    id: (j['id'] as String?) ?? '',
-    name: (j['name'] as String?) ?? '',
-    comment: (j['comment'] as String?) ?? '',
-    type: (j['type'] as String?) ?? 'gym',
-    visibility: (j['visibility'] as String?) ?? 'private',
-    owned: (j['owned'] as bool?) ?? false,
-    shareCode: (j['share_code'] as String?) ?? '',
-    exerciseCount: (j['exercise_count'] as num?)?.toInt() ?? 0,
-    timesPerformed: (j['times_performed'] as num?)?.toInt() ?? 0,
-    deloadFactor: (j['deload_factor'] as num?)?.toDouble() ?? 0.70,
-    exercises: ((j['exercises'] as List?) ?? [])
-        .map((e) => WorkoutExercise.fromJson(e as Map<String, dynamic>))
-        .toList(),
-    folderId: j['folder_id'] as String?,
+    id: jsonString(j['id']),
+    name: jsonString(j['name']),
+    comment: jsonString(j['comment']),
+    type: jsonString(j['type'], 'gym'),
+    visibility: jsonString(j['visibility'], 'private'),
+    owned: jsonBool(j['owned']),
+    shareCode: jsonString(j['share_code']),
+    exerciseCount: jsonInt(j['exercise_count'], min: 0, max: 75),
+    timesPerformed: jsonInt(j['times_performed'], min: 0),
+    deloadFactor: jsonDouble(
+      j['deload_factor'],
+      fallback: 0.70,
+      min: 0.1,
+      max: 1,
+    ),
+    exercises: jsonObjectList(
+      j['exercises'],
+      WorkoutExercise.fromJson,
+      maxItems: 75,
+    ),
+    folderId: jsonNullableString(j['folder_id']),
   );
 
   /// Distinct muscle groups across the workout's exercises, for card chips.
@@ -293,9 +300,11 @@ class PerformedExerciseLog {
         exerciseId: (j['exercise_id'] as num?)?.toInt() ?? 0,
         name: (j['name'] as String?) ?? '',
         muscleGroup: (j['muscle_group'] as String?) ?? '',
-        sets: ((j['sets'] as List?) ?? [])
-            .map((e) => PerformedSetLog.fromJson(e as Map<String, dynamic>))
-            .toList(),
+        sets: jsonObjectList(
+          j['sets'],
+          PerformedSetLog.fromJson,
+          maxItems: 500,
+        ),
       );
 
   double get volumeKg => sets
@@ -340,16 +349,16 @@ class ActivityPoint {
   });
 
   factory ActivityPoint.fromJson(Map<String, dynamic> json) => ActivityPoint(
-    date: json['date'] as String? ?? '',
-    durationSeconds: (json['duration_seconds'] as num?)?.toInt() ?? 0,
-    reps: (json['reps'] as num?)?.toInt() ?? 0,
-    volumeKg: (json['volume_kg'] as num?)?.toDouble() ?? 0,
-    workingSets: (json['working_sets'] as num?)?.toInt() ?? 0,
-    hardSets: (json['hard_sets'] as num?)?.toInt() ?? 0,
-    averageRpe: (json['average_rpe'] as num?)?.toDouble() ?? 0,
-    rpeSets: (json['rpe_sets'] as num?)?.toInt() ?? 0,
-    distanceKm: (json['distance_km'] as num?)?.toDouble() ?? 0,
-    workouts: (json['workouts'] as num?)?.toInt() ?? 0,
+    date: jsonString(json['date']),
+    durationSeconds: jsonInt(json['duration_seconds'], min: 0),
+    reps: jsonInt(json['reps'], min: 0),
+    volumeKg: jsonDouble(json['volume_kg'], min: 0),
+    workingSets: jsonInt(json['working_sets'], min: 0),
+    hardSets: jsonInt(json['hard_sets'], min: 0),
+    averageRpe: jsonDouble(json['average_rpe'], min: 0, max: 10),
+    rpeSets: jsonInt(json['rpe_sets'], min: 0),
+    distanceKm: jsonDouble(json['distance_km'], min: 0),
+    workouts: jsonInt(json['workouts'], min: 0),
   );
 }
 
@@ -378,13 +387,19 @@ class StatsSummary {
   );
 
   factory StatsSummary.fromJson(Map<String, dynamic> j) => StatsSummary(
-    totalWorkouts: (j['total_workouts'] as num?)?.toInt() ?? 0,
-    longestWorkoutSeconds: (j['longest_workout_seconds'] as num?)?.toInt() ?? 0,
-    favoriteExercise: (j['favorite_exercise'] as String?) ?? '',
-    strongestExercise: (j['strongest_exercise'] as String?) ?? '',
-    workoutsPerMonth: ((j['workouts_per_month'] as List?) ?? [])
-        .map((e) => MonthlyCount.fromJson(e as Map<String, dynamic>))
-        .toList(),
+    totalWorkouts: jsonInt(j['total_workouts'], min: 0),
+    longestWorkoutSeconds: jsonInt(
+      j['longest_workout_seconds'],
+      min: 0,
+      max: 604800,
+    ),
+    favoriteExercise: jsonString(j['favorite_exercise']),
+    strongestExercise: jsonString(j['strongest_exercise']),
+    workoutsPerMonth: jsonObjectList(
+      j['workouts_per_month'],
+      MonthlyCount.fromJson,
+      maxItems: 1200,
+    ),
   );
 }
 
@@ -416,9 +431,11 @@ class WorkoutStats {
         'medium': (pv['medium'] as num?)?.toDouble() ?? 0,
         'hard': (pv['hard'] as num?)?.toDouble() ?? 0,
       },
-      history: ((j['history'] as List?) ?? [])
-          .map((e) => WorkoutRunPoint.fromJson(e as Map<String, dynamic>))
-          .toList(),
+      history: jsonObjectList(
+        j['history'],
+        WorkoutRunPoint.fromJson,
+        maxItems: 1000,
+      ),
       averageDurationSeconds:
           (j['average_duration_seconds'] as num?)?.toInt() ?? 0,
     );

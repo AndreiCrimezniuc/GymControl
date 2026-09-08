@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:gymboss/l10n/app_localizations.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
 
@@ -8,6 +9,7 @@ class PaywallScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final l = AppLocalizations.of(context);
     return AppPage(
       title: 'GymControl Pro',
       body: ListView(
@@ -16,7 +18,7 @@ class PaywallScreen extends StatelessWidget {
           Icon(CupertinoIcons.bolt_fill, size: 64, color: colors.accent),
           const SizedBox(height: 20),
           Text(
-            'Train without limits',
+            l.proTrainWithoutLimits,
             textAlign: TextAlign.center,
             style: TextStyle(
               color: colors.textPrimary,
@@ -26,7 +28,7 @@ class PaywallScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Organize unlimited workouts into folders and create more than five personal programs.',
+            l.proDescription,
             textAlign: TextAlign.center,
             style: TextStyle(
               color: colors.textSecondary,
@@ -35,11 +37,11 @@ class PaywallScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 28),
-          for (final feature in const [
-            'Unlimited personal workouts',
-            'Custom workout folders',
-            'Rename and organize your library',
-            'AI review of training and progression',
+          for (final feature in [
+            l.proUnlimitedWorkouts,
+            l.proCustomFolders,
+            l.proOrganizeLibrary,
+            l.proAiReview,
           ])
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 9),
@@ -72,7 +74,7 @@ class PaywallScreen extends StatelessWidget {
             child: Column(
               children: [
                 Text(
-                  r'$5 / month',
+                  l.proPriceMonthly,
                   style: TextStyle(
                     color: colors.textPrimary,
                     fontSize: 22,
@@ -81,7 +83,7 @@ class PaywallScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 5),
                 Text(
-                  'Cancel anytime · No trial',
+                  l.proCancelAnytime,
                   style: TextStyle(color: colors.textSecondary),
                 ),
               ],
@@ -96,7 +98,7 @@ class PaywallScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(15),
             ),
             child: Text(
-              'PURCHASES COMING SOON',
+              l.proPurchasesSoon,
               style: TextStyle(
                 color: colors.textSecondary,
                 fontWeight: FontWeight.w800,

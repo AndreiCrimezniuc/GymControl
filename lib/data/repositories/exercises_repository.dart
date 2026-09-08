@@ -15,6 +15,7 @@ import 'package:gymboss/data/sync/network_failure.dart';
 import 'package:gymboss/data/sync/sync_service.dart';
 import 'package:gymboss/domain/models/exercises/exercise_catalog.dart';
 import 'package:gymboss/domain/models/exercises/exercise_catalog_policy.dart';
+import 'package:gymboss/domain/models/json_readers.dart';
 
 class ExercisesRepository {
   static const _catalogCollection = 'exercise';
@@ -57,7 +58,15 @@ class ExercisesRepository {
       if (resp.statusCode != 200) {
         throw Exception('GET /exercises HTTP ${resp.statusCode}');
       }
-      final raw = (jsonDecode(resp.body) as List).cast<Map<String, dynamic>>();
+      final decoded = jsonDecode(resp.body);
+      if (decoded is! List) {
+        throw const FormatException('catalog is not a list');
+      }
+      final raw = jsonObjectList(
+        decoded,
+        (item) => item,
+        maxItems: 10000,
+      ).where((item) => item['id'] is num).toList(growable: false);
       final curated = ExerciseCatalogPolicy.curate(
         raw.map(ExerciseCatalogItem.fromJson),
       );
@@ -160,8 +169,11 @@ class ExercisesRepository {
           'GET /exercises/$id/history HTTP ${response.statusCode}',
         );
       }
-      final raw = (jsonDecode(response.body) as List)
-          .cast<Map<String, dynamic>>();
+      final decoded = jsonDecode(response.body);
+      if (decoded is! List) {
+        throw const FormatException('history is not a list');
+      }
+      final raw = jsonObjectList(decoded, (item) => item, maxItems: 100);
       await _store.putDoc('exercise_history', '$id', {'items': raw});
       return raw.map(ExerciseHistorySession.fromJson).toList();
     } on Object catch (error) {

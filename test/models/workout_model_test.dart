@@ -85,6 +85,27 @@ void main() {
       expect(w.exercises, isEmpty);
       expect(w.muscleGroups, isEmpty);
     });
+
+    test('isolates malformed children and non-finite values', () {
+      final w = Workout.fromJson({
+        'id': 'legacy',
+        'exercises': [
+          'broken',
+          {
+            'exercise_id': 1,
+            'sets': [
+              null,
+              {'weight_kg': double.infinity, 'reps': -5},
+            ],
+          },
+        ],
+      });
+
+      expect(w.exercises, hasLength(1));
+      expect(w.exercises.single.sets, hasLength(1));
+      expect(w.exercises.single.sets.single.weightKg, 0);
+      expect(w.exercises.single.sets.single.reps, 0);
+    });
   });
 
   group('performed logs', () {

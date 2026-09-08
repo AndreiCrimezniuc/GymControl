@@ -650,6 +650,7 @@ class _FirstTimeWeightSheetState extends State<_FirstTimeWeightSheet> {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final l = AppLocalizations.of(context);
     return Container(
       decoration: BoxDecoration(
         color: c.card,
@@ -677,7 +678,7 @@ class _FirstTimeWeightSheetState extends State<_FirstTimeWeightSheet> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Quick setup 🏋',
+            '${l.quickSetupTitle} 🏋',
             style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w700,
@@ -686,7 +687,7 @@ class _FirstTimeWeightSheetState extends State<_FirstTimeWeightSheet> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Optional — helps calculate your strength rank',
+            l.quickSetupBody,
             style: TextStyle(fontSize: 12, color: c.textSecondary),
           ),
           const SizedBox(height: 16),
@@ -724,7 +725,7 @@ class _FirstTimeWeightSheetState extends State<_FirstTimeWeightSheet> {
                     ),
                     child: Center(
                       child: Text(
-                        'Skip',
+                        l.skip,
                         style: TextStyle(color: c.textSecondary),
                       ),
                     ),
@@ -746,7 +747,7 @@ class _FirstTimeWeightSheetState extends State<_FirstTimeWeightSheet> {
                       child: _saving
                           ? const CupertinoActivityIndicator()
                           : Text(
-                              'Save',
+                              l.save,
                               style: TextStyle(
                                 color: c.textOnAccent,
                                 fontWeight: FontWeight.w600,
@@ -865,6 +866,7 @@ class _MonthlyWeightDialogState extends State<_MonthlyWeightDialog> {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final l = AppLocalizations.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -889,7 +891,7 @@ class _MonthlyWeightDialogState extends State<_MonthlyWeightDialog> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Update your weight?',
+                  l.updateYourWeight,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 17,
@@ -899,7 +901,7 @@ class _MonthlyWeightDialogState extends State<_MonthlyWeightDialog> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Your weight helps keep rankings accurate. Takes 5 seconds.',
+                  l.weightReminderBody,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 13,
@@ -910,7 +912,7 @@ class _MonthlyWeightDialogState extends State<_MonthlyWeightDialog> {
                 const SizedBox(height: 14),
                 CupertinoTextField(
                   controller: _weightCtrl,
-                  placeholder: 'Weight (kg)',
+                  placeholder: l.weightKgLabel,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
@@ -942,7 +944,7 @@ class _MonthlyWeightDialogState extends State<_MonthlyWeightDialog> {
                     child: _saving
                         ? const CupertinoActivityIndicator()
                         : Text(
-                            'Update',
+                            l.update,
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
@@ -962,7 +964,7 @@ class _MonthlyWeightDialogState extends State<_MonthlyWeightDialog> {
                       borderRadius: BorderRadius.circular(13),
                     ),
                     child: Text(
-                      'Not now',
+                      l.notNow,
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
@@ -978,7 +980,7 @@ class _MonthlyWeightDialogState extends State<_MonthlyWeightDialog> {
                     height: 44,
                     alignment: Alignment.center,
                     child: Text(
-                      "Don't ask again",
+                      l.dontAskAgain,
                       style: TextStyle(fontSize: 13, color: c.textSecondary),
                     ),
                   ),

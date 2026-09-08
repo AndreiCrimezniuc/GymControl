@@ -1,3 +1,5 @@
+import 'package:gymboss/domain/models/json_readers.dart';
+
 class RankProfile {
   final double? weightKg;
   final double? heightCm;
@@ -12,11 +14,14 @@ class RankProfile {
   });
 
   factory RankProfile.fromJson(Map<String, dynamic> j) => RankProfile(
-    weightKg: (j['weight_kg'] as num?)?.toDouble(),
-    heightCm: (j['height_cm'] as num?)?.toDouble(),
-    dontAskWeight: (j['dont_ask_weight'] as bool?) ?? false,
-    updatedAt:
-        DateTime.tryParse(j['updated_at'] as String? ?? '') ?? DateTime(2000),
+    weightKg: j['weight_kg'] == null
+        ? null
+        : jsonDouble(j['weight_kg'], min: 0, max: 1000),
+    heightCm: j['height_cm'] == null
+        ? null
+        : jsonDouble(j['height_cm'], min: 0, max: 300),
+    dontAskWeight: jsonBool(j['dont_ask_weight']),
+    updatedAt: DateTime.tryParse(jsonString(j['updated_at'])) ?? DateTime(2000),
   );
 
   RankProfile copyWith({
@@ -60,20 +65,27 @@ class ExerciseRank {
     this.ratioToNext = 0,
   });
 
-  factory ExerciseRank.fromJson(Map<String, dynamic> j) => ExerciseRank(
-    exerciseId: j['exercise_id'] as String,
-    exerciseName: j['exercise_name'] as String,
-    weightKg: (j['weight_kg'] as num).toDouble(),
-    reps: j['reps'] as int,
-    oneRmKg: (j['one_rm_kg'] as num).toDouble(),
-    percentile: (j['percentile'] as num).toDouble(),
-    rank: j['rank'] as String,
-    medianScore: (j['median_score'] as num?)?.toDouble() ?? 0,
-    relativeToMedian: (j['relative_to_median'] as num?)?.toDouble() ?? 0,
-    rankProgress: (j['rank_progress'] as num?)?.toDouble() ?? 0,
-    nextRank: j['next_rank'] as String?,
-    ratioToNext: (j['ratio_to_next'] as num?)?.toDouble() ?? 0,
-  );
+  factory ExerciseRank.fromJson(Map<String, dynamic> j) {
+    final exerciseId = jsonString(j['exercise_id']);
+    final exerciseName = jsonString(j['exercise_name']);
+    if (exerciseId.isEmpty || exerciseName.isEmpty) {
+      throw const FormatException('rank identity is missing');
+    }
+    return ExerciseRank(
+      exerciseId: exerciseId,
+      exerciseName: exerciseName,
+      weightKg: jsonDouble(j['weight_kg'], min: 0, max: 2000),
+      reps: jsonInt(j['reps'], min: 0, max: 1000),
+      oneRmKg: jsonDouble(j['one_rm_kg'], min: 0, max: 3000),
+      percentile: jsonDouble(j['percentile'], min: 0, max: 100),
+      rank: jsonString(j['rank'], 'E'),
+      medianScore: jsonDouble(j['median_score'], min: 0),
+      relativeToMedian: jsonDouble(j['relative_to_median'], min: 0, max: 100),
+      rankProgress: jsonDouble(j['rank_progress'], min: 0, max: 1),
+      nextRank: jsonNullableString(j['next_rank']),
+      ratioToNext: jsonDouble(j['ratio_to_next'], min: 0, max: 100),
+    );
+  }
 }
 
 class UserRanks {
@@ -91,15 +103,22 @@ class UserRanks {
     this.overallRatio,
   });
 
-  factory UserRanks.fromJson(Map<String, dynamic> j) => UserRanks(
-    profile: RankProfile.fromJson(j['profile'] as Map<String, dynamic>),
-    exerciseRanks: (j['exercise_ranks'] as List<dynamic>)
-        .map((e) => ExerciseRank.fromJson(e as Map<String, dynamic>))
-        .toList(),
-    overallRank: j['overall_rank'] as String?,
-    overallPct: (j['overall_pct'] as num?)?.toDouble(),
-    overallRatio: (j['overall_ratio'] as num?)?.toDouble(),
-  );
+  factory UserRanks.fromJson(Map<String, dynamic> j) {
+    final profile = jsonMap(j['profile']);
+    return UserRanks(
+      profile: RankProfile.fromJson(profile ?? const {}),
+      exerciseRanks: jsonObjectList(j['exercise_ranks'], ExerciseRank.fromJson),
+      overallRank: j['overall_rank'] is String
+          ? j['overall_rank'] as String
+          : null,
+      overallPct: j['overall_pct'] == null
+          ? null
+          : jsonDouble(j['overall_pct'], min: 0, max: 100),
+      overallRatio: j['overall_ratio'] == null
+          ? null
+          : jsonDouble(j['overall_ratio'], min: 0, max: 100),
+    );
+  }
 
   static UserRanks get empty => UserRanks(
     profile: RankProfile(dontAskWeight: false, updatedAt: DateTime(2000)),

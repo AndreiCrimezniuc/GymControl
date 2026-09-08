@@ -1168,4 +1168,229 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get repsShort => 'повт.';
+
+  @override
+  String get quickSetupTitle => 'Быстрая настройка';
+
+  @override
+  String get quickSetupBody =>
+      'Необязательно — поможет точно рассчитать силовой ранг';
+
+  @override
+  String get skip => 'Пропустить';
+
+  @override
+  String get updateYourWeight => 'Обновить вес?';
+
+  @override
+  String get weightReminderBody =>
+      'Вес нужен для точного силового рейтинга. Это займёт пять секунд.';
+
+  @override
+  String get update => 'Обновить';
+
+  @override
+  String get notNow => 'Не сейчас';
+
+  @override
+  String get dontAskAgain => 'Больше не спрашивать';
+
+  @override
+  String get rankLegend => 'Легенда';
+
+  @override
+  String get rankElite => 'Элита';
+
+  @override
+  String get rankExpert => 'Эксперт';
+
+  @override
+  String get rankAdvanced => 'Продвинутый';
+
+  @override
+  String get rankIntermediate => 'Опытный';
+
+  @override
+  String get rankBeginner => 'Начинающий';
+
+  @override
+  String get rankNovice => 'Новичок';
+
+  @override
+  String get addYourWeight => 'Укажите свой вес';
+
+  @override
+  String get weightRankAccuracy => 'Нужен для точного силового рейтинга';
+
+  @override
+  String get rankQuoteE => 'Каждый чемпион когда-то начинал. Начните сейчас.';
+
+  @override
+  String get rankQuoteD => 'Стабильность сильнее таланта. Продолжайте.';
+
+  @override
+  String get rankQuoteC => 'Вы уже выше медианы. Добавьте напора.';
+
+  @override
+  String get rankQuoteB => 'Продвинутый уровень. Отличная работа.';
+
+  @override
+  String get rankQuoteA => 'Экспертный уровень. Впереди элита.';
+
+  @override
+  String get rankQuoteS => 'Элитный атлет. Один шаг до легенды.';
+
+  @override
+  String get rankQuoteSS => 'Вы — легенда. Вдохновляйте других.';
+
+  @override
+  String get keepTraining => 'Продолжайте тренироваться.';
+
+  @override
+  String get recordLift => 'Записать результат';
+
+  @override
+  String get exercise => 'Упражнение';
+
+  @override
+  String get benchPress => 'Жим лёжа';
+
+  @override
+  String get squat => 'Присед';
+
+  @override
+  String get deadlift => 'Становая тяга';
+
+  @override
+  String get overheadPress => 'Жим над головой';
+
+  @override
+  String get barbellRow => 'Тяга штанги';
+
+  @override
+  String get enterValidWeightReps => 'Укажите корректные вес и повторения';
+
+  @override
+  String estimatedOneRmValue(String value) {
+    return 'Расчётный 1ПМ: $value кг';
+  }
+
+  @override
+  String get savePr => 'Сохранить рекорд';
+
+  @override
+  String get bodyMetricsRankBody =>
+      'Используются для расчёта относительной силы.';
+
+  @override
+  String topPercent(String value) {
+    return 'Топ-$value%';
+  }
+
+  @override
+  String liftSummary(String weight, int reps, String oneRm) {
+    return '$weight кг × $reps · расч. 1ПМ: $oneRm кг';
+  }
+
+  @override
+  String medianMultiple(String value) {
+    return '$value× медианы';
+  }
+
+  @override
+  String get couldNotLoadRankings => 'Не удалось загрузить силовые ранги';
+
+  @override
+  String get loadBaseline => 'Формируем базовый уровень';
+
+  @override
+  String get loadIncreased => 'Нагрузка быстро выросла';
+
+  @override
+  String get loadTrendingDown => 'Нагрузка снижается';
+
+  @override
+  String get loadSteady => 'Нагрузка растёт стабильно';
+
+  @override
+  String get compareLast28Days =>
+      'Последние 28 дней в сравнении с предыдущими 28';
+
+  @override
+  String get distance => 'Дистанция';
+
+  @override
+  String get averageRpe => 'Средний RPE';
+
+  @override
+  String get workingVolume => 'Рабочий объём';
+
+  @override
+  String get workoutsPerMonth => 'Тренировки по месяцам';
+
+  @override
+  String get year => 'Год';
+
+  @override
+  String get kgShort => 'кг';
+
+  @override
+  String get hourShort => 'ч';
+
+  @override
+  String get kmShort => 'км';
+
+  @override
+  String get liftsUnit => 'упражнений';
+
+  @override
+  String get trainingVolumeChartNote =>
+      'Вес × повторы за тренировочный день · без разминки';
+
+  @override
+  String get recordLiftForStats =>
+      'Запишите результат в Силовом паспорте, чтобы начать\nотслеживать прогресс силы.';
+
+  @override
+  String rankLabel(String rank) {
+    return 'Ранг $rank';
+  }
+
+  @override
+  String durationHoursMinutes(int hours, int minutes) {
+    return '$hours ч $minutes мин';
+  }
+
+  @override
+  String durationMinutes(int minutes) {
+    return '$minutes мин';
+  }
+
+  @override
+  String get proTrainWithoutLimits => 'Тренируйтесь без ограничений';
+
+  @override
+  String get proDescription =>
+      'Создавайте сколько угодно личных программ и организуйте их по папкам.';
+
+  @override
+  String get proUnlimitedWorkouts => 'Неограниченные личные программы';
+
+  @override
+  String get proCustomFolders => 'Свои папки тренировок';
+
+  @override
+  String get proOrganizeLibrary => 'Порядок и названия в вашей библиотеке';
+
+  @override
+  String get proAiReview => 'ИИ-разбор тренировок и прогресса';
+
+  @override
+  String get proPriceMonthly => '\$5 в месяц';
+
+  @override
+  String get proCancelAnytime => 'Отмена в любое время · Без пробного периода';
+
+  @override
+  String get proPurchasesSoon => 'ПОКУПКИ СКОРО ПОЯВЯТСЯ';
 }

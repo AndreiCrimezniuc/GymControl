@@ -18,4 +18,14 @@ void main() {
       16,
     );
   });
+
+  test('ignores malformed and negative legacy week entries', () {
+    final streak = StreakData.fromJson({
+      'current_streak_weeks': double.infinity,
+      'active_weeks': [1, 'bad', -1, double.nan, 3],
+    });
+
+    expect(streak.currentStreakWeeks, 0);
+    expect(streak.activeWeeks, [1, 3]);
+  });
 }

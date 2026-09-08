@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -110,4 +112,68 @@ void main() {
     units.dispose();
     client.dispose();
   });
+
+  test(
+    'stale active workout is discarded instead of reviving its timer',
+    () async {
+      SharedPreferences.setMockInitialValues({
+        'active_workout_session_v1': jsonEncode({
+          'version': 2,
+          'active': true,
+          'workout': {
+            'id': 'stale-workout',
+            'name': 'Stale workout',
+            'exercises': [],
+          },
+          'difficulty': 'normal',
+          'started_at': DateTime.now()
+              .subtract(const Duration(days: 3))
+              .toIso8601String(),
+          'groups': [],
+        }),
+      });
+      final httpClient = MockClient((_) async => http.Response('{}', 200));
+      final client = AuthenticatedClient(
+        storage: TokenStorage(),
+        authService: AuthService(),
+        inner: httpClient,
+      );
+      final exercises = ExercisesRepository(
+        client: client,
+        isOnline: () async => false,
+      );
+      final workouts = WorkoutsRepository(
+        client: client,
+        isOnline: () async => false,
+      );
+      final sessions = SessionsRepository(
+        client: client,
+        isOnline: () async => false,
+      );
+      final ranking = RankingRepository(
+        client: client,
+        isOnline: () async => false,
+      );
+      final units = UnitsController();
+      final controller = WorkoutSessionController();
+
+      expect(
+        await controller.restore(
+          exercises: exercises,
+          ranking: ranking,
+          sessions: sessions,
+          workouts: workouts,
+          units: units,
+        ),
+        isFalse,
+      );
+      expect(controller.isActive, isFalse);
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString('active_workout_session_v1'), isNull);
+
+      controller.dispose();
+      units.dispose();
+      client.dispose();
+    },
+  );
 }

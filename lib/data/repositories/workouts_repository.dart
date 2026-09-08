@@ -11,6 +11,7 @@ import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/data/sync/connectivity_service.dart';
 import 'package:gymboss/data/sync/network_failure.dart';
 import 'package:gymboss/data/sync/sync_service.dart';
+import 'package:gymboss/domain/models/json_readers.dart';
 import 'package:gymboss/domain/models/workouts/workout.dart';
 
 /// Offline-first workouts repository.
@@ -69,8 +70,15 @@ class WorkoutsRepository {
       if (response.statusCode != 200) {
         throw Exception(_err(response.body, response.statusCode));
       }
-      final raw = (jsonDecode(response.body) as List)
-          .cast<Map<String, dynamic>>();
+      final decoded = jsonDecode(response.body);
+      if (decoded is! List) {
+        throw const FormatException('folders is not a list');
+      }
+      final raw = jsonObjectList(
+        decoded,
+        (item) => item,
+        maxItems: 10000,
+      ).where((item) => item['id'] is String).toList(growable: false);
       for (final folder in raw) {
         await _store.putDoc(_folderCollection, folder['id'] as String, folder);
       }
@@ -182,7 +190,9 @@ class WorkoutsRepository {
       final raw = <Map<String, dynamic>>[];
       var cursor = '';
       final seenCursors = <String>{};
+      var pages = 0;
       do {
+        if (++pages > 100) break;
         final baseUri = Uri.parse(url);
         final pageUri = baseUri.replace(
           queryParameters: {
@@ -197,8 +207,16 @@ class WorkoutsRepository {
         if (resp.statusCode != 200) {
           throw Exception('GET $pageUri HTTP ${resp.statusCode}');
         }
+        final decoded = jsonDecode(resp.body);
+        if (decoded is! List) {
+          throw const FormatException('workouts page is not a list');
+        }
         raw.addAll(
-          (jsonDecode(resp.body) as List).cast<Map<String, dynamic>>(),
+          jsonObjectList(
+            decoded,
+            (item) => item,
+            maxItems: 100,
+          ).where((item) => item['id'] is String),
         );
         final next = resp.headers['x-next-cursor'] ?? '';
         if (next.isEmpty || !seenCursors.add(next)) {

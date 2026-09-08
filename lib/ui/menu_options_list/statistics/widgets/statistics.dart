@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/cupertino.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:gymboss/data/repositories/ranking_repository.dart';
 import 'package:gymboss/data/repositories/sessions_repository.dart';
@@ -114,14 +115,14 @@ class _StatisticsState extends State<Statistics> {
                           const SizedBox(width: 10),
                           _StatTile(
                             value: '$_workouts',
-                            unit: 'routines',
+                            unit: l10n.routines.toLowerCase(),
                             title: l10n.workouts,
                             icon: CupertinoIcons.calendar,
                           ),
                           const SizedBox(width: 10),
                           _StatTile(
                             value: '${ranks.length}',
-                            unit: 'lifts',
+                            unit: l10n.liftsUnit,
                             title: l10n.ranked,
                             icon: CupertinoIcons.chart_bar_fill,
                           ),
@@ -161,7 +162,7 @@ class _StatisticsState extends State<Statistics> {
                       if (ranks.isEmpty)
                         const _EmptyState()
                       else ...[
-                        const _SectionLabel('Estimated 1RM'),
+                        _SectionLabel(l10n.estimatedOneRm),
                         const SizedBox(height: 12),
                         _OneRmChart(ranks: ranks),
                         const SizedBox(height: 24),
@@ -419,6 +420,7 @@ class _TrainingLoadCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final l = AppLocalizations.of(context);
     final now = DateTime.now();
     final currentStart = DateTime(
       now.year,
@@ -432,10 +434,10 @@ class _TrainingLoadCard extends StatelessWidget {
         ? null
         : ((current.volume - previous.volume) / previous.volume * 100).round();
     final status = switch (change) {
-      null => 'Building your baseline',
-      > 25 => 'Load increased quickly',
-      < -25 => 'Load is trending down',
-      _ => 'Load is progressing steadily',
+      null => l.loadBaseline,
+      > 25 => l.loadIncreased,
+      < -25 => l.loadTrendingDown,
+      _ => l.loadSteady,
     };
     return Container(
       padding: const EdgeInsets.all(16),
@@ -472,7 +474,7 @@ class _TrainingLoadCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Last 28 days compared with the previous 28 days',
+            l.compareLast28Days,
             style: TextStyle(color: c.textSecondary, fontSize: 11),
           ),
           const SizedBox(height: 16),
@@ -481,7 +483,7 @@ class _TrainingLoadCard extends StatelessWidget {
               _LoadMetric(
                 label: AppLocalizations.of(context).volume,
                 value: _compact(current.volume),
-                suffix: 'kg',
+                suffix: l.kgShort,
               ),
               _LoadMetric(
                 label: AppLocalizations.of(context).sessions,
@@ -491,7 +493,7 @@ class _TrainingLoadCard extends StatelessWidget {
               _LoadMetric(
                 label: AppLocalizations.of(context).time,
                 value: (current.seconds / 3600).toStringAsFixed(1),
-                suffix: 'h',
+                suffix: l.hourShort,
               ),
             ],
           ),
@@ -510,13 +512,13 @@ class _TrainingLoadCard extends StatelessWidget {
                 highlight: true,
               ),
               _LoadMetric(
-                label: current.distance > 0 ? 'Distance' : 'Avg RPE',
+                label: current.distance > 0 ? l.distance : l.averageRpe,
                 value: current.distance > 0
                     ? current.distance.toStringAsFixed(1)
                     : current.rpeSets > 0
                     ? (current.rpeSum / current.rpeSets).toStringAsFixed(1)
                     : '—',
-                suffix: current.distance > 0 ? 'km' : '',
+                suffix: current.distance > 0 ? l.kmShort : '',
               ),
             ],
           ),
@@ -645,20 +647,7 @@ class _ActivityCalendarState extends State<_ActivityCalendar> {
     final first = DateTime(_month.year, _month.month);
     final days = DateTime(_month.year, _month.month + 1, 0).day;
     final leading = first.weekday - 1;
-    final monthNames = const [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ];
+    final locale = Localizations.localeOf(context).toLanguageTag();
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -680,7 +669,7 @@ class _ActivityCalendarState extends State<_ActivityCalendar> {
               ),
               Expanded(
                 child: Text(
-                  '${monthNames[_month.month - 1]} ${_month.year}',
+                  DateFormat.yMMMM(locale).format(_month),
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
@@ -701,17 +690,27 @@ class _ActivityCalendarState extends State<_ActivityCalendar> {
           ),
           const SizedBox(height: 8),
           Row(
-            children: const ['M', 'T', 'W', 'T', 'F', 'S', 'S']
-                .map(
-                  (day) => Expanded(
-                    child: Text(
-                      day,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 10),
-                    ),
-                  ),
-                )
-                .toList(),
+            children:
+                List<String>.generate(7, (index) {
+                      final monday = DateTime(
+                        2024,
+                        1,
+                        1,
+                      ).add(Duration(days: index));
+                      return DateFormat.E(
+                        locale,
+                      ).format(monday).characters.first;
+                    })
+                    .map(
+                      (day) => Expanded(
+                        child: Text(
+                          day,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 10),
+                        ),
+                      ),
+                    )
+                    .toList(),
           ),
           const SizedBox(height: 5),
           GridView.builder(
@@ -801,7 +800,7 @@ class _ActivityChartState extends State<_ActivityChart> {
               ),
               const SizedBox(width: 10),
               Text(
-                'Working volume',
+                AppLocalizations.of(context).workingVolume,
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
@@ -847,7 +846,7 @@ class _ActivityChartState extends State<_ActivityChart> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Weight × reps per training day · warmups excluded',
+            AppLocalizations.of(context).trainingVolumeChartNote,
             style: TextStyle(fontSize: 11, color: c.textSecondary),
           ),
         ],
@@ -883,7 +882,7 @@ class _EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Record a lift in the Rank screen to start\ntracking your strength progress.',
+            AppLocalizations.of(context).recordLiftForStats,
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 12, color: c.textSecondary, height: 1.5),
           ),
@@ -1081,7 +1080,7 @@ class _RecordsList extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      '${r.weightKg.toStringAsFixed(0)} kg × ${r.reps}',
+                      '${r.weightKg.toStringAsFixed(0)} ${AppLocalizations.of(context).kgShort} × ${r.reps}',
                       style: TextStyle(
                         fontSize: 14,
                         color: c.textPrimary,
@@ -1089,7 +1088,7 @@ class _RecordsList extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'Rank ${r.rank}',
+                      AppLocalizations.of(context).rankLabel(r.rank),
                       style: TextStyle(fontSize: 11, color: c.textSecondary),
                     ),
                   ],
@@ -1109,12 +1108,12 @@ class _MetricsBlock extends StatelessWidget {
   final StatsSummary summary;
   const _MetricsBlock({required this.summary});
 
-  static String _fmtDuration(int seconds) {
+  static String _fmtDuration(AppLocalizations l, int seconds) {
     if (seconds <= 0) return '—';
     final h = seconds ~/ 3600;
     final m = (seconds % 3600) ~/ 60;
-    if (h > 0) return '${h}h ${m}m';
-    return '${m}m';
+    if (h > 0) return l.durationHoursMinutes(h, m);
+    return l.durationMinutes(m);
   }
 
   @override
@@ -1127,7 +1126,10 @@ class _MetricsBlock extends StatelessWidget {
         _MetricRow(
           icon: CupertinoIcons.time,
           title: AppLocalizations.of(context).longestWorkout,
-          value: _fmtDuration(summary.longestWorkoutSeconds),
+          value: _fmtDuration(
+            AppLocalizations.of(context),
+            summary.longestWorkoutSeconds,
+          ),
         ),
         _MetricRow(
           icon: CupertinoIcons.heart_fill,
@@ -1220,7 +1222,7 @@ class _MonthlyChart extends StatelessWidget {
       children: [
         Row(
           children: [
-            const _SectionLabel('Workouts per month'),
+            _SectionLabel(AppLocalizations.of(context).workoutsPerMonth),
             const Spacer(),
             _PeriodToggle(period: period, onPeriod: onPeriod),
           ],
@@ -1268,9 +1270,7 @@ class _MonthlyChart extends StatelessWidget {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              m.month.length >= 7
-                                  ? m.month.substring(5)
-                                  : m.month,
+                              _monthLabel(context, m.month),
                               style: TextStyle(
                                 fontSize: 9,
                                 color: c.textSecondary,
@@ -1284,6 +1284,14 @@ class _MonthlyChart extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  static String _monthLabel(BuildContext context, String raw) {
+    final parsed = DateTime.tryParse('$raw-01');
+    if (parsed == null) return raw;
+    return DateFormat.MMM(
+      Localizations.localeOf(context).toLanguageTag(),
+    ).format(parsed);
   }
 }
 
@@ -1319,9 +1327,9 @@ class _PeriodToggle extends StatelessWidget {
 
     return Row(
       children: [
-        seg('year', 'Year'),
+        seg('year', AppLocalizations.of(context).year),
         const SizedBox(width: 6),
-        seg('all', 'All'),
+        seg('all', AppLocalizations.of(context).all),
       ],
     );
   }

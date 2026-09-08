@@ -1,3 +1,5 @@
+import 'package:gymboss/domain/models/json_readers.dart';
+
 class StreakData {
   final int currentStreakWeeks;
   final List<int> activeWeeks;
@@ -9,11 +11,21 @@ class StreakData {
 
   factory StreakData.fromJson(Map<String, dynamic> json) {
     final rawWeeks = json['active_weeks'];
-    final weeks = rawWeeks == null
-        ? <int>[]
-        : (rawWeeks as List<dynamic>).map((e) => (e as num).toInt()).toList();
+    final weeks = rawWeeks is List
+        ? rawWeeks
+              .whereType<num>()
+              .where((value) => value.toDouble().isFinite)
+              .map((value) => value.toInt())
+              .where((value) => value >= 0)
+              .take(5200)
+              .toList()
+        : <int>[];
     return StreakData(
-      currentStreakWeeks: (json['current_streak_weeks'] as num?)?.toInt() ?? 0,
+      currentStreakWeeks: jsonInt(
+        json['current_streak_weeks'],
+        min: 0,
+        max: 5200,
+      ),
       activeWeeks: weeks,
     );
   }

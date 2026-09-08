@@ -1,3 +1,5 @@
+import 'package:gymboss/domain/models/json_readers.dart';
+
 class BodyMeasurement {
   final String id;
   final String measuredAt;
@@ -27,21 +29,26 @@ class BodyMeasurement {
     this.note = '',
   });
 
-  factory BodyMeasurement.fromJson(Map<String, dynamic> json) =>
-      BodyMeasurement(
-        id: json['id'] as String? ?? '',
-        measuredAt: json['measured_at'] as String? ?? '',
-        weightKg: (json['weight_kg'] as num?)?.toDouble(),
-        bodyFatPercent: (json['body_fat_percent'] as num?)?.toDouble(),
-        chestCm: (json['chest_cm'] as num?)?.toDouble(),
-        waistCm: (json['waist_cm'] as num?)?.toDouble(),
-        hipsCm: (json['hips_cm'] as num?)?.toDouble(),
-        leftArmCm: (json['left_arm_cm'] as num?)?.toDouble(),
-        rightArmCm: (json['right_arm_cm'] as num?)?.toDouble(),
-        leftThighCm: (json['left_thigh_cm'] as num?)?.toDouble(),
-        rightThighCm: (json['right_thigh_cm'] as num?)?.toDouble(),
-        note: json['note'] as String? ?? '',
-      );
+  factory BodyMeasurement.fromJson(
+    Map<String, dynamic> json,
+  ) => BodyMeasurement(
+    id: jsonString(json['id']),
+    measuredAt: jsonString(json['measured_at']),
+    weightKg: jsonNullableDouble(json['weight_kg'], min: 0, max: 1000),
+    bodyFatPercent: jsonNullableDouble(
+      json['body_fat_percent'],
+      min: 0,
+      max: 100,
+    ),
+    chestCm: jsonNullableDouble(json['chest_cm'], min: 0, max: 1000),
+    waistCm: jsonNullableDouble(json['waist_cm'], min: 0, max: 1000),
+    hipsCm: jsonNullableDouble(json['hips_cm'], min: 0, max: 1000),
+    leftArmCm: jsonNullableDouble(json['left_arm_cm'], min: 0, max: 1000),
+    rightArmCm: jsonNullableDouble(json['right_arm_cm'], min: 0, max: 1000),
+    leftThighCm: jsonNullableDouble(json['left_thigh_cm'], min: 0, max: 1000),
+    rightThighCm: jsonNullableDouble(json['right_thigh_cm'], min: 0, max: 1000),
+    note: jsonString(json['note']),
+  );
 
   Map<String, dynamic> toJson() => {
     'measured_at': measuredAt,

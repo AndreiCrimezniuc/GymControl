@@ -28,22 +28,22 @@ Color _rankColor(String rank) {
   }
 }
 
-String _rankTitle(String rank) {
+String _rankTitle(AppLocalizations l, String rank) {
   switch (rank) {
     case 'SS':
-      return 'Legend';
+      return l.rankLegend;
     case 'S':
-      return 'Elite';
+      return l.rankElite;
     case 'A':
-      return 'Expert';
+      return l.rankExpert;
     case 'B':
-      return 'Advanced';
+      return l.rankAdvanced;
     case 'C':
-      return 'Intermediate';
+      return l.rankIntermediate;
     case 'D':
-      return 'Beginner';
+      return l.rankBeginner;
     default:
-      return 'Novice';
+      return l.rankNovice;
   }
 }
 
@@ -447,7 +447,7 @@ class _OverallHero extends StatelessWidget {
             _BigRankBadge(rank: overall),
             const SizedBox(height: 12),
             Text(
-              '${_rankTitle(overall)} · Top ${(100 - pct!).toStringAsFixed(1)}%',
+              '${_rankTitle(AppLocalizations.of(context), overall)} · ${AppLocalizations.of(context).topPercent((100 - pct!).toStringAsFixed(1))}',
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
@@ -759,7 +759,11 @@ class _ExerciseCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${er.weightKg.toStringAsFixed(1)} kg × ${er.reps}  ·  est. 1RM: ${er.oneRmKg.toStringAsFixed(1)} kg',
+                  AppLocalizations.of(context).liftSummary(
+                    er.weightKg.toStringAsFixed(1),
+                    er.reps,
+                    er.oneRmKg.toStringAsFixed(1),
+                  ),
                   style: TextStyle(fontSize: 11, color: c.textSecondary),
                 ),
                 const SizedBox(height: 8),
@@ -769,13 +773,17 @@ class _ExerciseCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Top ${(100 - er.percentile).toStringAsFixed(1)}%',
+                      AppLocalizations.of(
+                        context,
+                      ).topPercent((100 - er.percentile).toStringAsFixed(1)),
                       style: TextStyle(fontSize: 10, color: color),
                     ),
                     Text(
                       er.relativeToMedian > 0
                           ? er.nextRank == null
-                                ? '${er.relativeToMedian.toStringAsFixed(2)}× median'
+                                ? AppLocalizations.of(context).medianMultiple(
+                                    er.relativeToMedian.toStringAsFixed(2),
+                                  )
                                 : l10n.exerciseMedianProgress(
                                     er.relativeToMedian.toStringAsFixed(2),
                                     er.nextRank!,
@@ -1076,6 +1084,7 @@ class _WeightNudge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final l = AppLocalizations.of(context);
     return GestureDetector(
       onTap: () => _showWeightSheet(context, repo: repo, onDone: onDone),
       child: Container(
@@ -1094,7 +1103,7 @@ class _WeightNudge extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Add your weight',
+                    l.addYourWeight,
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
@@ -1102,7 +1111,7 @@ class _WeightNudge extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    'Required for accurate strength rankings',
+                    l.weightRankAccuracy,
                     style: TextStyle(fontSize: 11, color: c.textSecondary),
                   ),
                 ],
@@ -1125,20 +1134,21 @@ class _MotivationalQuote extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final l = AppLocalizations.of(context);
     final rank = ranks.overallRank ?? 'E';
     final quotes = {
-      'E': 'Every champion was once a beginner. Start now.',
-      'D': 'Consistency beats talent. Keep showing up.',
-      'C': 'You\'re in the top half. Push harder.',
-      'B': 'Advanced territory. You\'re doing great.',
-      'A': 'Expert level. The elite tier awaits.',
-      'S': 'Elite athlete. One step from legendary.',
-      'SS': 'You are legendary. Inspire others.',
+      'E': l.rankQuoteE,
+      'D': l.rankQuoteD,
+      'C': l.rankQuoteC,
+      'B': l.rankQuoteB,
+      'A': l.rankQuoteA,
+      'S': l.rankQuoteS,
+      'SS': l.rankQuoteSS,
     };
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Text(
-        quotes[rank] ?? 'Keep training.',
+        quotes[rank] ?? l.keepTraining,
         textAlign: TextAlign.center,
         style: TextStyle(
           fontSize: 12,
@@ -1160,6 +1170,7 @@ class _RecordLiftButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final l = AppLocalizations.of(context);
     return CupertinoButton(
       padding: EdgeInsets.zero,
       onPressed: () =>
@@ -1183,7 +1194,7 @@ class _RecordLiftButton extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              'Record Lift',
+              l.recordLift,
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
@@ -1199,13 +1210,21 @@ class _RecordLiftButton extends StatelessWidget {
 
 // ── Record lift sheet ─────────────────────────────────────────────────────────
 
-const _kExercises = [
-  ('bench_press', 'Bench Press'),
-  ('squat', 'Squat'),
-  ('deadlift', 'Deadlift'),
-  ('overhead_press', 'Overhead Press'),
-  ('barbell_row', 'Barbell Row'),
+const _kExerciseIDs = [
+  'bench_press',
+  'squat',
+  'deadlift',
+  'overhead_press',
+  'barbell_row',
 ];
+
+String _benchmarkName(AppLocalizations l, String id) => switch (id) {
+  'bench_press' => l.benchPress,
+  'squat' => l.squat,
+  'deadlift' => l.deadlift,
+  'overhead_press' => l.overheadPress,
+  _ => l.barbellRow,
+};
 
 void _showRecordLiftSheet(
   BuildContext context, {
@@ -1245,7 +1264,9 @@ class _RecordLiftSheetState extends State<_RecordLiftSheet> {
     final w = double.tryParse(_weightCtrl.text);
     final r = int.tryParse(_repsCtrl.text);
     if (w == null || r == null || w <= 0 || r <= 0) {
-      setState(() => _error = 'Enter valid weight and reps');
+      setState(
+        () => _error = AppLocalizations.of(context).enterValidWeightReps,
+      );
       return;
     }
     setState(() {
@@ -1254,7 +1275,7 @@ class _RecordLiftSheetState extends State<_RecordLiftSheet> {
     });
     try {
       await widget.repo.recordLift(
-        exerciseId: _kExercises[_exIdx].$1,
+        exerciseId: _kExerciseIDs[_exIdx],
         weightKg: w,
         reps: r,
       );
@@ -1275,6 +1296,7 @@ class _RecordLiftSheetState extends State<_RecordLiftSheet> {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final l = AppLocalizations.of(context);
     final orm = _estOneRM;
     return Container(
       decoration: BoxDecoration(
@@ -1303,7 +1325,7 @@ class _RecordLiftSheetState extends State<_RecordLiftSheet> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Record Lift',
+            l.recordLift,
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
@@ -1311,7 +1333,7 @@ class _RecordLiftSheetState extends State<_RecordLiftSheet> {
             ),
           ),
           const SizedBox(height: 16),
-          const _SheetLabel('Exercise'),
+          _SheetLabel(l.exercise),
           const SizedBox(height: 8),
           Container(
             decoration: BoxDecoration(
@@ -1324,11 +1346,11 @@ class _RecordLiftSheetState extends State<_RecordLiftSheet> {
                 initialItem: _exIdx,
               ),
               onSelectedItemChanged: (i) => setState(() => _exIdx = i),
-              children: _kExercises
+              children: _kExerciseIDs
                   .map(
                     (e) => Center(
                       child: Text(
-                        e.$2,
+                        _benchmarkName(l, e),
                         style: TextStyle(color: c.textPrimary, fontSize: 14),
                       ),
                     ),
@@ -1343,7 +1365,7 @@ class _RecordLiftSheetState extends State<_RecordLiftSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const _SheetLabel('Weight (kg)'),
+                    _SheetLabel(l.weightKgLabel),
                     const SizedBox(height: 6),
                     _SheetField(
                       controller: _weightCtrl,
@@ -1358,7 +1380,7 @@ class _RecordLiftSheetState extends State<_RecordLiftSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const _SheetLabel('Reps'),
+                    _SheetLabel(l.repetitions),
                     const SizedBox(height: 6),
                     _SheetField(controller: _repsCtrl, placeholder: '5'),
                   ],
@@ -1369,7 +1391,7 @@ class _RecordLiftSheetState extends State<_RecordLiftSheet> {
           if (orm > 0) ...[
             const SizedBox(height: 10),
             Text(
-              'Est. 1RM: ${orm.toStringAsFixed(1)} kg',
+              l.estimatedOneRmValue(orm.toStringAsFixed(1)),
               style: TextStyle(fontSize: 12, color: c.textSecondary),
             ),
           ],
@@ -1396,7 +1418,7 @@ class _RecordLiftSheetState extends State<_RecordLiftSheet> {
                   child: _saving
                       ? const CupertinoActivityIndicator()
                       : Text(
-                          'Save PR',
+                          l.savePr,
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
@@ -1540,6 +1562,7 @@ class _WeightSheetState extends State<_WeightSheet> {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final l = AppLocalizations.of(context);
     return Container(
       decoration: BoxDecoration(
         color: c.card,
@@ -1567,7 +1590,7 @@ class _WeightSheetState extends State<_WeightSheet> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Body Metrics',
+            l.sectionBodyMetrics,
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
@@ -1576,7 +1599,7 @@ class _WeightSheetState extends State<_WeightSheet> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Used to compute your relative strength score.',
+            l.bodyMetricsRankBody,
             style: TextStyle(fontSize: 12, color: c.textSecondary),
           ),
           const SizedBox(height: 16),
@@ -1586,7 +1609,7 @@ class _WeightSheetState extends State<_WeightSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const _SheetLabel('Weight (kg)'),
+                    _SheetLabel(l.weightKgLabel),
                     const SizedBox(height: 6),
                     _SheetField(
                       controller: _weightCtrl,
@@ -1601,7 +1624,7 @@ class _WeightSheetState extends State<_WeightSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const _SheetLabel('Height (cm)'),
+                    _SheetLabel(l.heightCmLabel),
                     const SizedBox(height: 6),
                     _SheetField(
                       controller: _heightCtrl,
@@ -1629,7 +1652,7 @@ class _WeightSheetState extends State<_WeightSheet> {
                   child: _saving
                       ? const CupertinoActivityIndicator()
                       : Text(
-                          'Save',
+                          l.save,
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
@@ -1663,7 +1686,7 @@ class _ErrorView extends StatelessWidget {
           const Text('⚠️', style: TextStyle(fontSize: 36)),
           const SizedBox(height: 8),
           Text(
-            'Could not load rankings',
+            AppLocalizations.of(context).couldNotLoadRankings,
             style: TextStyle(fontSize: 15, color: c.textPrimary),
           ),
           const SizedBox(height: 16),

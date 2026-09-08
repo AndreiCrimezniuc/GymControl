@@ -1,3 +1,5 @@
+import 'package:gymboss/domain/models/json_readers.dart';
+
 class ExerciseCatalogItem {
   final int id;
   final String name;
@@ -31,23 +33,19 @@ class ExerciseCatalogItem {
 
   factory ExerciseCatalogItem.fromJson(Map<String, dynamic> j) =>
       ExerciseCatalogItem(
-        id: j['id'] as int,
-        name: (j['name'] as String?) ?? '',
-        muscleGroup: (j['muscle_group'] as String?) ?? '',
-        equipment: (j['equipment'] as String?) ?? '',
-        category: (j['category'] as String?) ?? '',
-        level: (j['level'] as String?) ?? '',
-        force: (j['force'] as String?) ?? '',
-        imageUrl: (j['image_url'] as String?) ?? '',
-        imageUrl2: (j['image_url2'] as String?) ?? '',
-        instructions: (j['instructions'] as String?) ?? '',
-        exerciseType: (j['exercise_type'] as String?) ?? 'weight_reps',
-        secondaryMuscles: ((j['secondary_muscles'] as List?) ?? const [])
-            .whereType<String>()
-            .toList(),
-        aliases: ((j['aliases'] as List?) ?? const [])
-            .whereType<String>()
-            .toList(),
+        id: jsonInt(j['id']),
+        name: jsonString(j['name']),
+        muscleGroup: jsonString(j['muscle_group']),
+        equipment: jsonString(j['equipment']),
+        category: jsonString(j['category']),
+        level: jsonString(j['level']),
+        force: jsonString(j['force']),
+        imageUrl: jsonString(j['image_url']),
+        imageUrl2: jsonString(j['image_url2']),
+        instructions: jsonString(j['instructions']),
+        exerciseType: jsonString(j['exercise_type'], 'weight_reps'),
+        secondaryMuscles: jsonStringList(j['secondary_muscles']),
+        aliases: jsonStringList(j['aliases']),
       );
 
   bool matchesSearch(String query) {
@@ -116,24 +114,26 @@ class ExerciseStats {
   });
 
   factory ExerciseStats.fromJson(Map<String, dynamic> j) => ExerciseStats(
-    exerciseId: (j['exercise_id'] as num?)?.toInt() ?? 0,
-    timesPerformed: (j['times_performed'] as num?)?.toInt() ?? 0,
-    totalSets: (j['total_sets'] as num?)?.toInt() ?? 0,
-    totalReps: (j['total_reps'] as num?)?.toInt() ?? 0,
-    avgSetsPerWorkout: (j['avg_sets_per_workout'] as num?)?.toDouble() ?? 0,
-    maxWeightKg: (j['max_weight_kg'] as num?)?.toDouble() ?? 0,
-    maxVolumeKg: (j['max_volume_kg'] as num?)?.toDouble() ?? 0,
-    estimatedOneRmKg: (j['estimated_one_rm_kg'] as num?)?.toDouble() ?? 0,
-    maxSetVolumeKg: (j['max_set_volume_kg'] as num?)?.toDouble() ?? 0,
-    rank: j['rank'] as String?,
-    progression: ((j['progression'] as List?) ?? [])
-        .map(
-          (e) => ExerciseProgressionPoint.fromJson(e as Map<String, dynamic>),
-        )
-        .toList(),
-    records: ((j['records'] as List?) ?? const [])
-        .map((e) => ExerciseRecord.fromJson(e as Map<String, dynamic>))
-        .toList(),
+    exerciseId: jsonInt(j['exercise_id']),
+    timesPerformed: jsonInt(j['times_performed'], min: 0),
+    totalSets: jsonInt(j['total_sets'], min: 0),
+    totalReps: jsonInt(j['total_reps'], min: 0),
+    avgSetsPerWorkout: jsonDouble(j['avg_sets_per_workout'], min: 0),
+    maxWeightKg: jsonDouble(j['max_weight_kg'], min: 0),
+    maxVolumeKg: jsonDouble(j['max_volume_kg'], min: 0),
+    estimatedOneRmKg: jsonDouble(j['estimated_one_rm_kg'], min: 0),
+    maxSetVolumeKg: jsonDouble(j['max_set_volume_kg'], min: 0),
+    rank: jsonNullableString(j['rank']),
+    progression: jsonObjectList(
+      j['progression'],
+      ExerciseProgressionPoint.fromJson,
+      maxItems: 1000,
+    ),
+    records: jsonObjectList(
+      j['records'],
+      ExerciseRecord.fromJson,
+      maxItems: 100,
+    ),
   );
 
   bool get hasData => totalSets > 0;
@@ -205,12 +205,14 @@ class ExerciseHistorySession {
 
   factory ExerciseHistorySession.fromJson(Map<String, dynamic> json) =>
       ExerciseHistorySession(
-        date: json['date'] as String? ?? '',
-        workoutId: json['workout_id'] as String? ?? '',
-        workoutName: json['workout_name'] as String? ?? '',
-        sessionId: json['session_id'] as String? ?? '',
-        sets: ((json['sets'] as List?) ?? const [])
-            .map((e) => ExerciseHistorySet.fromJson(e as Map<String, dynamic>))
-            .toList(),
+        date: jsonString(json['date']),
+        workoutId: jsonString(json['workout_id']),
+        workoutName: jsonString(json['workout_name']),
+        sessionId: jsonString(json['session_id']),
+        sets: jsonObjectList(
+          json['sets'],
+          ExerciseHistorySet.fromJson,
+          maxItems: 500,
+        ),
       );
 }

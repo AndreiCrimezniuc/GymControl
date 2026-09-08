@@ -6,6 +6,7 @@ import 'package:gymboss/data/repositories/exercises_repository.dart';
 import 'package:gymboss/data/repositories/ranking_repository.dart';
 import 'package:gymboss/data/repositories/sessions_repository.dart';
 import 'package:gymboss/data/repositories/workouts_repository.dart';
+import 'package:gymboss/domain/models/json_readers.dart';
 import 'package:gymboss/domain/models/workouts/workout.dart';
 import 'package:gymboss/domain/models/workouts/workout_debrief.dart';
 import 'package:gymboss/domain/models/ranking/passport_lift_matcher.dart';
@@ -206,7 +207,14 @@ class WorkoutSessionController extends ChangeNotifier {
       );
       _difficulty = data['difficulty'] as String? ?? 'normal';
       _sessionId = data['session_id'] as String?;
-      _startedAt = DateTime.parse(data['started_at'] as String);
+      final startedAt = DateTime.tryParse(jsonString(data['started_at']));
+      final now = DateTime.now();
+      if (startedAt == null ||
+          startedAt.isAfter(now.add(const Duration(minutes: 5))) ||
+          now.difference(startedAt) > const Duration(hours: 48)) {
+        throw const FormatException('stale or invalid active workout');
+      }
+      _startedAt = startedAt;
       _routineChanged = data['routine_changed'] as bool? ?? false;
       _minimized = true;
       _finished = false;
@@ -215,17 +223,16 @@ class WorkoutSessionController extends ChangeNotifier {
       _groups
         ..clear()
         ..addAll(
-          ((data['groups'] as List?) ?? const []).map(
-            (item) => _exerciseFromJson(Map<String, dynamic>.from(item as Map)),
-          ),
+          jsonObjectList(data['groups'], _exerciseFromJson, maxItems: 75),
         );
       _recalculate();
-      final restUntilRaw = data['rest_until'] as String?;
+      final restUntilRaw = data['rest_until'] is String
+          ? data['rest_until'] as String
+          : null;
       int? restoredRestSeconds;
       if (restUntilRaw != null) {
-        final remaining = DateTime.parse(
-          restUntilRaw,
-        ).difference(DateTime.now()).inSeconds;
+        final restUntil = DateTime.tryParse(restUntilRaw);
+        final remaining = restUntil?.difference(DateTime.now()).inSeconds ?? 0;
         if (remaining > 0) {
           restoredRestSeconds = remaining;
           _startRest(remaining);
@@ -898,39 +905,56 @@ class WorkoutSessionController extends ChangeNotifier {
     }
   }
 
-  SessionExercise _exerciseFromJson(Map<String, dynamic> data) =>
-      SessionExercise(
-        exerciseId: (data['exercise_id'] as num).toInt(),
-        name: data['name'] as String? ?? '',
-        muscleGroup: data['muscle_group'] as String? ?? '',
-        exerciseType: data['exercise_type'] as String? ?? 'weight_reps',
-        imageUrl: data['image_url'] as String? ?? '',
-        imageUrl2: data['image_url2'] as String? ?? '',
-        restSeconds: (data['rest_seconds'] as num?)?.toInt() ?? 90,
-        note: data['note'] as String? ?? '',
-        trainingGroupId: data['training_group_id'] as String?,
-        trainingGroupType: data['training_group_type'] as String? ?? '',
-        sets: ((data['sets'] as List?) ?? const []).map((item) {
-          final set = Map<String, dynamic>.from(item as Map);
-          return SessionSet(
-            exerciseId: (set['exercise_id'] as num).toInt(),
-            restSeconds: (set['rest_seconds'] as num?)?.toInt() ?? 90,
-            plannedWeightKg:
-                (set['planned_weight_kg'] as num?)?.toDouble() ?? 0,
-            plannedReps: (set['planned_reps'] as num?)?.toInt() ?? 0,
-            weight: set['weight'] as String? ?? '',
-            reps: set['reps'] as String? ?? '',
-            type: set['type'] as String? ?? 'working',
-            progression: set['progression'] as String? ?? '',
-            previousWeightKg: (set['previous_weight_kg'] as num?)?.toDouble(),
-            previousReps: (set['previous_reps'] as num?)?.toInt(),
-            previousRpe: (set['previous_rpe'] as num?)?.toDouble(),
-            rpe: (set['rpe'] as num?)?.toDouble(),
-            done: set['done'] as bool? ?? false,
-            operationId: set['operation_id'] as String?,
-          );
-        }).toList(),
+  SessionExercise _exerciseFromJson(
+    Map<String, dynamic> data,
+  ) => SessionExercise(
+    exerciseId: jsonInt(data['exercise_id']),
+    name: jsonString(data['name']),
+    muscleGroup: jsonString(data['muscle_group']),
+    exerciseType: jsonString(data['exercise_type'], 'weight_reps'),
+    imageUrl: jsonString(data['image_url']),
+    imageUrl2: jsonString(data['image_url2']),
+    restSeconds: jsonInt(
+      data['rest_seconds'],
+      fallback: 90,
+      min: 0,
+      max: 86400,
+    ),
+    note: jsonString(data['note']),
+    trainingGroupId: jsonNullableString(data['training_group_id']),
+    trainingGroupType: jsonString(data['training_group_type']),
+    sets: jsonObjectList(data['sets'], (set) {
+      return SessionSet(
+        exerciseId: jsonInt(set['exercise_id']),
+        restSeconds: jsonInt(
+          set['rest_seconds'],
+          fallback: 90,
+          min: 0,
+          max: 86400,
+        ),
+        plannedWeightKg: jsonDouble(
+          set['planned_weight_kg'],
+          min: 0,
+          max: 2000,
+        ),
+        plannedReps: jsonInt(set['planned_reps'], min: 0, max: 10000),
+        weight: jsonString(set['weight']),
+        reps: jsonString(set['reps']),
+        type: jsonString(set['type'], 'working'),
+        progression: jsonString(set['progression']),
+        previousWeightKg: jsonNullableDouble(
+          set['previous_weight_kg'],
+          min: 0,
+          max: 2000,
+        ),
+        previousReps: jsonNullableInt(set['previous_reps'], min: 0, max: 10000),
+        previousRpe: jsonNullableDouble(set['previous_rpe'], min: 0, max: 10),
+        rpe: jsonNullableDouble(set['rpe'], min: 0, max: 10),
+        done: jsonBool(set['done']),
+        operationId: jsonNullableString(set['operation_id']),
       );
+    }, maxItems: 100),
+  );
 
   String _snapshot() => jsonEncode({
     'version': _snapshotVersion,

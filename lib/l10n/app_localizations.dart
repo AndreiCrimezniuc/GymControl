@@ -2149,6 +2149,414 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'reps'**
   String get repsShort;
+
+  /// No description provided for @quickSetupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick setup'**
+  String get quickSetupTitle;
+
+  /// No description provided for @quickSetupBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional — helps calculate your strength rank'**
+  String get quickSetupBody;
+
+  /// No description provided for @skip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get skip;
+
+  /// No description provided for @updateYourWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Update your weight?'**
+  String get updateYourWeight;
+
+  /// No description provided for @weightReminderBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your weight keeps strength rankings accurate. It takes five seconds.'**
+  String get weightReminderBody;
+
+  /// No description provided for @update.
+  ///
+  /// In en, this message translates to:
+  /// **'Update'**
+  String get update;
+
+  /// No description provided for @notNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get notNow;
+
+  /// No description provided for @dontAskAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t ask again'**
+  String get dontAskAgain;
+
+  /// No description provided for @rankLegend.
+  ///
+  /// In en, this message translates to:
+  /// **'Legend'**
+  String get rankLegend;
+
+  /// No description provided for @rankElite.
+  ///
+  /// In en, this message translates to:
+  /// **'Elite'**
+  String get rankElite;
+
+  /// No description provided for @rankExpert.
+  ///
+  /// In en, this message translates to:
+  /// **'Expert'**
+  String get rankExpert;
+
+  /// No description provided for @rankAdvanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced'**
+  String get rankAdvanced;
+
+  /// No description provided for @rankIntermediate.
+  ///
+  /// In en, this message translates to:
+  /// **'Intermediate'**
+  String get rankIntermediate;
+
+  /// No description provided for @rankBeginner.
+  ///
+  /// In en, this message translates to:
+  /// **'Beginner'**
+  String get rankBeginner;
+
+  /// No description provided for @rankNovice.
+  ///
+  /// In en, this message translates to:
+  /// **'Novice'**
+  String get rankNovice;
+
+  /// No description provided for @addYourWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Add your weight'**
+  String get addYourWeight;
+
+  /// No description provided for @weightRankAccuracy.
+  ///
+  /// In en, this message translates to:
+  /// **'Required for accurate strength rankings'**
+  String get weightRankAccuracy;
+
+  /// No description provided for @rankQuoteE.
+  ///
+  /// In en, this message translates to:
+  /// **'Every champion was once a beginner. Start now.'**
+  String get rankQuoteE;
+
+  /// No description provided for @rankQuoteD.
+  ///
+  /// In en, this message translates to:
+  /// **'Consistency beats talent. Keep showing up.'**
+  String get rankQuoteD;
+
+  /// No description provided for @rankQuoteC.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re in the top half. Push harder.'**
+  String get rankQuoteC;
+
+  /// No description provided for @rankQuoteB.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced territory. You\'re doing great.'**
+  String get rankQuoteB;
+
+  /// No description provided for @rankQuoteA.
+  ///
+  /// In en, this message translates to:
+  /// **'Expert level. The elite tier awaits.'**
+  String get rankQuoteA;
+
+  /// No description provided for @rankQuoteS.
+  ///
+  /// In en, this message translates to:
+  /// **'Elite athlete. One step from legendary.'**
+  String get rankQuoteS;
+
+  /// No description provided for @rankQuoteSS.
+  ///
+  /// In en, this message translates to:
+  /// **'You are legendary. Inspire others.'**
+  String get rankQuoteSS;
+
+  /// No description provided for @keepTraining.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep training.'**
+  String get keepTraining;
+
+  /// No description provided for @recordLift.
+  ///
+  /// In en, this message translates to:
+  /// **'Record lift'**
+  String get recordLift;
+
+  /// No description provided for @exercise.
+  ///
+  /// In en, this message translates to:
+  /// **'Exercise'**
+  String get exercise;
+
+  /// No description provided for @benchPress.
+  ///
+  /// In en, this message translates to:
+  /// **'Bench press'**
+  String get benchPress;
+
+  /// No description provided for @squat.
+  ///
+  /// In en, this message translates to:
+  /// **'Squat'**
+  String get squat;
+
+  /// No description provided for @deadlift.
+  ///
+  /// In en, this message translates to:
+  /// **'Deadlift'**
+  String get deadlift;
+
+  /// No description provided for @overheadPress.
+  ///
+  /// In en, this message translates to:
+  /// **'Overhead press'**
+  String get overheadPress;
+
+  /// No description provided for @barbellRow.
+  ///
+  /// In en, this message translates to:
+  /// **'Barbell row'**
+  String get barbellRow;
+
+  /// No description provided for @enterValidWeightReps.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter valid weight and reps'**
+  String get enterValidWeightReps;
+
+  /// No description provided for @estimatedOneRmValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Est. 1RM: {value} kg'**
+  String estimatedOneRmValue(String value);
+
+  /// No description provided for @savePr.
+  ///
+  /// In en, this message translates to:
+  /// **'Save PR'**
+  String get savePr;
+
+  /// No description provided for @bodyMetricsRankBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Used to compute your relative strength score.'**
+  String get bodyMetricsRankBody;
+
+  /// No description provided for @topPercent.
+  ///
+  /// In en, this message translates to:
+  /// **'Top {value}%'**
+  String topPercent(String value);
+
+  /// No description provided for @liftSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{weight} kg × {reps} · est. 1RM: {oneRm} kg'**
+  String liftSummary(String weight, int reps, String oneRm);
+
+  /// No description provided for @medianMultiple.
+  ///
+  /// In en, this message translates to:
+  /// **'{value}× median'**
+  String medianMultiple(String value);
+
+  /// No description provided for @couldNotLoadRankings.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load strength rankings'**
+  String get couldNotLoadRankings;
+
+  /// No description provided for @loadBaseline.
+  ///
+  /// In en, this message translates to:
+  /// **'Building your baseline'**
+  String get loadBaseline;
+
+  /// No description provided for @loadIncreased.
+  ///
+  /// In en, this message translates to:
+  /// **'Load increased quickly'**
+  String get loadIncreased;
+
+  /// No description provided for @loadTrendingDown.
+  ///
+  /// In en, this message translates to:
+  /// **'Load is trending down'**
+  String get loadTrendingDown;
+
+  /// No description provided for @loadSteady.
+  ///
+  /// In en, this message translates to:
+  /// **'Load is progressing steadily'**
+  String get loadSteady;
+
+  /// No description provided for @compareLast28Days.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 28 days compared with the previous 28 days'**
+  String get compareLast28Days;
+
+  /// No description provided for @distance.
+  ///
+  /// In en, this message translates to:
+  /// **'Distance'**
+  String get distance;
+
+  /// No description provided for @averageRpe.
+  ///
+  /// In en, this message translates to:
+  /// **'Avg RPE'**
+  String get averageRpe;
+
+  /// No description provided for @workingVolume.
+  ///
+  /// In en, this message translates to:
+  /// **'Working volume'**
+  String get workingVolume;
+
+  /// No description provided for @workoutsPerMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Workouts per month'**
+  String get workoutsPerMonth;
+
+  /// No description provided for @year.
+  ///
+  /// In en, this message translates to:
+  /// **'Year'**
+  String get year;
+
+  /// No description provided for @kgShort.
+  ///
+  /// In en, this message translates to:
+  /// **'kg'**
+  String get kgShort;
+
+  /// No description provided for @hourShort.
+  ///
+  /// In en, this message translates to:
+  /// **'h'**
+  String get hourShort;
+
+  /// No description provided for @kmShort.
+  ///
+  /// In en, this message translates to:
+  /// **'km'**
+  String get kmShort;
+
+  /// No description provided for @liftsUnit.
+  ///
+  /// In en, this message translates to:
+  /// **'lifts'**
+  String get liftsUnit;
+
+  /// No description provided for @trainingVolumeChartNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight × reps per training day · warm-ups excluded'**
+  String get trainingVolumeChartNote;
+
+  /// No description provided for @recordLiftForStats.
+  ///
+  /// In en, this message translates to:
+  /// **'Record a lift in Strength Passport to start\ntracking your strength progress.'**
+  String get recordLiftForStats;
+
+  /// No description provided for @rankLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Rank {rank}'**
+  String rankLabel(String rank);
+
+  /// No description provided for @durationHoursMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours}h {minutes}m'**
+  String durationHoursMinutes(int hours, int minutes);
+
+  /// No description provided for @durationMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes}m'**
+  String durationMinutes(int minutes);
+
+  /// No description provided for @proTrainWithoutLimits.
+  ///
+  /// In en, this message translates to:
+  /// **'Train without limits'**
+  String get proTrainWithoutLimits;
+
+  /// No description provided for @proDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Organize unlimited workouts into folders and create more than five personal programs.'**
+  String get proDescription;
+
+  /// No description provided for @proUnlimitedWorkouts.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlimited personal workouts'**
+  String get proUnlimitedWorkouts;
+
+  /// No description provided for @proCustomFolders.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom workout folders'**
+  String get proCustomFolders;
+
+  /// No description provided for @proOrganizeLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename and organize your library'**
+  String get proOrganizeLibrary;
+
+  /// No description provided for @proAiReview.
+  ///
+  /// In en, this message translates to:
+  /// **'AI review of training and progression'**
+  String get proAiReview;
+
+  /// No description provided for @proPriceMonthly.
+  ///
+  /// In en, this message translates to:
+  /// **'\$5 / month'**
+  String get proPriceMonthly;
+
+  /// No description provided for @proCancelAnytime.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel anytime · No trial'**
+  String get proCancelAnytime;
+
+  /// No description provided for @proPurchasesSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'PURCHASES COMING SOON'**
+  String get proPurchasesSoon;
 }
 
 class _AppLocalizationsDelegate
