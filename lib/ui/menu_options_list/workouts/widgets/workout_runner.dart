@@ -806,6 +806,32 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                 ),
               ),
             ),
+          if (g.memory.isNotEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+              decoration: BoxDecoration(
+                color: c.accent.withValues(alpha: .07),
+                border: Border(left: BorderSide(color: c.accent, width: 2)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(CupertinoIcons.pin_fill, size: 13, color: c.accent),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      g.memory,
+                      style: TextStyle(
+                        fontSize: 12,
+                        height: 1.35,
+                        color: c.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
             child: Align(

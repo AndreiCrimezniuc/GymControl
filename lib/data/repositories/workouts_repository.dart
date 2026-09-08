@@ -479,6 +479,42 @@ class WorkoutsRepository {
           .map((e) => PerformedExerciseLog.fromJson(e as Map<String, dynamic>))
           .toList();
 
+  Future<void> replaceCompletedSession({
+    required String workoutId,
+    required String sessionId,
+    required String performedAt,
+    required String difficulty,
+    required List<PerformedExerciseLog> exercises,
+  }) async {
+    if (sessionId.isEmpty) {
+      throw StateError('Legacy sessions cannot be edited safely');
+    }
+    final response = await _client
+        .put(
+          Uri.parse('$_base/$workoutId/history/session/$sessionId'),
+          body: jsonEncode({
+            'performed_at': performedAt,
+            'difficulty': difficulty,
+            'exercises': exercises
+                .map((exercise) => exercise.toJson())
+                .toList(growable: false),
+          }),
+        )
+        .timeout(const Duration(seconds: 30));
+    if (response.statusCode != 204) {
+      throw Exception(_err(response.body, response.statusCode));
+    }
+    final cacheId = '$workoutId:$performedAt:$sessionId';
+    await _store.putDoc('workout_run_detail', cacheId, {
+      'items': exercises.map((exercise) => exercise.toJson()).toList(),
+    });
+    await _store.deleteDoc('workout_stats', workoutId);
+    for (final exercise in exercises) {
+      await _store.deleteDoc('exercise_stats', '${exercise.exerciseId}');
+      await _store.deleteDoc('exercise_history', '${exercise.exerciseId}');
+    }
+  }
+
   Future<WorkoutSuggestion> requestAiSuggestion(String id) async {
     final response = await _client
         .post(Uri.parse('$_base/$id/ai-suggest'))

@@ -7,12 +7,14 @@ class WorkoutSet {
   final double weightKg;
   final int reps;
   final String setType; // warmup | working | failure | dropset
+  final int? restSeconds; // null inherits the exercise default
 
   const WorkoutSet({
     required this.difficulty,
     required this.weightKg,
     required this.reps,
     this.setType = 'working',
+    this.restSeconds,
   });
 
   factory WorkoutSet.fromJson(Map<String, dynamic> j) => WorkoutSet(
@@ -20,6 +22,9 @@ class WorkoutSet {
     weightKg: jsonDouble(j['weight_kg'], min: 0, max: 2000),
     reps: jsonInt(j['reps'], min: 0, max: 10000),
     setType: jsonString(j['set_type'], 'working'),
+    restSeconds: j['rest_seconds'] == null
+        ? null
+        : jsonInt(j['rest_seconds'], min: 0, max: 3600),
   );
 
   Map<String, dynamic> toJson() => {
@@ -27,6 +32,7 @@ class WorkoutSet {
     'weight_kg': weightKg,
     'reps': reps,
     'set_type': setType,
+    if (restSeconds != null) 'rest_seconds': restSeconds,
   };
 
   WorkoutSet copyWith({
@@ -34,11 +40,13 @@ class WorkoutSet {
     double? weightKg,
     int? reps,
     String? setType,
+    int? restSeconds,
   }) => WorkoutSet(
     difficulty: difficulty ?? this.difficulty,
     weightKg: weightKg ?? this.weightKg,
     reps: reps ?? this.reps,
     setType: setType ?? this.setType,
+    restSeconds: restSeconds ?? this.restSeconds,
   );
 }
 
@@ -53,6 +61,12 @@ class WorkoutExercise {
   final String trainingGroupType;
   final bool isOptional;
   final String? alternativeGroupId;
+  final String progressionRuleType;
+  final double progressionIncrementKg;
+  final int progressionRepMin;
+  final int progressionRepMax;
+  final double progressionTargetRpe;
+  final double progressionPercentOneRm;
   final int restSeconds;
   final String comment;
   final List<WorkoutSet> sets;
@@ -68,6 +82,12 @@ class WorkoutExercise {
     this.trainingGroupType = '',
     this.isOptional = false,
     this.alternativeGroupId,
+    this.progressionRuleType = 'manual',
+    this.progressionIncrementKg = 2.5,
+    this.progressionRepMin = 6,
+    this.progressionRepMax = 10,
+    this.progressionTargetRpe = 8.5,
+    this.progressionPercentOneRm = 75,
     required this.restSeconds,
     required this.comment,
     required this.sets,
@@ -84,6 +104,30 @@ class WorkoutExercise {
     trainingGroupType: jsonString(j['training_group_type']),
     isOptional: jsonBool(j['is_optional']),
     alternativeGroupId: jsonNullableString(j['alternative_group_id']),
+    progressionRuleType: jsonString(
+      (j['progression'] as Map?)?['type'],
+      'manual',
+    ),
+    progressionIncrementKg: jsonDouble(
+      (j['progression'] as Map?)?['increment_kg'],
+      fallback: 2.5,
+    ),
+    progressionRepMin: jsonInt(
+      (j['progression'] as Map?)?['rep_min'],
+      fallback: 6,
+    ),
+    progressionRepMax: jsonInt(
+      (j['progression'] as Map?)?['rep_max'],
+      fallback: 10,
+    ),
+    progressionTargetRpe: jsonDouble(
+      (j['progression'] as Map?)?['target_rpe'],
+      fallback: 8.5,
+    ),
+    progressionPercentOneRm: jsonDouble(
+      (j['progression'] as Map?)?['percent_1rm'],
+      fallback: 75,
+    ),
     restSeconds: jsonInt(j['rest_seconds'], fallback: 90, min: 0, max: 86400),
     comment: jsonString(j['comment']),
     sets: jsonObjectList(j['sets'], WorkoutSet.fromJson, maxItems: 100),
@@ -100,6 +144,14 @@ class WorkoutExercise {
     'training_group_type': trainingGroupType,
     'is_optional': isOptional,
     'alternative_group_id': alternativeGroupId,
+    'progression': {
+      'type': progressionRuleType,
+      'increment_kg': progressionIncrementKg,
+      'rep_min': progressionRepMin,
+      'rep_max': progressionRepMax,
+      'target_rpe': progressionTargetRpe,
+      'percent_1rm': progressionPercentOneRm,
+    },
     'rest_seconds': restSeconds,
     'comment': comment,
     'sets': sets.map((s) => s.toJson()).toList(),
@@ -123,6 +175,12 @@ class WorkoutExercise {
     trainingGroupType: trainingGroupType,
     isOptional: isOptional,
     alternativeGroupId: alternativeGroupId,
+    progressionRuleType: progressionRuleType,
+    progressionIncrementKg: progressionIncrementKg,
+    progressionRepMin: progressionRepMin,
+    progressionRepMax: progressionRepMax,
+    progressionTargetRpe: progressionTargetRpe,
+    progressionPercentOneRm: progressionPercentOneRm,
     restSeconds: restSeconds ?? this.restSeconds,
     comment: comment ?? this.comment,
     sets: sets ?? this.sets,
@@ -268,11 +326,13 @@ class PerformedSetLog {
   final String setType;
   final String
   progression; // '' | weight | amplitude | efficiency | meo | dropset
+  final double? rpe;
   const PerformedSetLog({
     required this.weightKg,
     required this.reps,
     required this.setType,
     this.progression = '',
+    this.rpe,
   });
 
   factory PerformedSetLog.fromJson(Map<String, dynamic> j) => PerformedSetLog(
@@ -280,7 +340,16 @@ class PerformedSetLog {
     reps: (j['reps'] as num?)?.toInt() ?? 0,
     setType: (j['set_type'] as String?) ?? 'working',
     progression: (j['progression'] as String?) ?? '',
+    rpe: (j['rpe'] as num?)?.toDouble(),
   );
+
+  Map<String, dynamic> toJson() => {
+    'weight_kg': weightKg,
+    'reps': reps,
+    'set_type': setType,
+    'progression': progression,
+    if (rpe != null) 'rpe': rpe,
+  };
 }
 
 class PerformedExerciseLog {
@@ -306,6 +375,13 @@ class PerformedExerciseLog {
           maxItems: 500,
         ),
       );
+
+  Map<String, dynamic> toJson() => {
+    'exercise_id': exerciseId,
+    'name': name,
+    'muscle_group': muscleGroup,
+    'sets': sets.map((set) => set.toJson()).toList(growable: false),
+  };
 
   double get volumeKg => sets
       .where((s) => s.setType != 'warmup')

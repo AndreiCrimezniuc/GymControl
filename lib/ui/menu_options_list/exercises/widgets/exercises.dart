@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:gymboss/data/repositories/exercises_repository.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/domain/models/exercises/exercise_catalog.dart';
+import 'package:gymboss/domain/models/training/training_prescription.dart';
 import 'package:gymboss/domain/models/insights/training_signal.dart';
 import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
@@ -13,6 +14,7 @@ import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
 import 'package:gymboss/ui/core/ui/widgets/net_image.dart';
 import 'package:gymboss/ui/core/ui/widgets/skeleton.dart';
 import 'package:gymboss/ui/core/units/units_controller.dart';
+import 'package:gymboss/ui/core/training/training_preferences_controller.dart';
 import 'package:gymboss/ui/menu_options_list/exercises/widgets/muscle_illustration.dart';
 import 'package:gymboss/l10n/app_localizations.dart';
 
@@ -352,8 +354,11 @@ class _ExercisesState extends State<Exercises> {
                   sliver: SliverList.separated(
                     itemCount: filtered.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder: (_, i) =>
-                        _ExerciseTile(entry: filtered[i], repo: _repo),
+                    itemBuilder: (_, i) => _ExerciseTile(
+                      entry: filtered[i],
+                      repo: _repo,
+                      onChanged: () => _load(forceRefresh: true),
+                    ),
                   ),
                 ),
             ],
@@ -404,17 +409,33 @@ class _DiscoveryChip extends StatelessWidget {
 class _ExerciseTile extends StatelessWidget {
   final ExerciseCatalogItem entry;
   final ExercisesRepository repo;
-  const _ExerciseTile({required this.entry, required this.repo});
+  final VoidCallback onChanged;
+  const _ExerciseTile({
+    required this.entry,
+    required this.repo,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final localizedName = entry.displayName(
+      Localizations.localeOf(context).languageCode,
+    );
     return GestureDetector(
-      onTap: () => Navigator.of(context, rootNavigator: true).push(
-        CupertinoPageRoute(
-          builder: (_) => ExerciseDetailScreen(entry: entry, repo: repo),
-        ),
-      ),
+      onTap: () async {
+        final changed = await Navigator.of(context, rootNavigator: true)
+            .push<bool>(
+              CupertinoPageRoute(
+                builder: (_) => ExerciseDetailScreen(
+                  entry: entry,
+                  repo: repo,
+                  onChanged: onChanged,
+                ),
+              ),
+            );
+        if (changed == true) onChanged();
+      },
       child: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
@@ -444,7 +465,7 @@ class _ExerciseTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    entry.name,
+                    localizedName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -512,10 +533,12 @@ class _Thumb extends StatelessWidget {
 class ExerciseDetailScreen extends StatefulWidget {
   final ExerciseCatalogItem entry;
   final ExercisesRepository repo;
+  final VoidCallback? onChanged;
   const ExerciseDetailScreen({
     super.key,
     required this.entry,
     required this.repo,
+    this.onChanged,
   });
 
   @override
@@ -523,26 +546,31 @@ class ExerciseDetailScreen extends StatefulWidget {
 }
 
 class ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
+  late ExerciseCatalogItem _entry;
   ExerciseStats? _stats;
   List<ExerciseHistorySession> _history = const [];
+  String _persistentNote = '';
   bool _loadingStats = true;
 
   @override
   void initState() {
     super.initState();
+    _entry = widget.entry;
     _loadStats();
   }
 
   Future<void> _loadStats() async {
     try {
       final results = await Future.wait([
-        widget.repo.getStats(widget.entry.id),
-        widget.repo.getHistory(widget.entry.id),
+        widget.repo.getStats(_entry.id),
+        widget.repo.getHistory(_entry.id),
+        widget.repo.getPersistentNote(_entry.id),
       ]);
       if (mounted) {
         setState(() {
           _stats = results[0] as ExerciseStats;
           _history = results[1] as List<ExerciseHistorySession>;
+          _persistentNote = results[2] as String;
           _loadingStats = false;
         });
       }
@@ -551,12 +579,225 @@ class ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
     }
   }
 
+  Future<void> _editPersistentNote() async {
+    final russian = Localizations.localeOf(context).languageCode == 'ru';
+    final controller = TextEditingController(text: _persistentNote);
+    final value = await showCupertinoDialog<String>(
+      context: context,
+      builder: (dialogContext) => CupertinoAlertDialog(
+        title: Text(russian ? 'Памятка упражнения' : 'Exercise memory'),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: CupertinoTextField(
+            controller: controller,
+            autofocus: true,
+            minLines: 3,
+            maxLines: 6,
+            maxLength: 2000,
+            placeholder: russian
+                ? 'Настройка тренажёра, хват, техника, ограничения…'
+                : 'Machine setup, grip, technique, limitations…',
+          ),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(AppLocalizations.of(context).cancel),
+          ),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () => Navigator.pop(dialogContext, controller.text),
+            child: Text(AppLocalizations.of(context).save),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (value == null) return;
+    await widget.repo.savePersistentNote(_entry.id, value);
+    if (mounted) setState(() => _persistentNote = value.trim());
+  }
+
+  Future<void> _manageCustomExercise() async {
+    final russian = Localizations.localeOf(context).languageCode == 'ru';
+    final action = await showCupertinoModalPopup<String>(
+      context: context,
+      builder: (sheetContext) => CupertinoActionSheet(
+        title: Text(_entry.displayName(russian ? 'ru' : 'en')),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () => Navigator.pop(sheetContext, 'edit'),
+            child: Text(russian ? 'Редактировать' : 'Edit'),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () => Navigator.pop(sheetContext, 'merge'),
+            child: Text(russian ? 'Объединить с другим' : 'Merge into another'),
+          ),
+          CupertinoActionSheetAction(
+            isDestructiveAction: true,
+            onPressed: () => Navigator.pop(sheetContext, 'archive'),
+            child: Text(russian ? 'Архивировать' : 'Archive'),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.pop(sheetContext),
+          child: Text(AppLocalizations.of(context).cancel),
+        ),
+      ),
+    );
+    if (!mounted) return;
+    if (action == 'edit') {
+      await showCupertinoModalPopup<void>(
+        context: context,
+        builder: (_) => _CreateExerciseSheet(
+          repo: widget.repo,
+          initial: _entry,
+          onCreated: (updated) {
+            setState(() => _entry = updated);
+            widget.onChanged?.call();
+          },
+        ),
+      );
+    } else if (action == 'merge') {
+      await _mergeCustomExercise();
+    } else if (action == 'archive') {
+      final confirmed = await showCupertinoDialog<bool>(
+        context: context,
+        builder: (dialogContext) => CupertinoAlertDialog(
+          title: Text(
+            russian ? 'Архивировать упражнение?' : 'Archive exercise?',
+          ),
+          content: Text(
+            russian
+                ? 'Оно исчезнет из каталога, но вся история и статистика сохранятся.'
+                : 'It leaves the catalog, while all history and statistics stay intact.',
+          ),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(AppLocalizations.of(context).cancel),
+            ),
+            CupertinoDialogAction(
+              isDestructiveAction: true,
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: Text(russian ? 'Архивировать' : 'Archive'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed == true) {
+        await widget.repo.archiveCustom(_entry.id);
+        if (mounted) Navigator.pop(context, true);
+      }
+    }
+  }
+
+  Future<void> _mergeCustomExercise() async {
+    final russian = Localizations.localeOf(context).languageCode == 'ru';
+    final catalog = await widget.repo.getCatalog();
+    if (!mounted) return;
+    final targets = catalog.where((item) => item.id != _entry.id).toList()
+      ..sort((a, b) => a.name.compareTo(b.name));
+    final target = await showCupertinoModalPopup<ExerciseCatalogItem>(
+      context: context,
+      builder: (sheetContext) {
+        final c = sheetContext.colors;
+        return Container(
+          height: MediaQuery.sizeOf(sheetContext).height * .68,
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+          decoration: BoxDecoration(
+            color: c.card,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                russian ? 'Куда перенести историю' : 'Move history into',
+                style: TextStyle(
+                  color: c.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                russian
+                    ? 'Все записи будут перенесены, исходное упражнение уйдёт в архив.'
+                    : 'Every log moves to the target and the source is archived.',
+                style: TextStyle(color: c.textSecondary),
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: ListView.separated(
+                  itemCount: targets.length,
+                  separatorBuilder: (_, __) =>
+                      Container(height: 1, color: c.border),
+                  itemBuilder: (_, index) {
+                    final item = targets[index];
+                    return CupertinoButton(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      onPressed: () => Navigator.pop(sheetContext, item),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          item.displayName(russian ? 'ru' : 'en'),
+                          style: TextStyle(color: c.textPrimary),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    if (target == null || !mounted) return;
+    final confirmed = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (dialogContext) => CupertinoAlertDialog(
+        title: Text(russian ? 'Объединить упражнения?' : 'Merge exercises?'),
+        content: Text(
+          russian
+              ? 'История «${_entry.name}» станет частью «${target.name}». Отменить это нельзя.'
+              : 'History from “${_entry.name}” becomes part of “${target.name}”. This cannot be undone.',
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(AppLocalizations.of(context).cancel),
+          ),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(russian ? 'Объединить' : 'Merge'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await widget.repo.mergeCustom(_entry.id, target.id);
+      if (mounted) Navigator.pop(context, true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    final e = widget.entry;
+    final e = _entry;
+    final language = Localizations.localeOf(context).languageCode;
     return AppPage(
-      title: e.name,
+      title: e.displayName(language),
+      actions: [
+        if (e.custom)
+          CupertinoButton(
+            padding: EdgeInsets.zero,
+            onPressed: _manageCustomExercise,
+            child: const Icon(CupertinoIcons.ellipsis_circle, size: 21),
+          ),
+      ],
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
         children: [
@@ -597,12 +838,17 @@ class ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
                 _Chip('Secondary: $muscle'),
             ],
           ),
-          if (e.instructions.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          _PersistentExerciseNote(
+            note: _persistentNote,
+            onTap: _editPersistentNote,
+          ),
+          if (e.displayInstructions(language).isNotEmpty) ...[
             const SizedBox(height: 18),
             _SectionLabel('How to'),
             const SizedBox(height: 8),
             Text(
-              e.instructions,
+              e.displayInstructions(language),
               style: TextStyle(
                 fontSize: 13,
                 color: c.textSecondary,
@@ -630,6 +876,72 @@ class ExerciseDetailScreenState extends State<ExerciseDetailScreen> {
           ],
           const SizedBox(height: 12),
         ],
+      ),
+    );
+  }
+}
+
+class _PersistentExerciseNote extends StatelessWidget {
+  final String note;
+  final VoidCallback onTap;
+
+  const _PersistentExerciseNote({required this.note, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final russian = Localizations.localeOf(context).languageCode == 'ru';
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      onPressed: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: colors.card,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: colors.border),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(CupertinoIcons.pin_fill, size: 16, color: colors.accent),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    russian ? 'ПАМЯТКА УПРАЖНЕНИЯ' : 'EXERCISE MEMORY',
+                    style: TextStyle(
+                      color: colors.accent,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: .8,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    note.isEmpty
+                        ? (russian
+                              ? 'Сохрани настройку тренажёра, хват или ограничение — памятка появится в каждой тренировке.'
+                              : 'Save setup, grip or a limitation. This memory follows the exercise into every workout.')
+                        : note,
+                    style: TextStyle(
+                      color: note.isEmpty
+                          ? colors.textSecondary
+                          : colors.textPrimary,
+                      fontSize: 12,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(CupertinoIcons.pencil, size: 15, color: colors.textSecondary),
+          ],
+        ),
       ),
     );
   }
@@ -704,6 +1016,15 @@ class _StatsBlock extends StatelessWidget {
       );
     }
 
+    final formula = context.watch<TrainingPreferencesController>().formula;
+    final oneRmRecord = s.records.cast<ExerciseRecord?>().firstWhere(
+      (record) => record?.type == 'estimated_1rm',
+      orElse: () => null,
+    );
+    final selectedOneRm = oneRmRecord == null
+        ? s.estimatedOneRmKg
+        : formula.estimate(oneRmRecord.weightKg, oneRmRecord.reps);
+
     return Column(
       children: [
         _MasteryPanel(stats: s),
@@ -718,9 +1039,9 @@ class _StatsBlock extends StatelessWidget {
                 _MetricCard(
                   width: width,
                   icon: CupertinoIcons.bolt_fill,
-                  value: '${units.format(s.estimatedOneRmKg)} ${units.label}',
+                  value: '${units.format(selectedOneRm)} ${units.label}',
                   label: l10n.estimatedOneRm,
-                  detail: l10n.currentPowerMark,
+                  detail: '${formula.label} · ${l10n.currentPowerMark}',
                 ),
                 _MetricCard(
                   width: width,
@@ -1126,6 +1447,7 @@ class _ProgressionChart extends StatefulWidget {
 class _ProgressionChartState extends State<_ProgressionChart> {
   String _metric = 'weight';
   String _period = 'all';
+  int? _selectedIndex;
 
   @override
   Widget build(BuildContext context) {
@@ -1164,6 +1486,17 @@ class _ProgressionChartState extends State<_ProgressionChart> {
         : insight.changePercent == null
         ? l10n.signalBaselineBody
         : l10n.signalDelta(insight.changePercent!.round());
+    final selectedIndex = data.isEmpty
+        ? -1
+        : (_selectedIndex ?? data.length - 1).clamp(0, data.length - 1);
+    final selected = selectedIndex < 0 ? null : data[selectedIndex];
+    final selectedValue = selected == null
+        ? 0.0
+        : switch (_metric) {
+            'volume' => selected.volumeKg,
+            'reps' => selected.topReps.toDouble(),
+            _ => selected.topWeightKg,
+          };
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
       decoration: BoxDecoration(
@@ -1249,16 +1582,72 @@ class _ProgressionChartState extends State<_ProgressionChart> {
                       style: TextStyle(color: c.textSecondary),
                     ),
                   )
-                : CustomPaint(
-                    painter: _SignalTrailPainter(
-                      values: values,
-                      lineColor: c.accent,
-                      gridColor: c.border,
-                      fillColor: c.accent.withValues(alpha: 0.18),
-                      plateau: insight.plateau,
+                : LayoutBuilder(
+                    builder: (context, constraints) => GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTapDown: (details) {
+                        final ratio =
+                            (details.localPosition.dx / constraints.maxWidth)
+                                .clamp(0.0, 1.0);
+                        setState(() {
+                          _selectedIndex = (ratio * (values.length - 1))
+                              .round();
+                        });
+                      },
+                      child: CustomPaint(
+                        painter: _SignalTrailPainter(
+                          values: values,
+                          lineColor: c.accent,
+                          gridColor: c.border,
+                          fillColor: c.accent.withValues(alpha: 0.18),
+                          plateau: insight.plateau,
+                          selectedIndex: selectedIndex,
+                        ),
+                      ),
                     ),
                   ),
           ),
+          if (selected != null) ...[
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: () => _showPointDetails(selected),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: c.iconBg,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  children: [
+                    Text(
+                      selected.date,
+                      style: TextStyle(color: c.textSecondary, fontSize: 11),
+                    ),
+                    const Spacer(),
+                    Text(
+                      _metric == 'reps'
+                          ? '${selectedValue.round()} reps'
+                          : '${selectedValue.toStringAsFixed(1)} kg',
+                      style: TextStyle(
+                        color: c.textPrimary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    Icon(
+                      CupertinoIcons.chevron_forward,
+                      size: 11,
+                      color: c.textSecondary,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 10),
           CupertinoSlidingSegmentedControl<String>(
             groupValue: _period,
@@ -1274,6 +1663,25 @@ class _ProgressionChartState extends State<_ProgressionChart> {
       ),
     );
   }
+
+  Future<void> _showPointDetails(ExerciseProgressionPoint point) =>
+      showCupertinoModalPopup<void>(
+        context: context,
+        builder: (sheetContext) => CupertinoActionSheet(
+          title: Text(point.date),
+          message: Text(
+            'Top load ${point.topWeightKg.toStringAsFixed(1)} kg\n'
+            'Top set ${point.topReps} reps\n'
+            'Working volume ${point.volumeKg.toStringAsFixed(1)} kg',
+          ),
+          actions: [
+            CupertinoActionSheetAction(
+              onPressed: () => Navigator.pop(sheetContext),
+              child: const Text('Done'),
+            ),
+          ],
+        ),
+      );
 }
 
 class _SignalTrailPainter extends CustomPainter {
@@ -1282,6 +1690,7 @@ class _SignalTrailPainter extends CustomPainter {
   final Color gridColor;
   final Color fillColor;
   final bool plateau;
+  final int selectedIndex;
 
   const _SignalTrailPainter({
     required this.values,
@@ -1289,6 +1698,7 @@ class _SignalTrailPainter extends CustomPainter {
     required this.gridColor,
     required this.fillColor,
     required this.plateau,
+    this.selectedIndex = -1,
   });
 
   @override
@@ -1346,6 +1756,15 @@ class _SignalTrailPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
     canvas.drawPath(path, paint);
+    if (selectedIndex >= 0 && selectedIndex < points.length) {
+      final selected = points[selectedIndex];
+      canvas.drawCircle(
+        selected,
+        8,
+        Paint()..color = lineColor.withValues(alpha: .16),
+      );
+      canvas.drawCircle(selected, 4, Paint()..color = lineColor);
+    }
     canvas.drawCircle(
       points.last,
       9,
@@ -1361,7 +1780,8 @@ class _SignalTrailPainter extends CustomPainter {
       oldDelegate.lineColor != lineColor ||
       oldDelegate.gridColor != gridColor ||
       oldDelegate.fillColor != fillColor ||
-      oldDelegate.plateau != plateau;
+      oldDelegate.plateau != plateau ||
+      oldDelegate.selectedIndex != selectedIndex;
 }
 
 class _Chip extends StatelessWidget {
@@ -1474,25 +1894,62 @@ const _exerciseTypes = {
   'distance_duration': 'Distance · duration',
 };
 
+const _loadModes = {
+  'total': 'Total load',
+  'per_hand': 'Per hand',
+  'bodyweight': 'Bodyweight + load',
+  'assisted': 'Assistance',
+};
+
 class _CreateExerciseSheet extends StatefulWidget {
   final ExercisesRepository repo;
   final void Function(ExerciseCatalogItem) onCreated;
-  const _CreateExerciseSheet({required this.repo, required this.onCreated});
+  final ExerciseCatalogItem? initial;
+  const _CreateExerciseSheet({
+    required this.repo,
+    required this.onCreated,
+    this.initial,
+  });
 
   @override
   State<_CreateExerciseSheet> createState() => _CreateExerciseSheetState();
 }
 
 class _CreateExerciseSheetState extends State<_CreateExerciseSheet> {
-  final _nameCtrl = TextEditingController();
-  final _imageCtrl = TextEditingController();
-  final _descCtrl = TextEditingController();
+  late final TextEditingController _nameCtrl;
+  late final TextEditingController _imageCtrl;
+  late final TextEditingController _descCtrl;
   String _group = 'Chest';
   final Set<String> _secondary = {};
   String _equipment = 'Barbell';
   String _exerciseType = 'weight_reps';
+  String _loadMode = 'total';
   bool _saving = false;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.initial;
+    _nameCtrl = TextEditingController(text: initial?.name ?? '');
+    _imageCtrl = TextEditingController(text: initial?.imageUrl ?? '');
+    _descCtrl = TextEditingController(text: initial?.instructions ?? '');
+    if (initial != null) {
+      _group = initial.muscleGroup.isEmpty ? _group : initial.muscleGroup;
+      _secondary.addAll(initial.secondaryMuscles);
+      _equipment = initial.equipment.isEmpty ? _equipment : initial.equipment;
+      _exerciseType = initial.exerciseType;
+      _loadMode = initial.loadMode;
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _imageCtrl.dispose();
+    _descCtrl.dispose();
+    super.dispose();
+  }
 
   Future<void> _save() async {
     final name = _nameCtrl.text.trim();
@@ -1505,15 +1962,29 @@ class _CreateExerciseSheetState extends State<_CreateExerciseSheet> {
       _error = null;
     });
     try {
-      final item = await widget.repo.createCustom(
-        name: name,
-        description: _descCtrl.text.trim(),
-        imageUrl: _imageCtrl.text.trim(),
-        muscleGroup: _group,
-        equipment: _equipment,
-        exerciseType: _exerciseType,
-        secondaryMuscles: _secondary.toList(),
-      );
+      final initial = widget.initial;
+      final item = initial == null
+          ? await widget.repo.createCustom(
+              name: name,
+              description: _descCtrl.text.trim(),
+              imageUrl: _imageCtrl.text.trim(),
+              muscleGroup: _group,
+              equipment: _equipment,
+              exerciseType: _exerciseType,
+              loadMode: _loadMode,
+              secondaryMuscles: _secondary.toList(),
+            )
+          : await widget.repo.updateCustom(
+              id: initial.id,
+              name: name,
+              description: _descCtrl.text.trim(),
+              imageUrl: _imageCtrl.text.trim(),
+              muscleGroup: _group,
+              equipment: _equipment,
+              exerciseType: _exerciseType,
+              loadMode: _loadMode,
+              secondaryMuscles: _secondary.toList(),
+            );
       if (mounted) {
         Navigator.pop(context);
         widget.onCreated(item);
@@ -1560,7 +2031,11 @@ class _CreateExerciseSheetState extends State<_CreateExerciseSheet> {
             ),
             const SizedBox(height: 16),
             Text(
-              AppLocalizations.of(context).newExercise,
+              widget.initial == null
+                  ? AppLocalizations.of(context).newExercise
+                  : (Localizations.localeOf(context).languageCode == 'ru'
+                        ? 'Редактировать упражнение'
+                        : 'Edit exercise'),
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
@@ -1611,6 +2086,34 @@ class _CreateExerciseSheetState extends State<_CreateExerciseSheet> {
                 );
               }).toList(),
             ),
+            if (_exerciseType == 'weight_reps' ||
+                _exerciseType == 'bodyweight_reps') ...[
+              const SizedBox(height: 12),
+              Text(
+                'LOAD MEANING',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: c.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 7,
+                runSpacing: 7,
+                children: _loadModes.entries
+                    .map(
+                      (entry) => GestureDetector(
+                        onTap: () => setState(() => _loadMode = entry.key),
+                        child: _ChoiceChip(
+                          label: entry.value,
+                          selected: entry.key == _loadMode,
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ],
             const SizedBox(height: 12),
             Text(
               'SECONDARY MUSCLES',

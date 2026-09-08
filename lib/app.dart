@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:gymboss/data/repositories/auth_repository.dart';
 import 'package:gymboss/data/repositories/exercises_repository.dart';
 import 'package:gymboss/data/repositories/measurements_repository.dart';
+import 'package:gymboss/data/repositories/programs_repository.dart';
 import 'package:gymboss/data/repositories/ranking_repository.dart';
 import 'package:gymboss/data/repositories/sessions_repository.dart';
 import 'package:gymboss/data/repositories/workouts_repository.dart';
@@ -21,6 +22,7 @@ import 'package:gymboss/l10n/app_localizations.dart';
 import 'package:gymboss/ui/core/locale/locale_controller.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/units/units_controller.dart';
+import 'package:gymboss/ui/core/training/training_preferences_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_scaffold.dart';
 import 'package:gymboss/ui/core/subscription/pro_controller.dart';
 import 'package:gymboss/ui/home_screen/home_screen.dart';
@@ -47,9 +49,11 @@ class _GymControlAppState extends State<GymControlApp>
   late final ExercisesRepository _exercises;
   late final WorkoutsRepository _workouts;
   late final MeasurementsRepository _measurements;
+  late final ProgramsRepository _programs;
   late final RankingRepository _ranking;
   late final SessionsRepository _sessions;
   late final UnitsController _units;
+  late final TrainingPreferencesController _trainingPreferences;
   late final WorkoutSessionController _session;
   Future<void> _sessionSync = Future.value();
   bool _restoreAttempted = false;
@@ -66,6 +70,7 @@ class _GymControlAppState extends State<GymControlApp>
     _workouts = WorkoutsRepository(client: _client);
     _exercises = ExercisesRepository(client: _client);
     _measurements = MeasurementsRepository(client: _client);
+    _programs = ProgramsRepository(client: _client);
     _ranking = RankingRepository(client: _client);
     _sessions = SessionsRepository(client: _client);
     // Drain any queued offline mutations once we have an authenticated client
@@ -76,6 +81,7 @@ class _GymControlAppState extends State<GymControlApp>
     );
     _pro = ProController(_client);
     _units = UnitsController();
+    _trainingPreferences = TrainingPreferencesController();
     _session = WorkoutSessionController();
     _authVm.addListener(_queueSessionSync);
     unawaited(_authVm.checkAuth());
@@ -161,6 +167,7 @@ class _GymControlAppState extends State<GymControlApp>
       safe(() => _workouts.listFolders(forceRefresh: true)),
       safe(() => _exercises.getCatalog(forceRefresh: true)),
       safe(() => _measurements.list(forceRefresh: true)),
+      safe(() => _programs.list(forceRefresh: true)),
       safe(() => _ranking.getProfile(forceRefresh: true)),
       safe(() => _ranking.getUserRanks(forceRefresh: true)),
       safe(() => _sessions.getStreakData(forceRefresh: true)),
@@ -219,6 +226,7 @@ class _GymControlAppState extends State<GymControlApp>
     _client.dispose();
     _session.dispose();
     _units.dispose();
+    _trainingPreferences.dispose();
     super.dispose();
   }
 
@@ -230,6 +238,9 @@ class _GymControlAppState extends State<GymControlApp>
           create: (_) => ThemeController(),
         ),
         ChangeNotifierProvider<UnitsController>.value(value: _units),
+        ChangeNotifierProvider<TrainingPreferencesController>.value(
+          value: _trainingPreferences,
+        ),
         ChangeNotifierProvider<WorkoutSessionController>.value(value: _session),
         ChangeNotifierProvider<LocaleController>(
           create: (_) => LocaleController(),

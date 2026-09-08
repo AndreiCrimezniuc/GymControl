@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
+import 'package:uuid/uuid.dart';
 
 import 'package:gymboss/data/repositories/workouts_repository.dart';
 import 'package:gymboss/data/repositories/sessions_repository.dart';
@@ -98,12 +99,14 @@ class AerobicRunnerScreen extends StatefulWidget {
 class _AerobicRunnerScreenState extends State<AerobicRunnerScreen> {
   final _c = AerobicSessionController();
   late final DateTime _startedAt;
+  late final String _sessionId;
   bool _finishing = false;
 
   @override
   void initState() {
     super.initState();
     _startedAt = DateTime.now();
+    _sessionId = const Uuid().v4();
     _c.addListener(_onChange);
     _c.start();
   }
@@ -127,9 +130,13 @@ class _AerobicRunnerScreenState extends State<AerobicRunnerScreen> {
         widget.workoutId,
         'normal',
         durationSeconds: _c.totalSeconds,
+        sessionId: _sessionId,
         performedAt: _startedAt,
       );
-      await widget.sessions.recordSession(performedAt: _startedAt);
+      await widget.sessions.recordSession(
+        performedAt: _startedAt,
+        sessionId: _sessionId,
+      );
     } catch (_) {}
     if (mounted) Navigator.of(context).pop(true);
   }

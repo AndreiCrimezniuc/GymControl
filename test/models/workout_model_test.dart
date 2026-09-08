@@ -3,6 +3,25 @@ import 'package:gymboss/domain/models/workouts/workout.dart';
 
 void main() {
   group('Workout.fromJson', () {
+    test('progression rule survives workout exercise serialization', () {
+      final exercise = WorkoutExercise.fromJson({
+        'exercise_id': 42,
+        'name': 'Squat',
+        'rest_seconds': 120,
+        'progression': {
+          'type': 'double_progression',
+          'increment_kg': 2.5,
+          'rep_min': 6,
+          'rep_max': 10,
+          'target_rpe': 8.5,
+        },
+        'sets': <Object>[],
+      });
+      expect(exercise.progressionRuleType, 'double_progression');
+      expect(exercise.progressionRepMax, 10);
+      expect((exercise.toJson()['progression'] as Map)['target_rpe'], 8.5);
+    });
+
     final json = {
       'id': 'w1',
       'name': 'Push Day',

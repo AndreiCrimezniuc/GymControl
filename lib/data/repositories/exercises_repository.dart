@@ -159,6 +159,47 @@ class ExercisesRepository {
     return _refreshHistory(id);
   }
 
+  Future<String> getPersistentNote(
+    int exerciseId, {
+    bool forceRefresh = false,
+  }) async {
+    final cached = _store.getDoc('exercise_note', '$exerciseId');
+    if (!forceRefresh && cached != null) {
+      unawaited(_refreshNote(exerciseId).catchError((_) => ''));
+      return jsonString(cached['note']);
+    }
+    if (!await _isOnline()) return jsonString(cached?['note']);
+    return _refreshNote(exerciseId);
+  }
+
+  Future<String> _refreshNote(int exerciseId) async {
+    final response = await _client
+        .get(Uri.parse('$_base/$exerciseId/note'))
+        .timeout(const Duration(seconds: 10));
+    if (response.statusCode != 200) {
+      throw Exception(
+        'GET /exercises/$exerciseId/note HTTP ${response.statusCode}',
+      );
+    }
+    final doc = jsonDecode(response.body) as Map<String, dynamic>;
+    await _store.putDoc('exercise_note', '$exerciseId', doc);
+    return jsonString(doc['note']);
+  }
+
+  Future<void> savePersistentNote(int exerciseId, String note) async {
+    final normalized = String.fromCharCodes(note.trim().runes.take(2000));
+    await _store.putDoc('exercise_note', '$exerciseId', {'note': normalized});
+    await _store.enqueue(
+      Mutation(
+        id: 'exercise-note:$exerciseId',
+        seq: _store.nextSeq(),
+        kind: 'exercise.note',
+        args: {'exerciseId': exerciseId, 'note': normalized},
+      ),
+    );
+    SyncService.instance.flushSoon();
+  }
+
   Future<List<ExerciseHistorySession>> _refreshHistory(int id) async {
     try {
       final response = await _client
@@ -387,6 +428,7 @@ class ExercisesRepository {
     String muscleGroup = '',
     String equipment = '',
     String exerciseType = 'weight_reps',
+    String loadMode = 'total',
     List<String> secondaryMuscles = const [],
   }) async {
     final clientRequestId = _uuid.v4();
@@ -397,6 +439,7 @@ class ExercisesRepository {
       'muscle_group': muscleGroup,
       'equipment': equipment,
       'exercise_type': exerciseType,
+      'load_mode': loadMode,
       'secondary_muscles': secondaryMuscles,
       'client_request_id': clientRequestId,
     };
@@ -429,6 +472,84 @@ class ExercisesRepository {
     );
     SyncService.instance.flushSoon();
     return ExerciseCatalogItem.fromJson(doc);
+  }
+
+  Future<ExerciseCatalogItem> updateCustom({
+    required int id,
+    required String name,
+    required String description,
+    required String imageUrl,
+    required String muscleGroup,
+    required String equipment,
+    required String exerciseType,
+    required String loadMode,
+    required List<String> secondaryMuscles,
+  }) async {
+    final current =
+        _store.getDoc(_catalogCollection, '$id') ?? <String, dynamic>{};
+    final body = <String, dynamic>{
+      'name': name.trim(),
+      'description': description.trim(),
+      'instructions': description.trim(),
+      'image_url': imageUrl.trim(),
+      'image_url2': imageUrl.trim(),
+      'muscle_group': muscleGroup,
+      'equipment': equipment,
+      'exercise_type': exerciseType,
+      'load_mode': loadMode,
+      'secondary_muscles': secondaryMuscles,
+    };
+    final doc = <String, dynamic>{
+      ...current,
+      ...body,
+      'id': id,
+      'category': 'custom',
+      'is_custom': true,
+    };
+    await _cacheCustom(doc);
+    await _store.enqueue(
+      Mutation(
+        id: 'exercise-update:$id',
+        seq: _store.nextSeq(),
+        kind: 'exercise.updateCustom',
+        args: {'exerciseId': id, ...body},
+      ),
+    );
+    SyncService.instance.flushSoon();
+    return ExerciseCatalogItem.fromJson(doc);
+  }
+
+  Future<void> archiveCustom(int id) async {
+    await _store.deleteDoc(_catalogCollection, '$id');
+    await _store.removeFromList(_catalogKey, '$id');
+    if (id < 0) {
+      await _store.cancelPendingFor('$id');
+      return;
+    }
+    await _store.enqueue(
+      Mutation(
+        id: 'exercise-archive:$id',
+        seq: _store.nextSeq(),
+        kind: 'exercise.archiveCustom',
+        args: {'exerciseId': id},
+      ),
+    );
+    SyncService.instance.flushSoon();
+  }
+
+  Future<void> mergeCustom(int sourceId, int targetId) async {
+    if (sourceId == targetId) return;
+    await _store.deleteDoc(_catalogCollection, '$sourceId');
+    await _store.removeFromList(_catalogKey, '$sourceId');
+    await _store.enqueue(
+      Mutation(
+        id: 'exercise-merge:$sourceId',
+        seq: _store.nextSeq(),
+        kind: 'exercise.mergeCustom',
+        args: {'exerciseId': sourceId, 'targetExerciseId': targetId},
+      ),
+    );
+    SyncService.instance.flushSoon();
   }
 
   Future<void> _cacheCustom(Map<String, dynamic> doc) async {
@@ -477,6 +598,80 @@ class ExercisesRepository {
         return const SyncOutcome.retry();
       }
     });
+    SyncService.instance.registerHandler('exercise.note', (
+      client,
+      mutation,
+    ) async {
+      try {
+        final response = await client
+            .put(
+              Uri.parse('$_base/${mutation.args['exerciseId']}/note'),
+              body: jsonEncode({'note': mutation.args['note'] ?? ''}),
+            )
+            .timeout(const Duration(seconds: 10));
+        return syncOutcomeForStatus(response.statusCode, success: 204);
+      } on Object {
+        return const SyncOutcome.retry();
+      }
+    });
+    SyncService.instance.registerHandler('exercise.updateCustom', (
+      client,
+      mutation,
+    ) async {
+      try {
+        final args = mutation.args;
+        final response = await client
+            .put(
+              Uri.parse('$_base/${args['exerciseId']}'),
+              body: jsonEncode({
+                'name': args['name'],
+                'description': args['description'] ?? '',
+                'image_url': args['image_url'] ?? '',
+                'muscle_group': args['muscle_group'] ?? '',
+                'equipment': args['equipment'] ?? '',
+                'exercise_type': args['exercise_type'] ?? 'weight_reps',
+                'load_mode': args['load_mode'] ?? 'total',
+                'secondary_muscles':
+                    args['secondary_muscles'] ?? const <String>[],
+              }),
+            )
+            .timeout(const Duration(seconds: 15));
+        return syncOutcomeForStatus(response.statusCode, success: 200);
+      } on Object {
+        return const SyncOutcome.retry();
+      }
+    });
+    SyncService.instance.registerHandler('exercise.archiveCustom', (
+      client,
+      mutation,
+    ) async {
+      try {
+        final response = await client
+            .delete(Uri.parse('$_base/${mutation.args['exerciseId']}'))
+            .timeout(const Duration(seconds: 15));
+        return syncOutcomeForStatus(response.statusCode, success: 204);
+      } on Object {
+        return const SyncOutcome.retry();
+      }
+    });
+    SyncService.instance.registerHandler('exercise.mergeCustom', (
+      client,
+      mutation,
+    ) async {
+      try {
+        final response = await client
+            .post(
+              Uri.parse('$_base/${mutation.args['exerciseId']}/merge'),
+              body: jsonEncode({
+                'target_exercise_id': mutation.args['targetExerciseId'],
+              }),
+            )
+            .timeout(const Duration(seconds: 20));
+        return syncOutcomeForStatus(response.statusCode, success: 204);
+      } on Object {
+        return const SyncOutcome.retry();
+      }
+    });
   }
 
   static Future<http.Response> _postCustom(
@@ -492,6 +687,7 @@ class ExercisesRepository {
           'muscle_group': args['muscle_group'] ?? '',
           'equipment': args['equipment'] ?? '',
           'exercise_type': args['exercise_type'] ?? 'weight_reps',
+          'load_mode': args['load_mode'] ?? 'total',
           'secondary_muscles': args['secondary_muscles'] ?? const <String>[],
           'client_request_id': args['client_request_id'],
         }),

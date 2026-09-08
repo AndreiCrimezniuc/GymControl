@@ -459,6 +459,46 @@ class _ExerciseEditor extends StatefulWidget {
 }
 
 class _ExerciseEditorState extends State<_ExerciseEditor> {
+  String _progressionLabel(String type) => switch (type) {
+    'fixed_increment' =>
+      '+${widget.model.progressionIncrementKg.toStringAsFixed(1)} kg',
+    'double_progression' =>
+      '${widget.model.progressionRepMin}–${widget.model.progressionRepMax} reps',
+    'percent_1rm' =>
+      '${widget.model.progressionPercentOneRm.toStringAsFixed(0)}% 1RM',
+    _ => 'Manual',
+  };
+
+  Future<void> _pickProgression() async {
+    final selected = await showCupertinoModalPopup<String>(
+      context: context,
+      builder: (sheetContext) => CupertinoActionSheet(
+        title: const Text('Progression rule'),
+        message: const Text('A transparent rule — never an unexplained jump.'),
+        actions: [
+          for (final item in const {
+            'manual': 'Manual',
+            'fixed_increment': 'Fixed +2.5 kg',
+            'double_progression': 'Double progression · 6–10 reps',
+            'percent_1rm': '75% of estimated 1RM',
+          }.entries)
+            CupertinoActionSheetAction(
+              isDefaultAction: widget.model.progressionRuleType == item.key,
+              onPressed: () => Navigator.pop(sheetContext, item.key),
+              child: Text(item.value),
+            ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.pop(sheetContext),
+          child: Text(AppLocalizations.of(context).cancel),
+        ),
+      ),
+    );
+    if (selected != null && mounted) {
+      setState(() => widget.model.progressionRuleType = selected);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
@@ -517,6 +557,46 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
               onChanged: widget.onAlternativeChanged!,
             ),
           const SizedBox(height: 8),
+          GestureDetector(
+            onTap: _pickProgression,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: c.iconBg,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: c.border),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    CupertinoIcons.arrow_up_right,
+                    size: 16,
+                    color: c.accent,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      Localizations.localeOf(context).languageCode == 'ru'
+                          ? 'Автопрогрессия'
+                          : 'Auto progression',
+                      style: TextStyle(color: c.textPrimary, fontSize: 13),
+                    ),
+                  ),
+                  Text(
+                    _progressionLabel(widget.model.progressionRuleType),
+                    style: TextStyle(color: c.textSecondary, fontSize: 12),
+                  ),
+                  const SizedBox(width: 5),
+                  Icon(
+                    CupertinoIcons.chevron_down,
+                    size: 12,
+                    color: c.textSecondary,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
           Row(
             children: [
               _MiniField(
@@ -546,6 +626,8 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
               Expanded(child: _setHeader(c, 'REPS')),
               const SizedBox(width: 8),
               SizedBox(width: 82, child: _setHeader(c, 'TYPE')),
+              const SizedBox(width: 6),
+              SizedBox(width: 48, child: _setHeader(c, 'REST')),
               const SizedBox(width: 28),
             ],
           ),
@@ -608,6 +690,15 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
                           ),
                         ),
                       ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  SizedBox(
+                    width: 48,
+                    child: _MiniField(
+                      label: 'sec',
+                      controller: set.restCtrl,
+                      dense: true,
                     ),
                   ),
                   SizedBox(
@@ -809,6 +900,12 @@ class _EditExercise {
   final List<_PlannedSetDraft> sets;
   bool isOptional;
   String? alternativeGroupId;
+  String progressionRuleType;
+  double progressionIncrementKg;
+  int progressionRepMin;
+  int progressionRepMax;
+  double progressionTargetRpe;
+  double progressionPercentOneRm;
 
   _EditExercise({
     required this.exerciseId,
@@ -817,6 +914,12 @@ class _EditExercise {
     required this.muscleGroup,
     this.isOptional = false,
     this.alternativeGroupId,
+    this.progressionRuleType = 'manual',
+    this.progressionIncrementKg = 2.5,
+    this.progressionRepMin = 6,
+    this.progressionRepMax = 10,
+    this.progressionTargetRpe = 8.5,
+    this.progressionPercentOneRm = 75,
     List<_PlannedSetDraft>? sets,
   }) : sets = sets ?? List.generate(3, (_) => _PlannedSetDraft());
 
@@ -838,6 +941,12 @@ class _EditExercise {
       muscleGroup: ex.muscleGroup,
       isOptional: ex.isOptional,
       alternativeGroupId: ex.alternativeGroupId,
+      progressionRuleType: ex.progressionRuleType,
+      progressionIncrementKg: ex.progressionIncrementKg,
+      progressionRepMin: ex.progressionRepMin,
+      progressionRepMax: ex.progressionRepMax,
+      progressionTargetRpe: ex.progressionTargetRpe,
+      progressionPercentOneRm: ex.progressionPercentOneRm,
     );
     m.restCtrl.text = '${ex.restSeconds}';
     m.commentCtrl.text = ex.comment;
@@ -867,6 +976,12 @@ class _EditExercise {
       muscleGroup: muscleGroup,
       isOptional: isOptional,
       alternativeGroupId: alternativeGroupId,
+      progressionRuleType: progressionRuleType,
+      progressionIncrementKg: progressionIncrementKg,
+      progressionRepMin: progressionRepMin,
+      progressionRepMax: progressionRepMax,
+      progressionTargetRpe: progressionTargetRpe,
+      progressionPercentOneRm: progressionPercentOneRm,
       restSeconds: rest,
       comment: commentCtrl.text.trim(),
       sets: sets.map((set) => set.toDomain(units)).toList(),
@@ -896,14 +1011,17 @@ class _PlannedSetDraft {
   static const _types = ['warmup', 'working', 'failure', 'dropset'];
   final TextEditingController weightCtrl;
   final TextEditingController repsCtrl;
+  final TextEditingController restCtrl;
   String type;
 
   _PlannedSetDraft({
     String weight = '',
     String reps = '',
+    String rest = '',
     this.type = 'working',
   }) : weightCtrl = TextEditingController(text: weight),
-       repsCtrl = TextEditingController(text: reps);
+       repsCtrl = TextEditingController(text: reps),
+       restCtrl = TextEditingController(text: rest);
 
   factory _PlannedSetDraft.fromSet(WorkoutSet set, UnitsController units) {
     final weight = units.fromKg(set.weightKg);
@@ -912,6 +1030,7 @@ class _PlannedSetDraft {
           ? ''
           : weight.toStringAsFixed(weight % 1 == 0 ? 0 : 1),
       reps: set.reps == 0 ? '' : '${set.reps}',
+      rest: set.restSeconds == null ? '' : '${set.restSeconds}',
       type: set.setType,
     );
   }
@@ -919,6 +1038,7 @@ class _PlannedSetDraft {
   factory _PlannedSetDraft.copy(_PlannedSetDraft? other) => _PlannedSetDraft(
     weight: other?.weightCtrl.text ?? '',
     reps: other?.repsCtrl.text ?? '',
+    rest: other?.restCtrl.text ?? '',
     type: other?.type ?? 'working',
   );
 
@@ -931,6 +1051,14 @@ class _PlannedSetDraft {
 
   void cycleType() {
     type = _types[(_types.indexOf(type) + 1) % _types.length];
+    if (restCtrl.text.trim().isEmpty) {
+      restCtrl.text = switch (type) {
+        'warmup' => '45',
+        'failure' => '180',
+        'dropset' => '0',
+        _ => '',
+      };
+    }
   }
 
   WorkoutSet toDomain(UnitsController units) => WorkoutSet(
@@ -938,10 +1066,14 @@ class _PlannedSetDraft {
     weightKg: units.toKg(clampWorkoutDecimal(weightCtrl.text)),
     reps: clampWorkoutInteger(repsCtrl.text),
     setType: type,
+    restSeconds: restCtrl.text.trim().isEmpty
+        ? null
+        : clampWorkoutInteger(restCtrl.text).clamp(0, 3600),
   );
 
   void dispose() {
     weightCtrl.dispose();
     repsCtrl.dispose();
+    restCtrl.dispose();
   }
 }

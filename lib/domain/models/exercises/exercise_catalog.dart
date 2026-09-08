@@ -3,6 +3,7 @@ import 'package:gymboss/domain/models/json_readers.dart';
 class ExerciseCatalogItem {
   final int id;
   final String name;
+  final String nameRu;
   final String muscleGroup;
   final String equipment;
   final String category;
@@ -11,13 +12,17 @@ class ExerciseCatalogItem {
   final String imageUrl;
   final String imageUrl2;
   final String instructions;
+  final String instructionsRu;
   final String exerciseType;
+  final String loadMode;
   final List<String> secondaryMuscles;
   final List<String> aliases;
+  final bool custom;
 
   const ExerciseCatalogItem({
     required this.id,
     required this.name,
+    this.nameRu = '',
     required this.muscleGroup,
     required this.equipment,
     required this.category,
@@ -26,15 +31,19 @@ class ExerciseCatalogItem {
     required this.imageUrl,
     required this.imageUrl2,
     required this.instructions,
+    this.instructionsRu = '',
     this.exerciseType = 'weight_reps',
+    this.loadMode = 'total',
     this.secondaryMuscles = const [],
     this.aliases = const [],
+    this.custom = false,
   });
 
   factory ExerciseCatalogItem.fromJson(Map<String, dynamic> j) =>
       ExerciseCatalogItem(
         id: jsonInt(j['id']),
         name: jsonString(j['name']),
+        nameRu: jsonString(j['name_ru']),
         muscleGroup: jsonString(j['muscle_group']),
         equipment: jsonString(j['equipment']),
         category: jsonString(j['category']),
@@ -43,16 +52,32 @@ class ExerciseCatalogItem {
         imageUrl: jsonString(j['image_url']),
         imageUrl2: jsonString(j['image_url2']),
         instructions: jsonString(j['instructions']),
+        instructionsRu: jsonString(j['instructions_ru']),
         exerciseType: jsonString(j['exercise_type'], 'weight_reps'),
+        loadMode: jsonString(j['load_mode'], 'total'),
         secondaryMuscles: jsonStringList(j['secondary_muscles']),
         aliases: jsonStringList(j['aliases']),
+        custom:
+            jsonBool(j['is_custom']) || jsonString(j['category']) == 'custom',
       );
+
+  String displayName(String languageCode) => languageCode == 'ru'
+      ? (nameRu.trim().isNotEmpty
+            ? nameRu
+            : (_coreRussianNames[name.toLowerCase()] ?? name))
+      : name;
+
+  String displayInstructions(String languageCode) =>
+      languageCode == 'ru' && instructionsRu.trim().isNotEmpty
+      ? instructionsRu
+      : instructions;
 
   bool matchesSearch(String query) {
     final normalized = query.trim().toLowerCase();
     if (normalized.isEmpty) return true;
     return <String>[
       name,
+      nameRu,
       muscleGroup,
       equipment,
       category,
@@ -62,6 +87,105 @@ class ExerciseCatalogItem {
     ].any((value) => value.toLowerCase().contains(normalized));
   }
 }
+
+// Offline fallback for the product-owned core catalog. Server translations
+// win when present, while these names keep a first launch readable even before
+// the translated catalog migration has been synced.
+const _coreRussianNames = <String, String>{
+  'bench press': 'Жим лёжа',
+  'barbell bench press - medium grip': 'Жим штанги лёжа',
+  'dumbbell bench press': 'Жим гантелей лёжа',
+  'incline barbell bench press - medium grip': 'Жим штанги на наклонной скамье',
+  'incline dumbbell press': 'Жим гантелей на наклонной скамье',
+  'decline barbell bench press': 'Жим штанги на скамье с обратным наклоном',
+  'dumbbell flyes': 'Разведение гантелей лёжа',
+  'incline dumbbell flyes': 'Разведение гантелей на наклонной скамье',
+  'cable crossover': 'Кроссовер',
+  'cable chest press': 'Жим в кроссовере',
+  'machine bench press': 'Жим в тренажёре',
+  'butterfly': 'Сведение рук в тренажёре',
+  'pushups': 'Отжимания',
+  'push-up wide': 'Отжимания широким хватом',
+  'dips - triceps version': 'Отжимания на брусьях',
+  'barbell deadlift': 'Становая тяга',
+  'romanian deadlift': 'Румынская тяга',
+  'sumo deadlift': 'Становая тяга сумо',
+  'rack pulls': 'Тяга с плинтов',
+  'bent over barbell row': 'Тяга штанги в наклоне',
+  'bent over two-dumbbell row': 'Тяга двух гантелей в наклоне',
+  'one-arm dumbbell row': 'Тяга гантели одной рукой',
+  't-bar row with handle': 'Тяга Т-грифа',
+  'seated cable rows': 'Горизонтальная тяга блока',
+  'wide-grip lat pulldown': 'Тяга верхнего блока широким хватом',
+  'close-grip front lat pulldown': 'Тяга верхнего блока узким хватом',
+  'straight-arm pulldown': 'Пуловер на верхнем блоке',
+  'pullups': 'Подтягивания',
+  'chin-up': 'Подтягивания обратным хватом',
+  'face pull': 'Тяга каната к лицу',
+  'squat': 'Приседание',
+  'squats': 'Приседания',
+  'barbell squat': 'Приседание со штангой',
+  'barbell full squat': 'Глубокое приседание со штангой',
+  'front barbell squat': 'Фронтальное приседание',
+  'goblet squat': 'Гоблет-приседание',
+  'bodyweight squat': 'Приседание с собственным весом',
+  'hack squat': 'Гакк-приседание',
+  'leg press': 'Жим ногами',
+  'leg extensions': 'Разгибание ног',
+  'lying leg curls': 'Сгибание ног лёжа',
+  'seated leg curl': 'Сгибание ног сидя',
+  'barbell lunge': 'Выпады со штангой',
+  'dumbbell lunges': 'Выпады с гантелями',
+  'dumbbell rear lunge': 'Обратные выпады с гантелями',
+  'split squat with dumbbells': 'Сплит-приседание с гантелями',
+  'barbell walking lunge': 'Ходьба выпадами со штангой',
+  'barbell step ups': 'Зашагивания со штангой',
+  'barbell hip thrust': 'Ягодичный мост со штангой',
+  'barbell glute bridge': 'Ягодичный мост лёжа со штангой',
+  'single leg glute bridge': 'Ягодичный мост на одной ноге',
+  'glute kickback': 'Отведение ноги назад',
+  'good morning': 'Наклоны со штангой',
+  'standing calf raises': 'Подъёмы на носки стоя',
+  'seated calf raise': 'Подъёмы на носки сидя',
+  'thigh abductor': 'Разведение ног в тренажёре',
+  'thigh adductor': 'Сведение ног в тренажёре',
+  'barbell shoulder press': 'Жим штанги над головой',
+  'seated barbell military press': 'Армейский жим сидя',
+  'standing military press': 'Армейский жим стоя',
+  'dumbbell shoulder press': 'Жим гантелей над головой',
+  'seated dumbbell press': 'Жим гантелей сидя',
+  'arnold dumbbell press': 'Жим Арнольда',
+  'side lateral raise': 'Разведение гантелей в стороны',
+  'front dumbbell raise': 'Подъём гантелей перед собой',
+  'reverse flyes': 'Разведение на заднюю дельту',
+  'reverse machine flyes': 'Обратная бабочка',
+  'upright barbell row': 'Тяга штанги к подбородку',
+  'barbell shrug': 'Шраги со штангой',
+  'dumbbell shrug': 'Шраги с гантелями',
+  'barbell curl': 'Сгибание рук со штангой',
+  'ez-bar curl': 'Сгибание рук с EZ-грифом',
+  'dumbbell bicep curl': 'Сгибание рук с гантелями',
+  'hammer curls': 'Молотковые сгибания',
+  'incline dumbbell curl': 'Сгибание гантелей на наклонной скамье',
+  'concentration curls': 'Концентрированные сгибания',
+  'preacher curl': 'Сгибание на скамье Скотта',
+  'triceps pushdown': 'Разгибание рук на блоке',
+  'triceps pushdown - rope attachment': 'Разгибание рук с канатом',
+  'bench dips': 'Обратные отжимания от скамьи',
+  'plank': 'Планка',
+  'side bridge': 'Боковая планка',
+  'crunches': 'Скручивания',
+  'cable crunch': 'Скручивания на верхнем блоке',
+  'reverse crunch': 'Обратные скручивания',
+  'hanging leg raise': 'Подъём ног в висе',
+  'dead bug': 'Мёртвый жук',
+  'russian twist': 'Русские скручивания',
+  'pallof press': 'Жим Палоффа',
+  'ab crunch machine': 'Скручивания в тренажёре',
+  'sit-up': 'Подъём корпуса',
+  'air bike': 'Велосипед для пресса',
+  'farmers walk': 'Прогулка фермера',
+};
 
 class ExerciseProgressionPoint {
   final String date;

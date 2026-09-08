@@ -1,6 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import 'package:gymboss/data/repositories/exercises_repository.dart';
+import 'package:gymboss/data/repositories/ranking_repository.dart';
+import 'package:gymboss/data/repositories/sessions_repository.dart';
 import 'package:gymboss/data/repositories/workouts_repository.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/domain/models/workouts/workout.dart';
@@ -16,6 +18,10 @@ import 'package:gymboss/ui/subscription/paywall_screen.dart';
 import 'package:gymboss/l10n/app_localizations.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/workout_editor.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/workout_detail.dart';
+import 'package:gymboss/ui/menu_options_list/workouts/widgets/training_plans.dart';
+import 'package:gymboss/ui/menu_options_list/workouts/widgets/workout_runner.dart';
+import 'package:gymboss/ui/menu_options_list/workouts/session/workout_session_controller.dart';
+import 'package:gymboss/ui/core/units/units_controller.dart';
 
 class Workouts extends StatefulWidget {
   const Workouts({super.key});
@@ -156,6 +162,84 @@ class _WorkoutsState extends State<Workouts> {
       ),
     );
     if (created == true) _load();
+  }
+
+  Future<void> _quickStart() async {
+    final available = _mine
+        .where((workout) => workout.type != 'aerobic')
+        .toList();
+    if (available.isEmpty) {
+      await _create();
+      return;
+    }
+    final chosen = await showCupertinoModalPopup<Workout>(
+      context: context,
+      builder: (sheetContext) => CupertinoActionSheet(
+        title: Text(
+          Localizations.localeOf(context).languageCode == 'ru'
+              ? 'Начать сейчас'
+              : 'Start now',
+        ),
+        message: Text(
+          Localizations.localeOf(context).languageCode == 'ru'
+              ? 'Без экрана деталей — план можно менять прямо во время тренировки.'
+              : 'Skip the detail screen. You can still change the plan while training.',
+        ),
+        actions: [
+          for (final workout in available.take(8))
+            CupertinoActionSheetAction(
+              onPressed: () => Navigator.pop(sheetContext, workout),
+              child: Text(workout.name),
+            ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(sheetContext);
+              _create();
+            },
+            child: Text(
+              Localizations.localeOf(context).languageCode == 'ru'
+                  ? 'Новая тренировка с нуля'
+                  : 'New workout from scratch',
+            ),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.pop(sheetContext),
+          child: Text(AppLocalizations.of(context).cancel),
+        ),
+      ),
+    );
+    if (chosen == null || !mounted) return;
+    final controller = context.read<WorkoutSessionController>();
+    if (controller.isActive && !controller.isFinished) {
+      controller.resume();
+      await Navigator.of(
+        context,
+        rootNavigator: true,
+      ).push(CupertinoPageRoute(builder: (_) => const WorkoutRunnerScreen()));
+      return;
+    }
+    try {
+      final workout = await _repo.get(chosen.id);
+      if (!mounted) return;
+      final client = context.read<AuthenticatedClient>();
+      controller.start(
+        workout: workout,
+        difficulty: 'normal',
+        exercises: _exercises,
+        ranking: RankingRepository(client: client),
+        sessions: SessionsRepository(client: client),
+        workouts: _repo,
+        units: context.read<UnitsController>(),
+      );
+      await Navigator.of(
+        context,
+        rootNavigator: true,
+      ).push(CupertinoPageRoute(builder: (_) => const WorkoutRunnerScreen()));
+      if (mounted) _load(spinner: false);
+    } catch (error) {
+      if (mounted) await _showActionError(error);
+    }
   }
 
   Future<void> _openPaywall() => Navigator.of(
@@ -354,6 +438,20 @@ class _WorkoutsState extends State<Workouts> {
     return AppPage(
       title: AppLocalizations.of(context).workouts,
       actions: [
+        CupertinoButton(
+          padding: EdgeInsets.zero,
+          minimumSize: const Size(44, 44),
+          onPressed: _quickStart,
+          child: Icon(CupertinoIcons.bolt_fill, size: 20, color: c.accent),
+        ),
+        CupertinoButton(
+          padding: EdgeInsets.zero,
+          minimumSize: const Size(44, 44),
+          onPressed: () => Navigator.of(context, rootNavigator: true).push(
+            CupertinoPageRoute(builder: (_) => const TrainingPlansScreen()),
+          ),
+          child: Icon(CupertinoIcons.calendar, size: 22, color: c.accent),
+        ),
         CupertinoButton(
           padding: EdgeInsets.zero,
           minimumSize: const Size(44, 44),

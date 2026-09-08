@@ -287,6 +287,9 @@ class _ExercisePickerState extends State<ExercisePicker> {
                               const SizedBox(height: 8),
                           itemBuilder: (_, i) {
                             final e = filtered[i];
+                            final localizedName = e.displayName(
+                              Localizations.localeOf(context).languageCode,
+                            );
                             return GestureDetector(
                               onTap: () => _select(e),
                               child: Container(
@@ -319,7 +322,7 @@ class _ExercisePickerState extends State<ExercisePicker> {
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            e.name,
+                                            localizedName,
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                             style: TextStyle(
@@ -344,8 +347,8 @@ class _ExercisePickerState extends State<ExercisePicker> {
                                     ),
                                     Pressable(
                                       semanticLabel: _favoriteIds.contains(e.id)
-                                          ? 'Remove ${e.name} from favorites'
-                                          : 'Add ${e.name} to favorites',
+                                          ? 'Remove $localizedName from favorites'
+                                          : 'Add $localizedName to favorites',
                                       onTap: () => _toggleFavorite(e.id),
                                       child: SizedBox(
                                         width: 44,

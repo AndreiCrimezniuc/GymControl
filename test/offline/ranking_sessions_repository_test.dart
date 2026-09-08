@@ -45,7 +45,7 @@ void main() {
 
     expect(profile.weightKg, 82);
     expect((await ranking.getProfile()).heightCm, 180);
-    expect((await sessions.getStreakData()).currentStreakWeeks, 0);
+    expect((await sessions.getStreakData()).currentStreakWorkouts, 0);
     expect(store.pending().map((mutation) => mutation.kind), [
       'ranking.profile',
       'ranking.lift',

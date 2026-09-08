@@ -34,7 +34,7 @@
   "register": "Register",
   "alreadyAccount": "Already have an account? ",
   "explore": "Explore",
-  "weekStreak": "WEEK STREAK",
+  "weekStreak": "TRAINING CHAIN",
   "nextGoal": "NEXT GOAL",
   "routines": "ROUTINES",
   "workouts": "Workouts",
@@ -151,7 +151,7 @@
   ,"passportHighestClassBody": "Your recorded benchmark movements have reached the top issued class."
   ,"workoutComplete": "Workout complete"
   ,"sessionSealed": "SESSION SEALED"
-  ,"sessionSealedBody": "Saved on this device. Weekly streak and supported benchmark lifts will sync into your Strength Passport."
+  ,"sessionSealedBody": "Saved on this device. Your training chain and supported benchmark lifts will sync into your Strength Passport."
   ,"setLogged": "{count, plural, =1{SET LOGGED} other{SETS LOGGED}}", "@setLogged": {"placeholders": {"count": {"type": "int"}}}
   ,"volumeLifted": "VOLUME LIFTED"
   ,"done": "DONE"

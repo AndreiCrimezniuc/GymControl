@@ -8,6 +8,7 @@ import 'package:gymboss/data/repositories/workouts_repository.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/domain/models/exercises/exercise_catalog.dart';
 import 'package:gymboss/domain/models/workouts/workout.dart';
+import 'package:gymboss/domain/models/training/training_prescription.dart';
 import 'package:gymboss/l10n/app_localizations.dart';
 import 'package:gymboss/ui/menu_options_list/exercises/widgets/exercises.dart';
 import 'package:gymboss/ui/core/theme/app_colors.dart';
@@ -23,6 +24,7 @@ import 'package:gymboss/ui/menu_options_list/workouts/widgets/workout_editor.dar
 import 'package:gymboss/ui/menu_options_list/workouts/session/workout_session_controller.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/session/aerobic_runner.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/workout_runner.dart';
+import 'package:gymboss/ui/menu_options_list/workouts/widgets/completed_session_editor.dart';
 import 'package:gymboss/ui/subscription/paywall_screen.dart';
 
 const _modes = ['normal', 'deload'];
@@ -112,6 +114,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   bool _loading = true;
   String? _error;
   String _difficulty = 'normal'; // 'normal' | 'deload'
+  EnergyMode _energy = EnergyMode.full;
   bool _suggesting = false;
 
   @override
@@ -196,7 +199,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
       if (mounted) _load();
       return;
     }
-    final configured = await _configureExercises(_w!);
+    final configured = await _configureExercises(_w!.forEnergy(_energy));
     if (!mounted || configured == null) return;
     session.start(
       workout: configured,
@@ -664,6 +667,8 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
               if (w.type != 'aerobic') ...[
                 _difficultyPicker(c),
                 const SizedBox(height: 8),
+                _energyPicker(c),
+                const SizedBox(height: 8),
                 _potentialVolumeLine(c),
                 const SizedBox(height: 16),
               ],
@@ -825,6 +830,46 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
         },
       );
 
+  Widget _energyPicker(AppColors colors) {
+    final russian = Localizations.localeOf(context).languageCode == 'ru';
+    final labels = russian
+        ? const {
+            EnergyMode.full: 'Полная',
+            EnergyMode.reduced: 'Меньше сил',
+            EnergyMode.minimum: 'Минимум',
+          }
+        : const {
+            EnergyMode.full: 'Full',
+            EnergyMode.reduced: 'Low energy',
+            EnergyMode.minimum: 'Minimum',
+          };
+    return CupertinoSlidingSegmentedControl<EnergyMode>(
+      groupValue: _energy,
+      backgroundColor: colors.iconBg,
+      thumbColor: colors.card,
+      onValueChanged: (value) {
+        HapticFeedback.selectionClick();
+        setState(() => _energy = value ?? EnergyMode.full);
+      },
+      children: {
+        for (final mode in EnergyMode.values)
+          mode: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 7),
+            child: Text(
+              labels[mode]!,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: mode == _energy
+                    ? colors.textPrimary
+                    : colors.textSecondary,
+              ),
+            ),
+          ),
+      },
+    );
+  }
+
   Widget _potentialVolumeLine(AppColors c) {
     // The stored plan lives under the legacy 'medium' key; Deload scales it.
     final base = _stats?.potentialVolume['medium'] ?? 0;
@@ -878,7 +923,9 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
           ),
           const SizedBox(width: 8),
           Text(
-            'START WORKOUT · ${_diffLabels[_difficulty]!.toUpperCase()}',
+            _energy == EnergyMode.full
+                ? 'START WORKOUT · ${_diffLabels[_difficulty]!.toUpperCase()}'
+                : 'START · ${_energy == EnergyMode.minimum ? 'MINIMUM' : 'LOW ENERGY'}',
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w800,
@@ -1619,6 +1666,14 @@ class _RunDetailScreenState extends State<_RunDetailScreen> {
     final totalVol = items.fold<double>(0, (a, e) => a + e.volumeKg);
     return AppPage(
       title: widget.date,
+      actions: [
+        if (!_loading && items.isNotEmpty && widget.sessionId.isNotEmpty)
+          CupertinoButton(
+            padding: EdgeInsets.zero,
+            onPressed: _edit,
+            child: const Icon(CupertinoIcons.pencil, size: 20),
+          ),
+      ],
       body: _loading
           ? const Center(child: CupertinoActivityIndicator())
           : items.isEmpty
@@ -1647,6 +1702,37 @@ class _RunDetailScreenState extends State<_RunDetailScreen> {
               ],
             ),
     );
+  }
+
+  Future<void> _edit() async {
+    final items = _items;
+    if (items == null || items.isEmpty) return;
+    final changed = await Navigator.of(context).push<bool>(
+      CupertinoPageRoute(
+        builder: (_) => CompletedSessionEditor(
+          workoutId: widget.workoutId,
+          sessionId: widget.sessionId,
+          date: widget.date,
+          difficulty: widget.difficulty,
+          exercises: items,
+          repository: widget.repo,
+        ),
+      ),
+    );
+    if (changed == true && mounted) {
+      setState(() => _loading = true);
+      try {
+        final fresh = await widget.repo.runDetail(
+          widget.workoutId,
+          widget.date,
+          sessionId: widget.sessionId,
+          forceRefresh: true,
+        );
+        if (mounted) setState(() => _items = fresh);
+      } finally {
+        if (mounted) setState(() => _loading = false);
+      }
+    }
   }
 
   Widget _summaryTile(AppColors c, String value, String label) => Expanded(

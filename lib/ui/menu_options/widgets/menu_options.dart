@@ -137,10 +137,10 @@ class _MenuOptionsState extends State<MenuOptions> {
   Widget build(BuildContext context) {
     final c = context.colors;
     final l10n = AppLocalizations.of(context);
-    final weeks = _streak.currentStreakWeeks;
-    final nextMilestone = _streak.nextMilestoneWeeks;
+    final chain = _streak.currentStreakWorkouts;
+    final nextMilestone = _streak.nextMilestoneWorkouts;
     final nextMilestoneLabel =
-        '$nextMilestone ${_weekWord(context, nextMilestone)}';
+        '$nextMilestone ${_workoutWord(context, nextMilestone)}';
 
     return AppScaffold(
       child: MediaQuery.withClampedTextScaling(
@@ -175,7 +175,7 @@ class _MenuOptionsState extends State<MenuOptions> {
               onTap: () => _showYearCalendar(context),
               child: _StatStrip(
                 segments: [
-                  ('$weeks', l10n.weekStreak),
+                  ('$chain', l10n.weekStreak),
                   (nextMilestoneLabel, l10n.nextGoal),
                   ('$_workouts', l10n.routines),
                 ],
@@ -1025,7 +1025,7 @@ class _YearCalendarSheet extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            '$year  •  ${streak.currentStreakWeeks} ${_weekWord(context, streak.currentStreakWeeks)} ${russian ? 'подряд' : 'streak'}',
+            '$year  •  ${streak.currentStreakWorkouts} ${_workoutWord(context, streak.currentStreakWorkouts)} ${russian ? 'в цепочке' : 'in chain'}',
             style: TextStyle(
               color: c.textPrimary,
               fontSize: 16,
@@ -1077,6 +1077,19 @@ String _weekWord(BuildContext context, int value) {
     return 'недели';
   }
   return 'недель';
+}
+
+String _workoutWord(BuildContext context, int value) {
+  if (Localizations.localeOf(context).languageCode != 'ru') {
+    return value == 1 ? 'workout' : 'workouts';
+  }
+  final mod10 = value % 10;
+  final mod100 = value % 100;
+  if (mod10 == 1 && mod100 != 11) return 'тренировка';
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
+    return 'тренировки';
+  }
+  return 'тренировок';
 }
 
 class _WeekGrid extends StatelessWidget {

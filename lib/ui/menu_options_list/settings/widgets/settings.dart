@@ -9,17 +9,20 @@ import 'package:gymboss/data/repositories/ranking_repository.dart';
 import 'package:gymboss/data/sync/sync_service.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/domain/models/ranking/rank_data.dart';
+import 'package:gymboss/domain/models/training/training_prescription.dart';
 import 'package:gymboss/l10n/app_localizations.dart';
 import 'package:gymboss/ui/auth/view_model/auth_view_model.dart';
 import 'package:gymboss/ui/core/locale/locale_controller.dart';
 import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/units/units_controller.dart';
+import 'package:gymboss/ui/core/training/training_preferences_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_dialog.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
 import 'package:gymboss/ui/core/subscription/pro_controller.dart';
 import 'package:gymboss/ui/subscription/paywall_screen.dart';
 import 'package:gymboss/ui/menu_options_list/settings/widgets/body_measurements_screen.dart';
+import 'package:gymboss/ui/menu_options_list/settings/widgets/data_portability_screen.dart';
 
 class Settings extends StatefulWidget {
   const Settings({super.key});
@@ -273,11 +276,29 @@ class _SettingsState extends State<Settings> {
           ],
           _Section(title: l.sectionLanguage, children: [const _LanguageTile()]),
           const SizedBox(height: 20),
+          _Section(
+            title: Localizations.localeOf(context).languageCode == 'ru'
+                ? 'Расчёты тренировки'
+                : 'Training calculations',
+            children: [const _FormulaTile()],
+          ),
+          const SizedBox(height: 20),
           _Section(title: l.syncLedger, children: [const _SyncLedgerTile()]),
           const SizedBox(height: 20),
           _Section(
             title: l.sectionAccount,
             children: [
+              _SettingsTile(
+                icon: CupertinoIcons.arrow_up_arrow_down_circle_fill,
+                label: Localizations.localeOf(context).languageCode == 'ru'
+                    ? 'Импорт и экспорт данных'
+                    : 'Import & export data',
+                onTap: () => Navigator.of(context, rootNavigator: true).push(
+                  CupertinoPageRoute(
+                    builder: (_) => const DataPortabilityScreen(),
+                  ),
+                ),
+              ),
               _SettingsTile(
                 icon: CupertinoIcons.bell_fill,
                 label: l.labelNotifications,
@@ -410,6 +431,71 @@ class _SyncLedgerTile extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _FormulaTile extends StatelessWidget {
+  const _FormulaTile();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final preferences = context.watch<TrainingPreferencesController>();
+    final russian = Localizations.localeOf(context).languageCode == 'ru';
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      onPressed: () async {
+        final selected = await showCupertinoModalPopup<OneRmFormula>(
+          context: context,
+          builder: (sheetContext) => CupertinoActionSheet(
+            title: Text(russian ? 'Формула расчёта 1RM' : '1RM formula'),
+            message: Text(
+              russian
+                  ? 'Меняет оценки в аналитике и веса программ, но не исходные записи.'
+                  : 'Changes estimates and programmed percentages, never raw records.',
+            ),
+            actions: [
+              for (final formula in OneRmFormula.values)
+                CupertinoActionSheetAction(
+                  isDefaultAction: formula == preferences.formula,
+                  onPressed: () => Navigator.pop(sheetContext, formula),
+                  child: Text(formula.label),
+                ),
+            ],
+            cancelButton: CupertinoActionSheetAction(
+              onPressed: () => Navigator.pop(sheetContext),
+              child: Text(AppLocalizations.of(context).cancel),
+            ),
+          ),
+        );
+        if (selected != null) await preferences.setFormula(selected);
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Icon(CupertinoIcons.function, size: 18, color: colors.accent),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                russian ? 'Формула расчёта 1RM' : 'Estimated 1RM formula',
+                style: TextStyle(fontSize: 15, color: colors.textPrimary),
+              ),
+            ),
+            Text(
+              preferences.formula.label,
+              style: TextStyle(fontSize: 14, color: colors.textSecondary),
+            ),
+            const SizedBox(width: 6),
+            Icon(
+              CupertinoIcons.chevron_forward,
+              size: 14,
+              color: colors.textSecondary,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

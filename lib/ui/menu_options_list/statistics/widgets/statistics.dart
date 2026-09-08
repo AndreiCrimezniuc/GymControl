@@ -104,10 +104,10 @@ class _StatisticsState extends State<Statistics> {
                       Row(
                         children: [
                           _StatTile(
-                            value: '${_streak.currentStreakWeeks}',
-                            unit: _weekWord(
+                            value: '${_streak.currentStreakWorkouts}',
+                            unit: _workoutWord(
                               context,
-                              _streak.currentStreakWeeks,
+                              _streak.currentStreakWorkouts,
                             ),
                             title: l10n.streak,
                             icon: CupertinoIcons.flame_fill,
@@ -1335,15 +1335,15 @@ class _PeriodToggle extends StatelessWidget {
   }
 }
 
-String _weekWord(BuildContext context, int value) {
+String _workoutWord(BuildContext context, int value) {
   if (Localizations.localeOf(context).languageCode != 'ru') {
-    return value == 1 ? 'week' : 'weeks';
+    return value == 1 ? 'workout' : 'workouts';
   }
   final mod10 = value % 10;
   final mod100 = value % 100;
-  if (mod10 == 1 && mod100 != 11) return 'неделя';
+  if (mod10 == 1 && mod100 != 11) return 'тренировка';
   if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
-    return 'недели';
+    return 'тренировки';
   }
-  return 'недель';
+  return 'тренировок';
 }

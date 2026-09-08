@@ -111,7 +111,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get explore => 'Explore';
 
   @override
-  String get weekStreak => 'WEEK STREAK';
+  String get weekStreak => 'TRAINING CHAIN';
 
   @override
   String get nextGoal => 'NEXT GOAL';
@@ -507,7 +507,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sessionSealedBody =>
-      'Saved on this device. Weekly streak and supported benchmark lifts will sync into your Strength Passport.';
+      'Saved on this device. Your training chain and supported benchmark lifts will sync into your Strength Passport.';
 
   @override
   String setLogged(int count) {

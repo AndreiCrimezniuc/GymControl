@@ -26,20 +26,21 @@ class SessionsRepository {
     _registerHandlers();
   }
 
-  Future<void> recordSession({DateTime? performedAt}) async {
+  Future<void> recordSession({DateTime? performedAt, String? sessionId}) async {
     final now = performedAt ?? DateTime.now();
     final sessionDate =
         '${now.year.toString().padLeft(4, '0')}-'
         '${now.month.toString().padLeft(2, '0')}-'
         '${now.day.toString().padLeft(2, '0')}';
-    // The deterministic id deduplicates one streak marker per local day in O(1)
-    // without scanning a potentially large offline outbox.
+    final durableId = sessionId?.trim().isNotEmpty == true
+        ? sessionId!.trim()
+        : 'legacy:$sessionDate';
     await _store.enqueue(
       Mutation(
-        id: 'session:$sessionDate',
+        id: 'session:$durableId',
         seq: _store.nextSeq(),
         kind: 'session.record',
-        args: {'session_date': sessionDate},
+        args: {'session_date': sessionDate, 'session_id': durableId},
       ),
     );
     SyncService.instance.flushSoon();

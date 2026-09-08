@@ -111,7 +111,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get explore => 'Разделы';
 
   @override
-  String get weekStreak => 'НЕДЕЛЬ ПОДРЯД';
+  String get weekStreak => 'ТРЕНИРОВОЧНАЯ ЦЕПОЧКА';
 
   @override
   String get nextGoal => 'СЛЕДУЮЩАЯ ЦЕЛЬ';
@@ -510,7 +510,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get sessionSealedBody =>
-      'Сохранено на устройстве. Недельная серия и поддерживаемые контрольные упражнения синхронизируются с Силовым паспортом.';
+      'Сохранено на устройстве. Тренировочная цепочка и поддерживаемые контрольные упражнения синхронизируются с Силовым паспортом.';
 
   @override
   String setLogged(int count) {

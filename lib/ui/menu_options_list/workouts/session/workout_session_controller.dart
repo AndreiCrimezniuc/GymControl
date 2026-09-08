@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:gymboss/data/repositories/exercises_repository.dart';
@@ -7,9 +8,11 @@ import 'package:gymboss/data/repositories/ranking_repository.dart';
 import 'package:gymboss/data/repositories/sessions_repository.dart';
 import 'package:gymboss/data/repositories/workouts_repository.dart';
 import 'package:gymboss/domain/models/json_readers.dart';
+import 'package:gymboss/domain/models/exercises/exercise_catalog.dart';
 import 'package:gymboss/domain/models/workouts/workout.dart';
 import 'package:gymboss/domain/models/workouts/workout_debrief.dart';
 import 'package:gymboss/domain/models/ranking/passport_lift_matcher.dart';
+import 'package:gymboss/domain/models/training/training_prescription.dart';
 import 'package:gymboss/ui/core/units/units_controller.dart';
 import 'package:gymboss/ui/core/input/numeric_limit_formatter.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/session/workout_calculators.dart';
@@ -86,6 +89,7 @@ class SessionExercise {
   final int restSeconds;
   final List<SessionSet> sets;
   String note;
+  String memory;
   String? trainingGroupId;
   String trainingGroupType;
   SessionExercise({
@@ -98,6 +102,7 @@ class SessionExercise {
     required this.restSeconds,
     required this.sets,
     this.note = '',
+    this.memory = '',
     this.trainingGroupId,
     this.trainingGroupType = '',
   });
@@ -253,6 +258,7 @@ class WorkoutSessionController extends ChangeNotifier {
       );
       notifyListeners();
       _loadPrs();
+      _loadPreviousValues();
       return true;
     } catch (_) {
       await prefs.remove(_storageKey);
@@ -330,6 +336,13 @@ class WorkoutSessionController extends ChangeNotifier {
   void _loadPreviousValues() {
     for (final group in _groups) {
       _exercises
+          .getPersistentNote(group.exerciseId)
+          .then((note) {
+            group.memory = note;
+            if (_active) notifyListeners();
+          })
+          .catchError((_) {});
+      _exercises
           .getHistory(group.exerciseId)
           .then((history) {
             if (history.isEmpty) return;
@@ -341,9 +354,55 @@ class WorkoutSessionController extends ChangeNotifier {
               target.previousReps = source.reps;
               target.previousRpe = source.rpe;
             }
+            _applyProgressionRule(group, previous);
             if (_active) notifyListeners();
           })
           .catchError((_) {});
+    }
+  }
+
+  void _applyProgressionRule(
+    SessionExercise group,
+    List<ExerciseHistorySet> previous,
+  ) {
+    final workout = _workout;
+    if (workout == null || _difficulty == 'deload') return;
+    final exercise = workout.exercises.cast<WorkoutExercise?>().firstWhere(
+      (item) => item?.exerciseId == group.exerciseId,
+      orElse: () => null,
+    );
+    if (exercise == null || exercise.progressionRuleType == 'manual') return;
+    final working = previous.where((set) => set.setType != 'warmup').toList();
+    if (working.isEmpty) return;
+    final type = switch (exercise.progressionRuleType) {
+      'fixed_increment' => ProgressionRuleType.fixedIncrement,
+      'double_progression' => ProgressionRuleType.doubleProgression,
+      'percent_1rm' => ProgressionRuleType.percentOneRm,
+      _ => ProgressionRuleType.none,
+    };
+    final best = working.reduce((a, b) => a.weightKg > b.weightKg ? a : b);
+    final estimatedOneRm = working
+        .map((set) => OneRmFormula.epley.estimate(set.weightKg, set.reps))
+        .fold<double>(0, math.max);
+    final suggestion =
+        ProgressionRule(
+          type: type,
+          incrementKg: exercise.progressionIncrementKg,
+          minReps: exercise.progressionRepMin,
+          maxReps: exercise.progressionRepMax,
+          percentOneRm: exercise.progressionPercentOneRm,
+          maxRpeToAdvance: exercise.progressionTargetRpe,
+        ).suggest(
+          previousWeightKg: best.weightKg,
+          completedReps: working.map((set) => set.reps).toList(),
+          rpe: working.map((set) => set.rpe).toList(),
+          estimatedOneRmKg: estimatedOneRm,
+        );
+    for (final set in group.sets.where((set) => set.type != 'warmup')) {
+      if (set.done) continue;
+      set.weight = _fmt(_units.fromKg(suggestion.weightKg));
+      set.reps = '${suggestion.targetReps}';
+      if (suggestion.advanced) set.progression = 'weight';
     }
   }
 
@@ -380,7 +439,7 @@ class WorkoutSessionController extends ChangeNotifier {
                 final w0 = s.weightKg * scale;
                 return SessionSet(
                   exerciseId: ex.exerciseId,
-                  restSeconds: ex.restSeconds,
+                  restSeconds: s.restSeconds ?? ex.restSeconds,
                   plannedWeightKg: w0,
                   plannedReps: s.reps,
                   weight: w0 == 0 ? '' : _fmt(units.fromKg(w0)),
@@ -657,27 +716,41 @@ class WorkoutSessionController extends ChangeNotifier {
     if (workout == null || !_routineChanged) return;
     final exercises = [
       for (final group in _groups)
-        WorkoutExercise(
-          exerciseId: group.exerciseId,
-          name: group.name,
-          imageUrl: group.imageUrl,
-          imageUrl2: group.imageUrl2,
-          muscleGroup: group.muscleGroup,
-          exerciseType: group.exerciseType,
-          trainingGroupId: group.trainingGroupId,
-          trainingGroupType: group.trainingGroupType,
-          restSeconds: group.restSeconds,
-          comment: group.note,
-          sets: [
-            for (final set in group.sets)
-              WorkoutSet(
-                difficulty: 'medium',
-                weightKg: _units.toKg(clampWorkoutDecimal(set.weight)),
-                reps: clampWorkoutInteger(set.reps),
-                setType: set.type,
-              ),
-          ],
-        ),
+        () {
+          final original = workout.exercises
+              .cast<WorkoutExercise?>()
+              .firstWhere(
+                (exercise) => exercise?.exerciseId == group.exerciseId,
+                orElse: () => null,
+              );
+          return WorkoutExercise(
+            exerciseId: group.exerciseId,
+            name: group.name,
+            imageUrl: group.imageUrl,
+            imageUrl2: group.imageUrl2,
+            muscleGroup: group.muscleGroup,
+            exerciseType: group.exerciseType,
+            trainingGroupId: group.trainingGroupId,
+            trainingGroupType: group.trainingGroupType,
+            progressionRuleType: original?.progressionRuleType ?? 'manual',
+            progressionIncrementKg: original?.progressionIncrementKg ?? 2.5,
+            progressionRepMin: original?.progressionRepMin ?? 6,
+            progressionRepMax: original?.progressionRepMax ?? 10,
+            progressionTargetRpe: original?.progressionTargetRpe ?? 8.5,
+            progressionPercentOneRm: original?.progressionPercentOneRm ?? 75,
+            restSeconds: group.restSeconds,
+            comment: group.note,
+            sets: [
+              for (final set in group.sets)
+                WorkoutSet(
+                  difficulty: 'medium',
+                  weightKg: _units.toKg(clampWorkoutDecimal(set.weight)),
+                  reps: clampWorkoutInteger(set.reps),
+                  setType: set.type,
+                ),
+            ],
+          );
+        }(),
     ];
     _workout = await _workouts.update(
       workout.id,
@@ -795,7 +868,10 @@ class WorkoutSessionController extends ChangeNotifier {
       sessionId: _sessionId,
       performedAt: _startedAt,
     );
-    await _sessions.recordSession(performedAt: _startedAt);
+    await _sessions.recordSession(
+      performedAt: _startedAt,
+      sessionId: _sessionId,
+    );
     HapticFeedback.heavyImpact();
     _finished = true;
     _minimized = false;
@@ -921,6 +997,7 @@ class WorkoutSessionController extends ChangeNotifier {
       max: 86400,
     ),
     note: jsonString(data['note']),
+    memory: jsonString(data['memory']),
     trainingGroupId: jsonNullableString(data['training_group_id']),
     trainingGroupType: jsonString(data['training_group_type']),
     sets: jsonObjectList(data['sets'], (set) {
@@ -978,6 +1055,7 @@ class WorkoutSessionController extends ChangeNotifier {
             'image_url2': group.imageUrl2,
             'rest_seconds': group.restSeconds,
             'note': group.note,
+            'memory': group.memory,
             'training_group_id': group.trainingGroupId,
             'training_group_type': group.trainingGroupType,
             'sets': group.sets

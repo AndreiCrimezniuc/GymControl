@@ -305,7 +305,7 @@ abstract class AppLocalizations {
   /// No description provided for @weekStreak.
   ///
   /// In en, this message translates to:
-  /// **'WEEK STREAK'**
+  /// **'TRAINING CHAIN'**
   String get weekStreak;
 
   /// No description provided for @nextGoal.
@@ -995,7 +995,7 @@ abstract class AppLocalizations {
   /// No description provided for @sessionSealedBody.
   ///
   /// In en, this message translates to:
-  /// **'Saved on this device. Weekly streak and supported benchmark lifts will sync into your Strength Passport.'**
+  /// **'Saved on this device. Your training chain and supported benchmark lifts will sync into your Strength Passport.'**
   String get sessionSealedBody;
 
   /// No description provided for @setLogged.
