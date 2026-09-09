@@ -96,7 +96,15 @@ class HistoryCsvParser {
             : weightIndex,
       ).replaceAll(',', '.');
       final weight = double.tryParse(rawWeight);
-      if (exercise.isEmpty || date == null || reps == null || weight == null) {
+      if (exercise.isEmpty ||
+          date == null ||
+          reps == null ||
+          reps < 1 ||
+          reps > 1000 ||
+          weight == null ||
+          !weight.isFinite ||
+          weight < 0 ||
+          weight > 2000) {
         skipped++;
         continue;
       }
@@ -106,7 +114,17 @@ class HistoryCsvParser {
       if (kilogramsIndex >= 0) unit = 'kg';
       if (unit == 'lbs' || unit == 'pound' || unit == 'pounds') unit = 'lb';
       if (unit != 'lb') unit = 'kg';
-      final rawRpe = double.tryParse(cell(rpeIndex).replaceAll(',', '.'));
+      final rpeCell = cell(rpeIndex).replaceAll(',', '.');
+      final parsedRpe = double.tryParse(rpeCell);
+      if (rpeCell.isNotEmpty &&
+          (parsedRpe == null ||
+              !parsedRpe.isFinite ||
+              parsedRpe < 6 ||
+              parsedRpe > 10)) {
+        skipped++;
+        continue;
+      }
+      final rawRpe = parsedRpe;
       final workoutName = cell(
         workoutIndex >= 0 ? workoutIndex : fallbackTitleIndex,
       );
@@ -126,7 +144,7 @@ class HistoryCsvParser {
         // all sets from one workout must remain one session.
         'session_key': sourceSession.isNotEmpty
             ? sourceSession
-            : '${rawDate.toLowerCase()}|${workoutName.toLowerCase()}',
+            : '$day|${workoutName.toLowerCase()}',
         'source_row': rowIndex,
       });
       if (result.length > 5000) {
@@ -171,6 +189,9 @@ class HistoryCsvParser {
         row.add(field.toString());
         field = StringBuffer();
         rows.add(row);
+        if (rows.length > 5001) {
+          throw const FormatException('A single import is limited to 5000 sets');
+        }
         row = <String>[];
       } else {
         field.write(char);
@@ -180,6 +201,9 @@ class HistoryCsvParser {
     if (field.isNotEmpty || row.isNotEmpty) {
       row.add(field.toString());
       rows.add(row);
+      if (rows.length > 5001) {
+        throw const FormatException('A single import is limited to 5000 sets');
+      }
     }
     return rows;
   }
@@ -223,7 +247,10 @@ class HistoryCsvParser {
     final year = int.parse(match.group(3)!);
     // Strong commonly emits DD/MM/YYYY. For an ambiguous date this is a
     // deliberate European default; ISO dates remain unambiguous above.
-    return DateTime(year, second, first);
+    final parsed = DateTime(year, second, first);
+    return parsed.year == year && parsed.month == second && parsed.day == first
+        ? parsed
+        : null;
   }
 
   static String _isoDay(DateTime date) =>

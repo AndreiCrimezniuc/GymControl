@@ -135,13 +135,15 @@ class TrainingProgram {
 
   ScheduledWorkout? nextWorkout(DateTime now) {
     final today = DateTime(now.year, now.month, now.day);
+    ScheduledWorkout? next;
     for (final item in schedule) {
       final date = item.date;
       if (item.status == 'planned' && date != null && !date.isBefore(today)) {
-        return item;
+        final nextDate = next?.date;
+        if (nextDate == null || date.isBefore(nextDate)) next = item;
       }
     }
-    return null;
+    return next;
   }
 
   static TrainingProgram progressiveTemplate({

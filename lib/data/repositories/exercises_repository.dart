@@ -523,8 +523,20 @@ class ExercisesRepository {
     await _store.deleteDoc(_catalogCollection, '$id');
     await _store.removeFromList(_catalogKey, '$id');
     if (id < 0) {
-      await _store.cancelPendingFor('$id');
-      return;
+      final dependedOn = _store.hasPendingReference(
+        '$id',
+        ignoringKinds: const {
+          'exercise.createCustom',
+          'exercise.updateCustom',
+          'exercise.note',
+        },
+      );
+      if (!dependedOn) {
+        await _store.cancelPendingFor('$id');
+        return;
+      }
+      // Preserve create -> dependent workout/log -> archive ordering. The
+      // normal temp-id remap rewrites this archive mutation to the server id.
     }
     await _store.enqueue(
       Mutation(

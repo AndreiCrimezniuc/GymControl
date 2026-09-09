@@ -117,6 +117,7 @@ class WorkoutSessionController extends ChangeNotifier {
   static const maxTotalSets = 500;
   static const _storageKey = 'active_workout_session_v1';
   static const _snapshotVersion = 2;
+  OneRmFormula _oneRmFormula;
   Workout? _workout;
   String _difficulty = 'normal'; // 'normal' | 'deload'
   bool _active = false;
@@ -146,6 +147,13 @@ class WorkoutSessionController extends ChangeNotifier {
   late SessionsRepository _sessions;
   late WorkoutsRepository _workouts;
   late UnitsController _units;
+
+  WorkoutSessionController({OneRmFormula oneRmFormula = OneRmFormula.epley})
+    : _oneRmFormula = oneRmFormula;
+
+  void setOneRmFormula(OneRmFormula formula) {
+    _oneRmFormula = formula;
+  }
 
   // ── getters ────────────────────────────────────────────────────────────────
   bool get isActive => _active;
@@ -382,7 +390,7 @@ class WorkoutSessionController extends ChangeNotifier {
     };
     final best = working.reduce((a, b) => a.weightKg > b.weightKg ? a : b);
     final estimatedOneRm = working
-        .map((set) => OneRmFormula.epley.estimate(set.weightKg, set.reps))
+        .map((set) => _oneRmFormula.estimate(set.weightKg, set.reps))
         .fold<double>(0, math.max);
     final suggestion =
         ProgressionRule(

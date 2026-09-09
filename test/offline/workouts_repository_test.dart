@@ -10,6 +10,7 @@ import 'package:gymboss/data/repositories/workouts_repository.dart';
 import 'package:gymboss/data/services/auth/auth_service.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/data/services/auth/token_storage.dart';
+import 'package:gymboss/domain/models/workouts/workout.dart';
 
 void main() {
   final store = LocalStore.instance;
@@ -133,6 +134,39 @@ void main() {
     expect(store.pending().single.kind, 'workout.run');
   });
 
+  test('retrying one durable session cannot double-count its run', () async {
+    await store.putDoc('workout', 'w1', {
+      'id': 'w1',
+      'name': 'Run',
+      'times_performed': 0,
+      'exercises': <Object>[],
+    });
+    await store.putDoc('workout_stats', 'w1', {
+      'times_performed': 0,
+      'potential_volume': <String, Object>{},
+      'history': <Object>[],
+    });
+    final client = AuthenticatedClient(
+      storage: TokenStorage(),
+      authService: AuthService(),
+      inner: MockClient((_) async => throw const SocketException('offline')),
+    );
+    addTearDown(client.dispose);
+    final repository = WorkoutsRepository(
+      client: client,
+      isOnline: () async => false,
+    );
+    const sessionId = '10000000-0000-0000-0000-000000000001';
+
+    await repository.logRun('w1', 'normal', sessionId: sessionId);
+    await repository.logRun('w1', 'normal', sessionId: sessionId);
+
+    expect(store.getDoc('workout', 'w1')?['times_performed'], 1);
+    expect(store.getDoc('workout_stats', 'w1')?['times_performed'], 1);
+    expect(store.pending(), hasLength(1));
+    expect(store.pending().single.args['operation_id'], sessionId);
+  });
+
   test(
     'folder creation and assignment accumulate in the outbox offline',
     () async {
@@ -170,4 +204,89 @@ void main() {
       ]);
     },
   );
+
+  test('offline workout preserves advanced programming metadata', () async {
+    final client = AuthenticatedClient(
+      storage: TokenStorage(),
+      authService: AuthService(),
+      inner: MockClient((_) async => throw const SocketException('offline')),
+    );
+    addTearDown(client.dispose);
+    final repository = WorkoutsRepository(
+      client: client,
+      isOnline: () async => false,
+    );
+    const exercise = WorkoutExercise(
+      exerciseId: 7,
+      name: 'Bench press',
+      imageUrl: '/bench.png',
+      imageUrl2: '/bench-2.png',
+      muscleGroup: 'Chest',
+      exerciseType: 'weight_reps',
+      trainingGroupId: 'circuit-a',
+      trainingGroupType: 'circuit',
+      isOptional: true,
+      alternativeGroupId: 'choice-a',
+      progressionRuleType: 'double_progression',
+      progressionIncrementKg: 2.5,
+      progressionRepMin: 6,
+      progressionRepMax: 10,
+      progressionTargetRpe: 8,
+      restSeconds: 90,
+      comment: 'Controlled pause',
+      sets: [WorkoutSet(difficulty: 'medium', weightKg: 80, reps: 8)],
+    );
+
+    final created = await repository.create(
+      name: 'Offline advanced',
+      comment: '',
+      exercises: const [exercise],
+    );
+    final restored = await repository.get(created.id);
+    final actual = restored.exercises.single;
+
+    expect(actual.isOptional, isTrue);
+    expect(actual.alternativeGroupId, 'choice-a');
+    expect(actual.trainingGroupId, 'circuit-a');
+    expect(actual.trainingGroupType, 'circuit');
+    expect(actual.progressionRuleType, 'double_progression');
+    expect(actual.progressionTargetRpe, 8);
+    expect(actual.imageUrl2, '/bench-2.png');
+  });
+
+  test('completed session corrections remain durable offline', () async {
+    await store.putDoc('session_stats', 'streak', {'current_streak': 5});
+    await store.putDoc('workout_stats', 'w1', {'times_performed': 1});
+    final client = AuthenticatedClient(
+      storage: TokenStorage(),
+      authService: AuthService(),
+      inner: MockClient((_) async => throw const SocketException('offline')),
+    );
+    addTearDown(client.dispose);
+    final repository = WorkoutsRepository(
+      client: client,
+      isOnline: () async => false,
+    );
+
+    await repository.replaceCompletedSession(
+      workoutId: 'w1',
+      sessionId: '10000000-0000-0000-0000-000000000001',
+      performedAt: '2026-01-02',
+      difficulty: 'normal',
+      exercises: const [
+        PerformedExerciseLog(
+          exerciseId: 7,
+          name: 'Bench press',
+          muscleGroup: 'Chest',
+          sets: [PerformedSetLog(weightKg: 80, reps: 5, setType: 'working')],
+        ),
+      ],
+    );
+
+    final mutation = store.pending().single;
+    expect(mutation.kind, 'workout.editCompleted');
+    expect(mutation.args['operation_id'], isNotEmpty);
+    expect(store.getDoc('workout_stats', 'w1'), isNull);
+    expect(store.getDoc('session_stats', 'streak'), isNull);
+  });
 }

@@ -489,26 +489,58 @@ class WorkoutsRepository {
     if (sessionId.isEmpty) {
       throw StateError('Legacy sessions cannot be edited safely');
     }
-    final response = await _client
-        .put(
-          Uri.parse('$_base/$workoutId/history/session/$sessionId'),
-          body: jsonEncode({
-            'performed_at': performedAt,
-            'difficulty': difficulty,
-            'exercises': exercises
-                .map((exercise) => exercise.toJson())
-                .toList(growable: false),
-          }),
-        )
-        .timeout(const Duration(seconds: 30));
-    if (response.statusCode != 204) {
-      throw Exception(_err(response.body, response.statusCode));
+    final operationId = _uuid.v4();
+    final payload = <String, dynamic>{
+      'performed_at': performedAt,
+      'difficulty': difficulty,
+      'operation_id': operationId,
+      'exercises': exercises
+          .map((exercise) => exercise.toJson())
+          .toList(growable: false),
+    };
+    if (await _isOnline()) {
+      try {
+        final response = await _client
+            .put(
+              Uri.parse('$_base/$workoutId/history/session/$sessionId'),
+              body: jsonEncode(payload),
+            )
+            .timeout(const Duration(seconds: 30));
+        if (response.statusCode != 204) {
+          if (isPermanentSyncStatus(response.statusCode)) {
+            throw Exception(_err(response.body, response.statusCode));
+          }
+          await _enqueue('workout.editCompleted', {
+            'id': workoutId,
+            'sessionId': sessionId,
+            ...payload,
+          });
+        }
+      } on Object catch (error) {
+        if (!isTransientNetworkFailure(error)) rethrow;
+        await _enqueue('workout.editCompleted', {
+          'id': workoutId,
+          'sessionId': sessionId,
+          ...payload,
+        });
+      }
+    } else {
+      await _enqueue('workout.editCompleted', {
+        'id': workoutId,
+        'sessionId': sessionId,
+        ...payload,
+      });
     }
     final cacheId = '$workoutId:$performedAt:$sessionId';
     await _store.putDoc('workout_run_detail', cacheId, {
       'items': exercises.map((exercise) => exercise.toJson()).toList(),
     });
     await _store.deleteDoc('workout_stats', workoutId);
+    await _store.deleteDoc('session_stats', 'streak');
+    await _store.deleteDoc('stats_summary', 'summary_all');
+    await _store.deleteDoc('stats_summary', 'summary_year');
+    await _store.deleteDoc('stats_activity', 'activity_all');
+    await _store.deleteDoc('stats_activity', 'activity_year');
     for (final exercise in exercises) {
       await _store.deleteDoc('exercise_stats', '${exercise.exerciseId}');
       await _store.deleteDoc('exercise_history', '${exercise.exerciseId}');
@@ -612,12 +644,23 @@ class WorkoutsRepository {
     String? sessionId,
     DateTime? performedAt,
   }) async {
-    final operationId = _uuid.v4();
+    final durableSessionId = sessionId?.trim() ?? '';
+    final operationId = durableSessionId.isNotEmpty
+        ? durableSessionId
+        : _uuid.v4();
     final localNow = performedAt ?? DateTime.now();
     final now =
         '${localNow.year.toString().padLeft(4, '0')}-'
         '${localNow.month.toString().padLeft(2, '0')}-'
         '${localNow.day.toString().padLeft(2, '0')}';
+    final pendingRun =
+        durableSessionId.isNotEmpty &&
+        _store.pending().any(
+          (mutation) =>
+              mutation.kind == 'workout.run' &&
+              mutation.args['operation_id'] == operationId,
+        );
+    var alreadyRecorded = pendingRun;
     final cachedStats = _store.getDoc('workout_stats', id);
     if (cachedStats != null) {
       final history = List<Map<String, dynamic>>.from(
@@ -625,35 +668,51 @@ class WorkoutsRepository {
           (item) => Map<String, dynamic>.from(item as Map),
         ),
       );
-      history.insert(0, {
-        'date': now,
-        'difficulty': difficulty,
-        'session_id': sessionId ?? '',
-      });
-      if (history.length > 30) history.removeRange(30, history.length);
-      await _store.putDoc('workout_stats', id, {
-        ...cachedStats,
-        'times_performed':
-            ((cachedStats['times_performed'] as num?)?.toInt() ?? 0) + 1,
-        'history': history,
-      });
+      alreadyRecorded =
+          alreadyRecorded ||
+          (durableSessionId.isNotEmpty &&
+              history.any((item) => item['session_id'] == durableSessionId));
+      if (!alreadyRecorded) {
+        history.insert(0, {
+          'date': now,
+          'difficulty': difficulty,
+          'session_id': durableSessionId,
+        });
+        if (history.length > 30) history.removeRange(30, history.length);
+        await _store.putDoc('workout_stats', id, {
+          ...cachedStats,
+          'times_performed':
+              ((cachedStats['times_performed'] as num?)?.toInt() ?? 0) + 1,
+          'history': history,
+        });
+      }
     }
     final cachedWorkout = _store.getDoc(_collection, id);
-    if (cachedWorkout != null) {
+    if (cachedWorkout != null && !alreadyRecorded) {
       await _store.putDoc(_collection, id, {
         ...cachedWorkout,
         'times_performed':
             ((cachedWorkout['times_performed'] as num?)?.toInt() ?? 0) + 1,
       });
     }
-    await _enqueue('workout.run', {
-      'id': id,
-      'difficulty': difficulty,
-      'duration_seconds': durationSeconds,
-      'operation_id': operationId,
-      'session_id': sessionId,
-      'performed_at': now,
-    });
+    if (!pendingRun) {
+      await _store.enqueue(
+        Mutation(
+          id: 'workout-run:$operationId',
+          seq: _store.nextSeq(),
+          kind: 'workout.run',
+          args: {
+            'id': id,
+            'difficulty': difficulty,
+            'duration_seconds': durationSeconds,
+            'operation_id': operationId,
+            'session_id': sessionId,
+            'performed_at': now,
+          },
+        ),
+      );
+      SyncService.instance.flushSoon();
+    }
   }
 
   Future<void> setVisibility(String id, String visibility) async {
@@ -831,6 +890,27 @@ class WorkoutsRepository {
       );
     });
 
+    s.registerHandler('workout.editCompleted', (client, m) async {
+      final id = m.args['id'] as String;
+      final sessionId = m.args['sessionId'] as String;
+      if (id.startsWith('local:')) return const SyncOutcome.retry();
+      return _replay(
+        () => client
+            .put(
+              Uri.parse('$base/$id/history/session/$sessionId'),
+              body: jsonEncode({
+                'performed_at': m.args['performed_at'],
+                'difficulty': m.args['difficulty'],
+                'duration_seconds': m.args['duration_seconds'],
+                'operation_id': m.args['operation_id'],
+                'exercises': m.args['exercises'],
+              }),
+            )
+            .timeout(const Duration(seconds: 30)),
+        ok: 204,
+      );
+    });
+
     s.registerHandler('workout.visibility', (client, m) async {
       final id = m.args['id'] as String;
       if (id.startsWith('local:')) return const SyncOutcome.retry();
@@ -896,20 +976,7 @@ class WorkoutsRepository {
     'exercise_count': exercises.length,
     'times_performed': base?['times_performed'] ?? 0,
     'folder_id': base?['folder_id'],
-    'exercises': exercises
-        .map(
-          (e) => {
-            'exercise_id': e.exerciseId,
-            'name': e.name,
-            'image_url': e.imageUrl,
-            'image_url2': e.imageUrl2,
-            'muscle_group': e.muscleGroup,
-            'rest_seconds': e.restSeconds,
-            'comment': e.comment,
-            'sets': e.sets.map((s) => s.toJson()).toList(),
-          },
-        )
-        .toList(),
+    'exercises': exercises.map((exercise) => exercise.toJson()).toList(),
   };
 
   static String _encodeArgs(Map<String, dynamic> args) => jsonEncode({

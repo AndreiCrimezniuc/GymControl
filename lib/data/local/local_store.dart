@@ -291,6 +291,19 @@ class LocalStore {
     }
   }
 
+  /// Whether another queued operation still depends on [id]. Entity-specific
+  /// repositories use this before cancelling a not-yet-synced create: deleting
+  /// the create while a workout/log still references its temporary id would
+  /// silently strand otherwise valid user data.
+  bool hasPendingReference(
+    String id, {
+    Set<String> ignoringKinds = const {},
+  }) => pending().any(
+    (mutation) =>
+        !ignoringKinds.contains(mutation.kind) &&
+        _containsReference(mutation.args, id),
+  );
+
   bool _containsReference(Object? value, String id) {
     if (value == id || (value is int && '$value' == id)) return true;
     if (value is List) {

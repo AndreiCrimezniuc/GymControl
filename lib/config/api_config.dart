@@ -29,7 +29,9 @@ class ApiConfig {
   ///   --dart-define=PROD_BASE_URL=https://api.yourdomain.com
   static const String _prodBase = String.fromEnvironment(
     'PROD_BASE_URL',
-    defaultValue: 'https://api.gymboss.app',
+    // Use the currently provisioned TLS origin until api.gymboss.app has DNS
+    // and a certificate. A release build must never default to a dead host.
+    defaultValue: 'https://168.119.114.105.nip.io',
   );
 
   // ─── Environment ────────────────────────────────────────────────────────────

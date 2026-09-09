@@ -1,9 +1,12 @@
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/session/aerobic_runner.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   group('AerobicSessionController', () {
+    setUp(() => SharedPreferences.setMockInitialValues({}));
+
     test('counts up while running and freezes when paused', () {
       fakeAsync((async) {
         final c = AerobicSessionController();
@@ -68,6 +71,25 @@ void main() {
     test('fmt renders mm:ss and h:mm:ss', () {
       expect(AerobicSessionController.fmt(65), '01:05');
       expect(AerobicSessionController.fmt(3661), '1:01:01');
+    });
+
+    testWidgets('restores a running session using wall-clock time', (
+      tester,
+    ) async {
+      var now = DateTime(2026, 1, 1, 12);
+      final first = AerobicSessionController(now: () => now);
+      first.begin(workoutId: 'run-1', workoutName: 'Easy run');
+      await tester.pump();
+      now = now.add(const Duration(seconds: 4));
+      first.dispose();
+
+      final restored = AerobicSessionController(now: () => now);
+      await restored.restore();
+      expect(restored.isActive, isTrue);
+      expect(restored.running, isTrue);
+      expect(restored.workoutId, 'run-1');
+      expect(restored.totalSeconds, greaterThanOrEqualTo(4));
+      restored.dispose();
     });
   });
 }

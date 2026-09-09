@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/session/workout_session_controller.dart';
+import 'package:gymboss/ui/menu_options_list/workouts/session/aerobic_runner.dart';
 import 'package:gymboss/l10n/app_localizations.dart';
 
 /// A persistent bar shown over the app while a workout is minimized. Tapping it
@@ -113,6 +114,95 @@ class WorkoutResumeBar extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class AerobicResumeBar extends StatelessWidget {
+  final AerobicSessionController session;
+  final VoidCallback onTap;
+
+  const AerobicResumeBar({
+    super.key,
+    required this.session,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+      child: Pressable(
+        semanticLabel: 'Resume aerobic workout',
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(14, 11, 12, 11),
+          decoration: BoxDecoration(
+            color: c.invBg,
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x40000000),
+                blurRadius: 24,
+                offset: Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: c.accent,
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: Icon(
+                  session.running
+                      ? CupertinoIcons.waveform_path
+                      : CupertinoIcons.pause_fill,
+                  size: 18,
+                  color: c.textOnAccent,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      session.workoutName.isEmpty
+                          ? 'Aerobic'
+                          : session.workoutName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: c.invText,
+                      ),
+                    ),
+                    Text(
+                      '${session.running ? 'Active' : 'Paused'} · ${AerobicSessionController.fmt(session.totalSeconds)}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: c.invText.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                CupertinoIcons.chevron_up,
+                size: 18,
+                color: c.invText.withValues(alpha: 0.7),
               ),
             ],
           ),

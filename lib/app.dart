@@ -27,6 +27,7 @@ import 'package:gymboss/ui/core/ui/widgets/app_scaffold.dart';
 import 'package:gymboss/ui/core/subscription/pro_controller.dart';
 import 'package:gymboss/ui/home_screen/home_screen.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/session/resume_bar.dart';
+import 'package:gymboss/ui/menu_options_list/workouts/session/aerobic_runner.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/session/workout_live_activity.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/session/workout_session_controller.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/workout_runner.dart';
@@ -55,6 +56,7 @@ class _GymControlAppState extends State<GymControlApp>
   late final UnitsController _units;
   late final TrainingPreferencesController _trainingPreferences;
   late final WorkoutSessionController _session;
+  late final AerobicSessionController _aerobicSession;
   Future<void> _sessionSync = Future.value();
   bool _restoreAttempted = false;
   bool _cacheWarmStarted = false;
@@ -82,7 +84,11 @@ class _GymControlAppState extends State<GymControlApp>
     _pro = ProController(_client);
     _units = UnitsController();
     _trainingPreferences = TrainingPreferencesController();
-    _session = WorkoutSessionController();
+    _session = WorkoutSessionController(
+      oneRmFormula: _trainingPreferences.formula,
+    );
+    _trainingPreferences.addListener(_syncTrainingPreferences);
+    _aerobicSession = AerobicSessionController();
     _authVm.addListener(_queueSessionSync);
     unawaited(_authVm.checkAuth());
 
@@ -93,6 +99,10 @@ class _GymControlAppState extends State<GymControlApp>
 
   void _queueSessionSync() {
     _sessionSync = _sessionSync.then((_) => _syncSessionWithAuth());
+  }
+
+  void _syncTrainingPreferences() {
+    _session.setOneRmFormula(_trainingPreferences.formula);
   }
 
   @override
@@ -112,6 +122,7 @@ class _GymControlAppState extends State<GymControlApp>
         _restoreAttempted = false;
         _cacheWarmStarted = false;
         if (_session.isActive) _session.clear();
+        await _aerobicSession.clear();
       }
       await WorkoutLiveActivity.end();
       return;
@@ -130,6 +141,11 @@ class _GymControlAppState extends State<GymControlApp>
       workouts: _workouts,
       units: _units,
     );
+    if (_session.isActive) {
+      await _aerobicSession.clear();
+    } else {
+      await _aerobicSession.restore();
+    }
     if (!_cacheWarmStarted) {
       _cacheWarmStarted = true;
       unawaited(_warmOfflineCache());
@@ -192,21 +208,25 @@ class _GymControlAppState extends State<GymControlApp>
     final exerciseIds = fullWorkouts
         .expand((workout) => workout.exercises)
         .map((exercise) => exercise.exerciseId)
-        .toSet();
+        .toSet()
+        .take(30);
     await bounded<int>(exerciseIds, 4, (id) async {
       await Future.wait([
         safe(() => _exercises.getStats(id, forceRefresh: true)),
         safe(() => _exercises.getHistory(id, forceRefresh: true)),
       ]);
     });
-    await bounded<Workout>(fullWorkouts, 3, (workout) async {
+    // Deep analytics are useful but not required to execute a cached plan.
+    // Cap this second tier so a long-lived account cannot generate hundreds
+    // of startup requests or crowd out interactive traffic.
+    await bounded<Workout>(fullWorkouts.take(15), 3, (workout) async {
       final stats = await safe(
         () => _workouts.stats(workout.id, forceRefresh: true),
       );
       if (stats == null) return;
-      // Five exact recent sessions are enough to train for weeks offline while
+      // Three exact recent sessions are enough for "previous" values while
       // keeping first-sign-in bandwidth bounded for long-lived accounts.
-      for (final run in stats.history.take(5)) {
+      for (final run in stats.history.take(3)) {
         await safe(
           () => _workouts.runDetail(
             workout.id,
@@ -223,8 +243,10 @@ class _GymControlAppState extends State<GymControlApp>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _authVm.removeListener(_queueSessionSync);
+    _trainingPreferences.removeListener(_syncTrainingPreferences);
     _client.dispose();
     _session.dispose();
+    _aerobicSession.dispose();
     _units.dispose();
     _trainingPreferences.dispose();
     super.dispose();
@@ -242,6 +264,9 @@ class _GymControlAppState extends State<GymControlApp>
           value: _trainingPreferences,
         ),
         ChangeNotifierProvider<WorkoutSessionController>.value(value: _session),
+        ChangeNotifierProvider<AerobicSessionController>.value(
+          value: _aerobicSession,
+        ),
         ChangeNotifierProvider<LocaleController>(
           create: (_) => LocaleController(),
         ),
@@ -291,10 +316,39 @@ class _GymControlAppState extends State<GymControlApp>
             builder: (context, child) => Column(
               children: [
                 Expanded(child: child ?? const SizedBox.shrink()),
-                Consumer2<WorkoutSessionController, AuthViewModel>(
-                  builder: (ctx, session, auth, __) {
+                Consumer3<
+                  WorkoutSessionController,
+                  AerobicSessionController,
+                  AuthViewModel
+                >(
+                  builder: (ctx, session, aerobic, auth, __) {
+                    if (auth.status != AuthStatus.authenticated) {
+                      return const SizedBox.shrink();
+                    }
+                    if (aerobic.isActive &&
+                        aerobic.isMinimized &&
+                        !session.isActive) {
+                      return SafeArea(
+                        top: false,
+                        child: AerobicResumeBar(
+                          session: aerobic,
+                          onTap: () {
+                            aerobic.resume();
+                            _navKey.currentState?.push(
+                              CupertinoPageRoute(
+                                builder: (_) => AerobicRunnerScreen(
+                                  workoutId: aerobic.workoutId,
+                                  workoutName: aerobic.workoutName,
+                                  repo: _workouts,
+                                  sessions: _sessions,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    }
                     if (!session.isActive ||
-                        auth.status != AuthStatus.authenticated ||
                         !session.isMinimized ||
                         session.isFinished) {
                       return const SizedBox.shrink();

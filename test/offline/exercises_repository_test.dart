@@ -6,6 +6,7 @@ import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:gymboss/data/local/local_store.dart';
+import 'package:gymboss/data/local/mutation.dart';
 import 'package:gymboss/data/repositories/exercises_repository.dart';
 import 'package:gymboss/data/services/auth/auth_service.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
@@ -165,5 +166,45 @@ void main() {
     expect(mutation.args['client_request_id'], isA<String>());
     expect((mutation.args['client_request_id'] as String), isNotEmpty);
     expect(mutation.args['tempId'], '${item.id}');
+  });
+
+  test('archiving a temp exercise never drops a dependent workout', () async {
+    final offline = ExercisesRepository(
+      client: client,
+      isOnline: () async => false,
+    );
+    final item = await offline.createCustom(name: 'Temporary lift', muscleGroup: 'Other');
+    await store.enqueue(
+      Mutation(
+        id: 'dependent-workout',
+        seq: store.nextSeq(),
+        kind: 'workout.create',
+        args: {
+          'exercises': [
+            {'exercise_id': item.id},
+          ],
+        },
+      ),
+    );
+
+    await offline.archiveCustom(item.id);
+
+    expect(store.pending().map((mutation) => mutation.kind), [
+      'exercise.createCustom',
+      'workout.create',
+      'exercise.archiveCustom',
+    ]);
+  });
+
+  test('archiving an unreferenced temp exercise cancels its create', () async {
+    final offline = ExercisesRepository(
+      client: client,
+      isOnline: () async => false,
+    );
+    final item = await offline.createCustom(name: 'Disposable', muscleGroup: 'Other');
+
+    await offline.archiveCustom(item.id);
+
+    expect(store.pending(), isEmpty);
   });
 }

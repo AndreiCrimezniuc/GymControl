@@ -652,6 +652,9 @@ class _FirstTimeWeightSheetState extends State<_FirstTimeWeightSheet> {
     final c = context.colors;
     final l = AppLocalizations.of(context);
     return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.9,
+      ),
       decoration: BoxDecoration(
         color: c.card,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
@@ -662,104 +665,106 @@ class _FirstTimeWeightSheetState extends State<_FirstTimeWeightSheet> {
         top: 20,
         bottom: MediaQuery.of(context).viewInsets.bottom + 24,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: c.border,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            '${l.quickSetupTitle} 🏋',
-            style: TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w700,
-              color: c.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            l.quickSetupBody,
-            style: TextStyle(fontSize: 12, color: c.textSecondary),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _MetricField(
-                  controller: _weightCtrl,
-                  label: AppLocalizations.of(context).weightKgLabel,
-                  placeholder: '80',
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: c.border,
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _MetricField(
-                  controller: _heightCtrl,
-                  label: AppLocalizations.of(context).heightCmLabel,
-                  placeholder: '175',
-                ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '${l.quickSetupTitle} 🏋',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: c.textPrimary,
               ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  onPressed: () => Navigator.pop(context),
-                  child: Container(
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: c.iconBg,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Center(
-                      child: Text(
-                        l.skip,
-                        style: TextStyle(color: c.textSecondary),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              l.quickSetupBody,
+              style: TextStyle(fontSize: 12, color: c.textSecondary),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _MetricField(
+                    controller: _weightCtrl,
+                    label: AppLocalizations.of(context).weightKgLabel,
+                    placeholder: '80',
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _MetricField(
+                    controller: _heightCtrl,
+                    label: AppLocalizations.of(context).heightCmLabel,
+                    placeholder: '175',
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    onPressed: () => Navigator.pop(context),
+                    child: Container(
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: c.iconBg,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: Text(
+                          l.skip,
+                          style: TextStyle(color: c.textSecondary),
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  onPressed: _saving ? null : _save,
-                  child: Container(
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: c.accent,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Center(
-                      child: _saving
-                          ? const CupertinoActivityIndicator()
-                          : Text(
-                              l.save,
-                              style: TextStyle(
-                                color: c.textOnAccent,
-                                fontWeight: FontWeight.w600,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    onPressed: _saving ? null : _save,
+                    child: Container(
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: c.accent,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: _saving
+                            ? const CupertinoActivityIndicator()
+                            : Text(
+                                l.save,
+                                style: TextStyle(
+                                  color: c.textOnAccent,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                            ),
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

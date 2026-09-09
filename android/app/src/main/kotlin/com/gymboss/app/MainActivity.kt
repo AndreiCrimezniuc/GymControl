@@ -1,4 +1,4 @@
-package com.example.mailcanvas
+package com.gymboss.app
 
 import io.flutter.embedding.android.FlutterActivity
 

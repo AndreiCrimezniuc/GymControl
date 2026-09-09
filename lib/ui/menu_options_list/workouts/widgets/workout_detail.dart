@@ -151,13 +151,14 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   Future<void> _launch() async {
     final l = AppLocalizations.of(context);
     final session = context.read<WorkoutSessionController>();
+    final aerobic = context.read<AerobicSessionController>();
     final sessions = SessionsRepository(
       client: context.read<AuthenticatedClient>(),
     );
     final ranking = RankingRepository(
       client: context.read<AuthenticatedClient>(),
     );
-    if (session.isActive && !session.isFinished) {
+    if ((session.isActive && !session.isFinished) || aerobic.isActive) {
       final replace = await showAppDialog<bool>(
         context,
         title: l.startNewWorkoutQuestion,
@@ -176,13 +177,29 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
       );
       if (!mounted || replace == null) return;
       if (!replace) {
-        session.resume();
-        await Navigator.of(
-          context,
-          rootNavigator: true,
-        ).push(CupertinoPageRoute(builder: (_) => const WorkoutRunnerScreen()));
+        if (aerobic.isActive) {
+          aerobic.resume();
+          await Navigator.of(context, rootNavigator: true).push(
+            CupertinoPageRoute(
+              builder: (_) => AerobicRunnerScreen(
+                workoutId: aerobic.workoutId,
+                workoutName: aerobic.workoutName,
+                repo: widget.repo,
+                sessions: sessions,
+              ),
+            ),
+          );
+        } else {
+          session.resume();
+          await Navigator.of(context, rootNavigator: true).push(
+            CupertinoPageRoute(builder: (_) => const WorkoutRunnerScreen()),
+          );
+        }
         return;
       }
+      if (aerobic.isActive) await aerobic.clear();
+      if (session.isActive) await session.discard();
+      if (!mounted) return;
     }
     // Aerobic workouts use the stopwatch/laps runner instead of the set logger.
     if (_w!.type == 'aerobic') {

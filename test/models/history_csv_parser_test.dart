@@ -43,5 +43,26 @@ not-a-date,Squat,120,5''';
       expect(parsed.rows.single['date'], '2024-03-04');
       expect(parsed.rows.single['weight'], 82.5);
     });
+
+    test('rejects impossible dates and non-finite set values', () {
+      const csv = '''date,exercise,weight_kg,reps
+31/02/2024,Squat,120,5
+2024-02-28,Squat,NaN,5
+2024-02-29,Squat,120,5''';
+      final parsed = HistoryCsvParser.parse(csv);
+
+      expect(parsed.rows, hasLength(1));
+      expect(parsed.rows.single['date'], '2024-02-29');
+      expect(parsed.skippedRows, 2);
+    });
+
+    test('groups timestamps from the same workout day into one session', () {
+      const csv = '''start_time,workout,exercise,weight_kg,reps
+2024-03-04T18:30:00,Push,Bench Press,100,5
+2024-03-04T18:45:00,Push,Triceps Pushdown,30,12''';
+      final parsed = HistoryCsvParser.parse(csv);
+
+      expect(parsed.rows.first['session_key'], parsed.rows.last['session_key']);
+    });
   });
 }

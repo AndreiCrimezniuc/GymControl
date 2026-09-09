@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:gymboss/data/repositories/workouts_repository.dart';
 import 'package:gymboss/domain/models/workouts/workout.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
+import 'package:gymboss/ui/core/units/units_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_dialog.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
 
@@ -30,13 +31,17 @@ class CompletedSessionEditor extends StatefulWidget {
 
 class _CompletedSessionEditorState extends State<CompletedSessionEditor> {
   late final List<_ExerciseDraft> _drafts;
+  late final UnitsController _units;
   bool _saving = false;
   bool get _ru => Localizations.localeOf(context).languageCode == 'ru';
 
   @override
   void initState() {
     super.initState();
-    _drafts = widget.exercises.map(_ExerciseDraft.fromLog).toList();
+    _units = context.unitsController;
+    _drafts = widget.exercises
+        .map((exercise) => _ExerciseDraft.fromLog(exercise, _units))
+        .toList();
   }
 
   @override
@@ -54,9 +59,10 @@ class _CompletedSessionEditorState extends State<CompletedSessionEditor> {
       for (final set in draft.sets) {
         final weight = double.tryParse(set.weight.text.replaceAll(',', '.'));
         final reps = int.tryParse(set.reps.text);
-        if (weight == null ||
-            weight < 0 ||
-            weight > 2000 ||
+        final weightKg = weight == null ? null : _units.toKg(weight);
+        if (weightKg == null ||
+            weightKg < 0 ||
+            weightKg > 2000 ||
             reps == null ||
             reps < 1 ||
             reps > 1000) {
@@ -67,7 +73,7 @@ class _CompletedSessionEditorState extends State<CompletedSessionEditor> {
         }
         sets.add(
           PerformedSetLog(
-            weightKg: weight,
+            weightKg: weightKg,
             reps: reps,
             setType: set.type,
             progression: set.progression,
@@ -209,9 +215,7 @@ class _CompletedSessionEditorState extends State<CompletedSessionEditor> {
           width: 28,
           child: Text('${index + 1}', style: TextStyle(color: c.textSecondary)),
         ),
-        Expanded(
-          child: _numberField(set.weight, _ru ? 'кг' : 'kg', decimal: true),
-        ),
+        Expanded(child: _numberField(set.weight, _units.label, decimal: true)),
         const SizedBox(width: 8),
         Expanded(child: _numberField(set.reps, _ru ? 'повт.' : 'reps')),
         const SizedBox(width: 8),
@@ -300,11 +304,14 @@ class _ExerciseDraft {
     required this.sets,
   });
 
-  factory _ExerciseDraft.fromLog(PerformedExerciseLog log) => _ExerciseDraft(
+  factory _ExerciseDraft.fromLog(
+    PerformedExerciseLog log,
+    UnitsController units,
+  ) => _ExerciseDraft(
     exerciseId: log.exerciseId,
     name: log.name,
     muscleGroup: log.muscleGroup,
-    sets: log.sets.map(_SetDraft.fromLog).toList(),
+    sets: log.sets.map((set) => _SetDraft.fromLog(set, units)).toList(),
   );
 
   void dispose() {
@@ -329,17 +336,14 @@ class _SetDraft {
     required this.rpe,
   });
 
-  factory _SetDraft.fromLog(PerformedSetLog log) => _SetDraft(
-    weight: TextEditingController(
-      text: log.weightKg.toStringAsFixed(
-        log.weightKg.truncateToDouble() == log.weightKg ? 0 : 1,
-      ),
-    ),
-    reps: TextEditingController(text: '${log.reps}'),
-    type: log.setType,
-    progression: log.progression,
-    rpe: log.rpe,
-  );
+  factory _SetDraft.fromLog(PerformedSetLog log, UnitsController units) =>
+      _SetDraft(
+        weight: TextEditingController(text: units.format(log.weightKg)),
+        reps: TextEditingController(text: '${log.reps}'),
+        type: log.setType,
+        progression: log.progression,
+        rpe: log.rpe,
+      );
 
   factory _SetDraft.copy(_SetDraft source) => _SetDraft(
     weight: TextEditingController(text: source.weight.text),
