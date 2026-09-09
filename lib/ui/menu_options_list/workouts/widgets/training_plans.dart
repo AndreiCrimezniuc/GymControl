@@ -53,7 +53,9 @@ class _TrainingPlansScreenState extends State<TrainingPlansScreen> {
   }
 
   Future<void> _create() async {
-    if (_routines.where((item) => item.type != 'aerobic').isEmpty) {
+    final hasGym = _routines.any((item) => item.type == 'gym');
+    final hasAerobic = _routines.any((item) => item.type == 'aerobic');
+    if (!hasGym && !hasAerobic) {
       await showAppDialog<void>(
         context,
         title: _russian ? 'Сначала нужна тренировка' : 'Create a workout first',
@@ -69,6 +71,7 @@ class _TrainingPlansScreenState extends State<TrainingPlansScreen> {
     final name = TextEditingController();
     final goal = TextEditingController();
     var frequency = 3;
+    var kind = hasGym ? 'gym' : 'aerobic';
     final accepted = await showCupertinoModalPopup<bool>(
       context: context,
       builder: (sheetContext) => StatefulBuilder(
@@ -110,6 +113,53 @@ class _TrainingPlansScreenState extends State<TrainingPlansScreen> {
                   padding: const EdgeInsets.all(13),
                 ),
                 const SizedBox(height: 16),
+                Text(
+                  _russian ? 'Тип программы' : 'Program type',
+                  style: TextStyle(color: context.colors.textPrimary),
+                ),
+                const SizedBox(height: 8),
+                if (hasGym && hasAerobic)
+                  CupertinoSlidingSegmentedControl<String>(
+                    groupValue: kind,
+                    children: {
+                      'gym': Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Text(_russian ? 'Силовая' : 'Strength'),
+                      ),
+                      'aerobic': Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Text(_russian ? 'Аэробная' : 'Aerobic'),
+                      ),
+                    },
+                    onValueChanged: (value) {
+                      if (value != null) setSheetState(() => kind = value);
+                    },
+                  )
+                else
+                  Text(
+                    kind == 'aerobic'
+                        ? (_russian ? 'Аэробная' : 'Aerobic')
+                        : (_russian ? 'Силовая' : 'Strength'),
+                    style: TextStyle(
+                      color: context.colors.accent,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                const SizedBox(height: 7),
+                Text(
+                  kind == 'aerobic'
+                      ? (_russian
+                            ? 'В этот план попадут только аэробные тренировки.'
+                            : 'Only aerobic workouts can be scheduled here.')
+                      : (_russian
+                            ? 'В этот план попадут только силовые тренировки.'
+                            : 'Only strength workouts can be scheduled here.'),
+                  style: TextStyle(
+                    color: context.colors.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 10),
                 Row(
                   children: [
                     Expanded(
@@ -178,6 +228,7 @@ class _TrainingPlansScreenState extends State<TrainingPlansScreen> {
       startsOn: monday,
       workouts: _routines,
       sessionsPerWeek: frequency,
+      kind: kind,
     );
     name.dispose();
     goal.dispose();
@@ -316,6 +367,18 @@ class _ProgramCard extends StatelessWidget {
               program.goal,
               style: TextStyle(color: colors.textSecondary, fontSize: 12),
             ),
+          const SizedBox(height: 5),
+          Text(
+            program.kind == 'aerobic'
+                ? (russian ? 'АЭРОБНАЯ ПРОГРАММА' : 'AEROBIC PROGRAM')
+                : (russian ? 'СИЛОВАЯ ПРОГРАММА' : 'STRENGTH PROGRAM'),
+            style: TextStyle(
+              color: colors.accent,
+              fontSize: 9,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1,
+            ),
+          ),
           const SizedBox(height: 14),
           SizedBox(
             height: 35,

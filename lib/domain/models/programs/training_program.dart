@@ -87,6 +87,7 @@ class TrainingProgram {
   final String id;
   final String name;
   final String goal;
+  final String kind;
   final String? startsOn;
   final String status;
   final List<TrainingPhase> phases;
@@ -96,6 +97,7 @@ class TrainingProgram {
     required this.id,
     required this.name,
     required this.goal,
+    this.kind = 'gym',
     required this.startsOn,
     required this.status,
     required this.phases,
@@ -107,6 +109,7 @@ class TrainingProgram {
         id: jsonString(json['id']),
         name: jsonString(json['name']),
         goal: jsonString(json['goal']),
+        kind: jsonString(json['kind']) == 'aerobic' ? 'aerobic' : 'gym',
         startsOn: jsonNullableString(json['starts_on']),
         status: jsonString(json['status'], 'draft'),
         phases: jsonObjectList(
@@ -125,6 +128,7 @@ class TrainingProgram {
     'id': id,
     'name': name,
     'goal': goal,
+    'kind': kind,
     'starts_on': startsOn,
     'status': status,
     'phases': phases.map((phase) => phase.toJson()).toList(),
@@ -152,6 +156,7 @@ class TrainingProgram {
     required DateTime startsOn,
     required List<Workout> workouts,
     required int sessionsPerWeek,
+    String kind = 'gym',
   }) {
     final id = _uuid.v4();
     final phases = <TrainingPhase>[
@@ -184,8 +189,9 @@ class TrainingProgram {
         intensity: .7,
       ),
     ];
+    final normalizedKind = kind == 'aerobic' ? 'aerobic' : 'gym';
     final selected = workouts
-        .where((workout) => workout.type != 'aerobic')
+        .where((workout) => workout.type == normalizedKind)
         .toList();
     final schedule = <ScheduledWorkout>[];
     var phaseOffset = 0;
@@ -217,6 +223,7 @@ class TrainingProgram {
       id: id,
       name: name.trim(),
       goal: goal.trim(),
+      kind: normalizedKind,
       startsOn: _date(startsOn),
       status: 'active',
       phases: phases,
