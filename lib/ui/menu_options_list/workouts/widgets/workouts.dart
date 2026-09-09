@@ -220,7 +220,9 @@ class _WorkoutsState extends State<Workouts> {
       return;
     }
     try {
-      final workout = await _repo.get(chosen.id);
+      // List rows are intentionally compact and omit planned set rows. A
+      // session must always start from the complete workout definition.
+      final workout = await _repo.get(chosen.id, forceRefresh: true);
       if (!mounted) return;
       final client = context.read<AuthenticatedClient>();
       controller.start(

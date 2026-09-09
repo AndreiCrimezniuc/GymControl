@@ -216,7 +216,13 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
       if (mounted) _load();
       return;
     }
-    final configured = await _configureExercises(_w!.forEnergy(_energy));
+    // Detail cards may have been rendered from the compact list cache. Reload
+    // the full plan at the launch boundary so no workout can start empty.
+    final fullWorkout = await widget.repo.get(_w!.id, forceRefresh: true);
+    if (!mounted) return;
+    final configured = await _configureExercises(
+      fullWorkout.forEnergy(_energy),
+    );
     if (!mounted || configured == null) return;
     session.start(
       workout: configured,

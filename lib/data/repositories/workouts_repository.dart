@@ -228,7 +228,15 @@ class WorkoutsRepository {
 
       for (final doc in raw) {
         final id = doc['id'] as String?;
-        if (id != null) await _store.putDoc(_collection, id, doc);
+        if (id == null) continue;
+        // List endpoints deliberately omit planned sets. Preserve a previously
+        // hydrated workout instead of replacing it with the lightweight list
+        // row, otherwise Quick Start creates an empty session.
+        final existing = _store.getDoc(_collection, id);
+        final stored = _hasPlannedSets(existing) && !_hasPlannedSets(doc)
+            ? {...doc, 'exercises': existing!['exercises']}
+            : doc;
+        await _store.putDoc(_collection, id, stored);
       }
       await _store.putListIds(key, raw.map((d) => d['id'] as String).toList());
       return raw.map(Workout.fromJson).toList();
@@ -258,10 +266,27 @@ class WorkoutsRepository {
       unawaited(_refreshWorkoutInBackground(id));
       return Workout.fromJson(cached);
     }
+    // A launch may request a full definition. When offline, preserve the
+    // complete durable snapshot rather than blocking an otherwise usable
+    // workout behind a connectivity probe.
+    if (forceRefresh && cached != null && !await _isOnline()) {
+      return Workout.fromJson(cached);
+    }
     if (!await _isOnline()) {
       throw Exception('Workout is not available offline yet');
     }
     return _refreshWorkout(id);
+  }
+
+  static bool _hasPlannedSets(Map<String, dynamic>? document) {
+    final exercises = document?['exercises'];
+    if (exercises is! List) return false;
+    return exercises.any(
+      (exercise) =>
+          exercise is Map &&
+          exercise['sets'] is List &&
+          (exercise['sets'] as List).isNotEmpty,
+    );
   }
 
   Future<Workout> _refreshWorkout(String id) async {
@@ -277,8 +302,8 @@ class WorkoutsRepository {
       return Workout.fromJson(doc);
     } on Object catch (e) {
       final cached = _store.getDoc(_collection, id);
-      if (isTransientNetworkFailure(e) && cached != null) {
-        return Workout.fromJson(cached);
+      if (isTransientNetworkFailure(e) && _hasPlannedSets(cached)) {
+        return Workout.fromJson(cached!);
       }
       rethrow;
     }

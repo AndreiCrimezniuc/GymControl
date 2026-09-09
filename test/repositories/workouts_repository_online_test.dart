@@ -65,6 +65,57 @@ void main() {
     expect(store.getDoc('workout', 'w1'), isNotNull);
   });
 
+  test(
+    'get hydrates planned sets before a list workout can be started',
+    () async {
+      final listBody = jsonEncode([
+        {
+          'id': 'deep-day',
+          'name': 'Deep Day',
+          'visibility': 'private',
+          'owned': true,
+          'exercise_count': 1,
+          'exercises': [
+            {'exercise_id': 1, 'name': 'Squat', 'sets': []},
+          ],
+        },
+      ]);
+      final detailBody = jsonEncode({
+        'id': 'deep-day',
+        'name': 'Deep Day',
+        'visibility': 'private',
+        'owned': true,
+        'exercise_count': 1,
+        'exercises': [
+          {
+            'exercise_id': 1,
+            'name': 'Squat',
+            'sets': [
+              {'difficulty': 'medium', 'weight_kg': 100, 'reps': 5},
+            ],
+          },
+        ],
+      });
+      final client = AuthenticatedClient(
+        storage: TokenStorage(),
+        authService: AuthService(),
+        inner: MockClient((request) async {
+          return request.url.path.endsWith('/deep-day')
+              ? http.Response(detailBody, 200)
+              : http.Response(listBody, 200);
+        }),
+      );
+      addTearDown(client.dispose);
+      final repository = WorkoutsRepository(client: client);
+
+      await repository.listOwned();
+      final workout = await repository.get('deep-day', forceRefresh: true);
+
+      expect(workout.exercises, hasLength(1));
+      expect(workout.exercises.single.sets, hasLength(1));
+    },
+  );
+
   test('statsSummary parses aggregates', () async {
     final body = jsonEncode({
       'total_workouts': 9,

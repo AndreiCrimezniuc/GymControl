@@ -34,6 +34,8 @@ class MenuOptions extends StatefulWidget {
 }
 
 class _MenuOptionsState extends State<MenuOptions> {
+  static const _weightPromptKey = 'weight_last_asked';
+  static const _weightPromptInterval = Duration(days: 365);
   late final SessionsRepository _sessions;
   late final RankingRepository _ranking;
   late final ProgramsRepository _programs;
@@ -98,42 +100,45 @@ class _MenuOptionsState extends State<MenuOptions> {
       if (!mounted) return;
       if (profile.dontAskWeight) return;
 
-      if (profile.weightKg == null) {
-        await Future.delayed(const Duration(milliseconds: 600));
-        if (mounted) _showFirstTimeWeightSheet();
+      final prefs = await SharedPreferences.getInstance();
+      final lastCheckMs = prefs.getInt(_weightPromptKey) ?? 0;
+      final lastCheck = DateTime.fromMillisecondsSinceEpoch(lastCheckMs);
+      if (lastCheckMs > 0 &&
+          DateTime.now().difference(lastCheck) < _weightPromptInterval) {
         return;
       }
-
-      final prefs = await SharedPreferences.getInstance();
-      final lastCheckMs = prefs.getInt('weight_last_asked') ?? 0;
-      final lastCheck = DateTime.fromMillisecondsSinceEpoch(lastCheckMs);
-      if (DateTime.now().difference(lastCheck).inDays >= 30) {
-        await Future.delayed(const Duration(milliseconds: 800));
-        if (mounted) _showMonthlyWeightPopup(profile);
+      await Future.delayed(const Duration(milliseconds: 600));
+      if (!mounted) return;
+      if (profile.weightKg == null || profile.heightCm == null) {
+        _showFirstTimeWeightSheet();
+      } else {
+        _showAnnualWeightPopup(profile);
       }
     } catch (_) {}
+  }
+
+  Future<void> _markWeightPrompted() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_weightPromptKey, DateTime.now().millisecondsSinceEpoch);
   }
 
   void _showFirstTimeWeightSheet() {
     showCupertinoModalPopup<void>(
       context: context,
-      builder: (_) => _FirstTimeWeightSheet(ranking: _ranking),
+      builder: (_) => _FirstTimeWeightSheet(
+        ranking: _ranking,
+        onDismiss: _markWeightPrompted,
+      ),
     );
   }
 
-  void _showMonthlyWeightPopup(RankProfile profile) {
+  void _showAnnualWeightPopup(RankProfile profile) {
     showCupertinoDialog<void>(
       context: context,
-      builder: (_) => _MonthlyWeightDialog(
+      builder: (_) => _AnnualWeightDialog(
         ranking: _ranking,
         profile: profile,
-        onDismiss: () async {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setInt(
-            'weight_last_asked',
-            DateTime.now().millisecondsSinceEpoch,
-          );
-        },
+        onDismiss: _markWeightPrompted,
       ),
     );
   }
@@ -879,7 +884,8 @@ class _StartButton extends StatelessWidget {
 
 class _FirstTimeWeightSheet extends StatefulWidget {
   final RankingRepository ranking;
-  const _FirstTimeWeightSheet({required this.ranking});
+  final Future<void> Function() onDismiss;
+  const _FirstTimeWeightSheet({required this.ranking, required this.onDismiss});
 
   @override
   State<_FirstTimeWeightSheet> createState() => _FirstTimeWeightSheetState();
@@ -889,18 +895,37 @@ class _FirstTimeWeightSheetState extends State<_FirstTimeWeightSheet> {
   final _weightCtrl = TextEditingController();
   final _heightCtrl = TextEditingController();
   bool _saving = false;
+  String? _error;
 
   Future<void> _save() async {
-    final w = double.tryParse(_weightCtrl.text);
-    final h = double.tryParse(_heightCtrl.text);
+    final w = _metricValue(_weightCtrl.text);
+    final h = _metricValue(_heightCtrl.text);
     if (w == null && h == null) {
-      Navigator.pop(context);
+      await _dismiss();
+      return;
+    }
+    if ((w != null && (w < 20 || w > 500)) ||
+        (h != null && (h < 80 || h > 260))) {
+      setState(() => _error = 'Введите вес 20–500 кг и рост 80–260 см.');
       return;
     }
     setState(() => _saving = true);
     try {
       await widget.ranking.updateProfile(weightKg: w, heightCm: h);
-    } catch (_) {}
+      if (mounted) await _dismiss();
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _saving = false;
+          _error =
+              'Не удалось сохранить. Проверьте соединение и попробуйте снова.';
+        });
+      }
+    }
+  }
+
+  Future<void> _dismiss() async {
+    await widget.onDismiss();
     if (mounted) Navigator.pop(context);
   }
 
@@ -971,13 +996,17 @@ class _FirstTimeWeightSheetState extends State<_FirstTimeWeightSheet> {
                 ),
               ],
             ),
+            if (_error != null) ...[
+              const SizedBox(height: 10),
+              Text(_error!, style: TextStyle(color: c.accent, fontSize: 12)),
+            ],
             const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
                   child: CupertinoButton(
                     padding: EdgeInsets.zero,
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: _saving ? null : _dismiss,
                     child: Container(
                       height: 44,
                       decoration: BoxDecoration(
@@ -1070,26 +1099,34 @@ class _MetricField extends StatelessWidget {
   }
 }
 
-// ── Monthly weight dialog ─────────────────────────────────────────────────────
+double? _metricValue(String raw) {
+  final value = raw.trim();
+  if (value.isEmpty) return null;
+  return double.tryParse(value.replaceAll(',', '.'));
+}
 
-class _MonthlyWeightDialog extends StatefulWidget {
+// ── Annual body profile reminder ──────────────────────────────────────────────
+
+class _AnnualWeightDialog extends StatefulWidget {
   final RankingRepository ranking;
   final RankProfile profile;
-  final VoidCallback onDismiss;
+  final Future<void> Function() onDismiss;
 
-  const _MonthlyWeightDialog({
+  const _AnnualWeightDialog({
     required this.ranking,
     required this.profile,
     required this.onDismiss,
   });
 
   @override
-  State<_MonthlyWeightDialog> createState() => _MonthlyWeightDialogState();
+  State<_AnnualWeightDialog> createState() => _AnnualWeightDialogState();
 }
 
-class _MonthlyWeightDialogState extends State<_MonthlyWeightDialog> {
+class _AnnualWeightDialogState extends State<_AnnualWeightDialog> {
   final _weightCtrl = TextEditingController();
+  final _heightCtrl = TextEditingController();
   bool _saving = false;
+  String? _error;
 
   @override
   void initState() {
@@ -1097,32 +1134,50 @@ class _MonthlyWeightDialogState extends State<_MonthlyWeightDialog> {
     if (widget.profile.weightKg != null) {
       _weightCtrl.text = widget.profile.weightKg!.toStringAsFixed(1);
     }
+    if (widget.profile.heightCm != null) {
+      _heightCtrl.text = widget.profile.heightCm!.toStringAsFixed(0);
+    }
   }
 
   Future<void> _save() async {
-    final w = double.tryParse(_weightCtrl.text);
-    if (w == null) {
-      _dismiss();
+    final w = _metricValue(_weightCtrl.text);
+    final h = _metricValue(_heightCtrl.text);
+    if (w == null && h == null) {
+      await _dismiss();
+      return;
+    }
+    if ((w != null && (w < 20 || w > 500)) ||
+        (h != null && (h < 80 || h > 260))) {
+      setState(() => _error = 'Введите вес 20–500 кг и рост 80–260 см.');
       return;
     }
     setState(() => _saving = true);
     try {
-      await widget.ranking.updateProfile(weightKg: w);
-    } catch (_) {}
-    widget.onDismiss();
-    if (mounted) Navigator.pop(context);
+      await widget.ranking.updateProfile(weightKg: w, heightCm: h);
+      if (mounted) await _dismiss();
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _saving = false;
+          _error =
+              'Не удалось сохранить. Проверьте соединение и попробуйте снова.';
+        });
+      }
+    }
   }
 
   Future<void> _dontAsk() async {
     try {
       await widget.ranking.updateProfile(dontAskWeight: true);
-    } catch (_) {}
-    if (mounted) Navigator.pop(context);
+      if (mounted) await _dismiss();
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
-  void _dismiss() {
-    widget.onDismiss();
-    Navigator.pop(context);
+  Future<void> _dismiss() async {
+    await widget.onDismiss();
+    if (mounted) Navigator.pop(context);
   }
 
   @override
@@ -1193,6 +1248,35 @@ class _MonthlyWeightDialogState extends State<_MonthlyWeightDialog> {
                     border: Border.all(color: c.border),
                   ),
                 ),
+                const SizedBox(height: 10),
+                CupertinoTextField(
+                  controller: _heightCtrl,
+                  placeholder: l.heightCmLabel,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  style: TextStyle(color: c.textPrimary, fontSize: 15),
+                  placeholderStyle: TextStyle(
+                    color: c.textSecondary,
+                    fontSize: 15,
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: c.iconBg,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: c.border),
+                  ),
+                ),
+                if (_error != null) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    _error!,
+                    style: TextStyle(color: c.accent, fontSize: 12),
+                  ),
+                ],
                 const SizedBox(height: 18),
                 Pressable(
                   onTap: _saving ? null : _save,
