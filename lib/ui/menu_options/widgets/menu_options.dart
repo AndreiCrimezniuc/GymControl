@@ -897,6 +897,8 @@ class _FirstTimeWeightSheetState extends State<_FirstTimeWeightSheet> {
   bool _saving = false;
   String? _error;
 
+  bool get _isRussian => Localizations.localeOf(context).languageCode == 'ru';
+
   Future<void> _save() async {
     final w = _metricValue(_weightCtrl.text);
     final h = _metricValue(_heightCtrl.text);
@@ -906,7 +908,11 @@ class _FirstTimeWeightSheetState extends State<_FirstTimeWeightSheet> {
     }
     if ((w != null && (w < 20 || w > 500)) ||
         (h != null && (h < 80 || h > 260))) {
-      setState(() => _error = 'Введите вес 20–500 кг и рост 80–260 см.');
+      setState(
+        () => _error = _isRussian
+            ? 'Введите вес 20–500 кг и рост 80–260 см.'
+            : 'Enter weight between 20–500 kg and height between 80–260 cm.',
+      );
       return;
     }
     setState(() => _saving = true);
@@ -917,8 +923,9 @@ class _FirstTimeWeightSheetState extends State<_FirstTimeWeightSheet> {
       if (mounted) {
         setState(() {
           _saving = false;
-          _error =
-              'Не удалось сохранить. Проверьте соединение и попробуйте снова.';
+          _error = _isRussian
+              ? 'Не удалось сохранить. Проверьте соединение и попробуйте снова.'
+              : 'Could not save. Check your connection and try again.';
         });
       }
     }
@@ -1128,6 +1135,8 @@ class _AnnualWeightDialogState extends State<_AnnualWeightDialog> {
   bool _saving = false;
   String? _error;
 
+  bool get _isRussian => Localizations.localeOf(context).languageCode == 'ru';
+
   @override
   void initState() {
     super.initState();
@@ -1148,7 +1157,11 @@ class _AnnualWeightDialogState extends State<_AnnualWeightDialog> {
     }
     if ((w != null && (w < 20 || w > 500)) ||
         (h != null && (h < 80 || h > 260))) {
-      setState(() => _error = 'Введите вес 20–500 кг и рост 80–260 см.');
+      setState(
+        () => _error = _isRussian
+            ? 'Введите вес 20–500 кг и рост 80–260 см.'
+            : 'Enter weight between 20–500 kg and height between 80–260 cm.',
+      );
       return;
     }
     setState(() => _saving = true);
@@ -1159,8 +1172,9 @@ class _AnnualWeightDialogState extends State<_AnnualWeightDialog> {
       if (mounted) {
         setState(() {
           _saving = false;
-          _error =
-              'Не удалось сохранить. Проверьте соединение и попробуйте снова.';
+          _error = _isRussian
+              ? 'Не удалось сохранить. Проверьте соединение и попробуйте снова.'
+              : 'Could not save. Check your connection and try again.';
         });
       }
     }
