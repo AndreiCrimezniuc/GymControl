@@ -60,6 +60,14 @@ class UnitsController extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_prefsKey, _lb);
   }
+
+  Future<void> applyRemote({required bool isLb}) async {
+    final changed = _lb != isLb;
+    _lb = isLb;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_prefsKey, _lb);
+    if (changed) notifyListeners();
+  }
 }
 
 extension UnitsContext on BuildContext {

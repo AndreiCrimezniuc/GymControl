@@ -124,7 +124,9 @@ class ProgressionSuggestion {
   });
 }
 
-enum EnergyMode { full, reduced, minimum }
+/// A single honest fallback for an off-day. “Minimum” and “low energy” were
+/// two names for the same decision and made choosing needlessly ambiguous.
+enum EnergyMode { full, low }
 
 extension EnergyWorkout on Workout {
   Workout forEnergy(EnergyMode mode) {
@@ -132,11 +134,11 @@ extension EnergyWorkout on Workout {
     final required = exercises
         .where((exercise) => !exercise.isOptional)
         .toList();
-    final keep = mode == EnergyMode.reduced
-        ? required.take(math.max(2, (required.length * .65).ceil())).toList()
-        : required.take(2).toList();
-    final weightFactor = mode == EnergyMode.reduced ? .9 : .82;
-    final setLimit = mode == EnergyMode.reduced ? 3 : 2;
+    final keep = required
+        .take(math.max(2, (required.length * .65).ceil()))
+        .toList();
+    const weightFactor = .9;
+    const setLimit = 3;
     final adapted = keep.map((exercise) {
       final warmups = exercise.sets
           .where((set) => set.setType == 'warmup')

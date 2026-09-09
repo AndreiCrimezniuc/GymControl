@@ -15,6 +15,7 @@ import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/subscription/pro_controller.dart';
 import 'package:gymboss/ui/core/units/units_controller.dart';
+import 'package:gymboss/ui/core/training/training_preferences_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_dialog.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
 import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
@@ -28,7 +29,6 @@ import 'package:gymboss/ui/menu_options_list/workouts/widgets/completed_session_
 import 'package:gymboss/ui/subscription/paywall_screen.dart';
 
 const _modes = ['normal', 'deload'];
-const _diffLabels = {'normal': 'Normal', 'deload': 'Deload'};
 
 class WorkoutDetailScreen extends StatefulWidget {
   final String id;
@@ -116,6 +116,14 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   String _difficulty = 'normal'; // 'normal' | 'deload'
   EnergyMode _energy = EnergyMode.full;
   bool _suggesting = false;
+
+  String _difficultyLabel(String value) {
+    final russian = Localizations.localeOf(context).languageCode == 'ru';
+    return switch (value) {
+      'deload' => russian ? 'Разгрузка' : 'Deload',
+      _ => russian ? 'Обычная' : 'Normal',
+    };
+  }
 
   @override
   void initState() {
@@ -227,6 +235,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
     session.start(
       workout: configured,
       difficulty: _difficulty,
+      deloadFactor: context.read<TrainingPreferencesController>().deloadFactor,
       exercises: widget.exercises,
       ranking: ranking,
       sessions: sessions,
@@ -690,8 +699,10 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
               if (w.type != 'aerobic') ...[
                 _difficultyPicker(c),
                 const SizedBox(height: 8),
-                _energyPicker(c),
-                const SizedBox(height: 8),
+                if (_difficulty != 'deload') ...[
+                  _energyPicker(c),
+                  const SizedBox(height: 8),
+                ],
                 _potentialVolumeLine(c),
                 const SizedBox(height: 16),
               ],
@@ -717,7 +728,9 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                   index: e.key + 1,
                   exercise: e.value,
                   deloadScale: _difficulty == 'deload'
-                      ? (_w?.deloadFactor ?? 0.70)
+                      ? context
+                            .watch<TrainingPreferencesController>()
+                            .deloadFactor
                       : 1.0,
                   onTap: () => _openExerciseStats(e.value),
                 ),
@@ -828,44 +841,39 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
     return minutes >= 60 ? '${minutes ~/ 60}h ${minutes % 60}m' : '${minutes}m';
   }
 
-  Widget _difficultyPicker(AppColors c) =>
-      CupertinoSlidingSegmentedControl<String>(
-        groupValue: _difficulty,
-        backgroundColor: c.iconBg,
-        thumbColor: c.accent,
-        onValueChanged: (v) {
-          HapticFeedback.selectionClick();
-          setState(() => _difficulty = v ?? 'normal');
-        },
-        children: {
-          for (final d in _modes)
-            d: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 7),
-              child: Text(
-                _diffLabels[d]!,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: _difficulty == d ? c.textOnAccent : c.textSecondary,
-                ),
-              ),
+  Widget _difficultyPicker(
+    AppColors c,
+  ) => CupertinoSlidingSegmentedControl<String>(
+    groupValue: _difficulty,
+    backgroundColor: c.iconBg,
+    thumbColor: c.accent,
+    onValueChanged: (v) {
+      HapticFeedback.selectionClick();
+      setState(() => _difficulty = v ?? 'normal');
+    },
+    children: {
+      for (final d in _modes)
+        d: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 7),
+          child: Text(
+            d == 'deload'
+                ? '${_difficultyLabel(d)} (${(context.watch<TrainingPreferencesController>().deloadFactor * 100).round()}%)'
+                : _difficultyLabel(d),
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: _difficulty == d ? c.textOnAccent : c.textSecondary,
             ),
-        },
-      );
+          ),
+        ),
+    },
+  );
 
   Widget _energyPicker(AppColors colors) {
     final russian = Localizations.localeOf(context).languageCode == 'ru';
     final labels = russian
-        ? const {
-            EnergyMode.full: 'Полная',
-            EnergyMode.reduced: 'Меньше сил',
-            EnergyMode.minimum: 'Минимум',
-          }
-        : const {
-            EnergyMode.full: 'Full',
-            EnergyMode.reduced: 'Low energy',
-            EnergyMode.minimum: 'Minimum',
-          };
+        ? const {EnergyMode.full: 'Полная', EnergyMode.low: 'Мало сил'}
+        : const {EnergyMode.full: 'Full', EnergyMode.low: 'Low energy'};
     return CupertinoSlidingSegmentedControl<EnergyMode>(
       groupValue: _energy,
       backgroundColor: colors.iconBg,
@@ -897,7 +905,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
     // The stored plan lives under the legacy 'medium' key; Deload scales it.
     final base = _stats?.potentialVolume['medium'] ?? 0;
     final vol = _difficulty == 'deload'
-        ? base * (_w?.deloadFactor ?? 0.70)
+        ? base * context.watch<TrainingPreferencesController>().deloadFactor
         : base;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -947,8 +955,8 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
           const SizedBox(width: 8),
           Text(
             _energy == EnergyMode.full
-                ? 'START WORKOUT · ${_diffLabels[_difficulty]!.toUpperCase()}'
-                : 'START · ${_energy == EnergyMode.minimum ? 'MINIMUM' : 'LOW ENERGY'}',
+                ? 'START WORKOUT · ${_difficultyLabel(_difficulty).toUpperCase()}'
+                : 'START · LOW ENERGY',
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w800,

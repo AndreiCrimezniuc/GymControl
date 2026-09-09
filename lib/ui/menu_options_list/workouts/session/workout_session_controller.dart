@@ -279,6 +279,7 @@ class WorkoutSessionController extends ChangeNotifier {
   void start({
     required Workout workout,
     required String difficulty,
+    double? deloadFactor,
     required ExercisesRepository exercises,
     required RankingRepository ranking,
     required SessionsRepository sessions,
@@ -295,7 +296,7 @@ class WorkoutSessionController extends ChangeNotifier {
     _difficulty = difficulty;
     _groups
       ..clear()
-      ..addAll(_build(workout, difficulty, units));
+      ..addAll(_build(workout, difficulty, units, deloadFactor));
     _totalSets = _groups.fold(0, (a, g) => a + g.sets.length);
     _loggedSets = 0;
     _loggedVolumeKg = 0;
@@ -418,9 +419,11 @@ class WorkoutSessionController extends ChangeNotifier {
     Workout w,
     String mode, // 'normal' | 'deload'
     UnitsController units,
+    double? deloadFactor,
   ) {
-    // Deload runs the Normal plan at deloadFactor of the weight (reps unchanged).
-    final scale = mode == 'deload' ? w.deloadFactor : 1.0;
+    // Deload runs the Normal plan at the account's selected reduction (reps
+    // unchanged). The workout field remains a legacy fallback for old callers.
+    final scale = mode == 'deload' ? (deloadFactor ?? w.deloadFactor) : 1.0;
     final out = <SessionExercise>[];
     for (final ex in w.exercises) {
       // The plan is stored under the legacy 'medium' grade; fall back to any

@@ -11,6 +11,7 @@ import 'package:gymboss/ui/core/theme/app_colors.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/input/numeric_limit_formatter.dart';
 import 'package:gymboss/ui/core/units/units_controller.dart';
+import 'package:gymboss/ui/core/training/training_preferences_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_page.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/exercise_picker.dart';
 
@@ -33,8 +34,6 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
   late final UnitsController _units;
   final _nameCtrl = TextEditingController();
   final _commentCtrl = TextEditingController();
-  // Deload weight as a percentage of Normal (default 70%).
-  final _deloadCtrl = TextEditingController(text: '70');
   String _type = 'gym'; // gym | aerobic
   final List<_EditExercise> _exercises = [];
   bool _saving = false;
@@ -49,25 +48,16 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
       _nameCtrl.text = w.name;
       _commentCtrl.text = w.comment;
       _type = w.type;
-      _deloadCtrl.text = '${(w.deloadFactor * 100).round()}';
       for (final ex in w.exercises) {
         _exercises.add(_EditExercise.fromExercise(ex, _units));
       }
     }
   }
 
-  double get _deloadFactor {
-    final pct = double.tryParse(_deloadCtrl.text.trim()) ?? 70;
-    final f = pct / 100.0;
-    if (f <= 0 || f > 1) return 0.70;
-    return f;
-  }
-
   @override
   void dispose() {
     _nameCtrl.dispose();
     _commentCtrl.dispose();
-    _deloadCtrl.dispose();
     for (final e in _exercises) {
       e.dispose();
     }
@@ -141,6 +131,9 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
       _error = null;
     });
     final exercises = _exercises.map((e) => e.toDomain(_units)).toList();
+    final deloadFactor = context
+        .read<TrainingPreferencesController>()
+        .deloadFactor;
     try {
       if (widget.existing != null) {
         await widget.repo.update(
@@ -148,7 +141,7 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
           name: name,
           comment: _commentCtrl.text.trim(),
           exercises: exercises,
-          deloadFactor: _deloadFactor,
+          deloadFactor: deloadFactor,
           type: _type,
         );
       } else {
@@ -156,7 +149,7 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
           name: name,
           comment: _commentCtrl.text.trim(),
           exercises: exercises,
-          deloadFactor: _deloadFactor,
+          deloadFactor: deloadFactor,
           type: _type,
         );
       }
@@ -237,32 +230,7 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
                       maxLines: 2,
                     ),
                     const SizedBox(height: 12),
-                    if (_type != 'aerobic') ...[
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Expanded(
-                            child: _field(c, _deloadCtrl, 'DELOAD %', '70'),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            flex: 2,
-                            child: Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: Text(
-                                'Deload (разгрузочная) runs at this % of the Normal '
-                                'weight. Reps stay the same.',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: c.textSecondary,
-                                  height: 1.3,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ] else ...[
+                    if (_type == 'aerobic') ...[
                       Text(
                         'Aerobic workouts are timed: a stopwatch with laps. '
                         'Exercises below are optional.',

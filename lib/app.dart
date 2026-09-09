@@ -23,6 +23,7 @@ import 'package:gymboss/ui/core/locale/locale_controller.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/units/units_controller.dart';
 import 'package:gymboss/ui/core/training/training_preferences_controller.dart';
+import 'package:gymboss/ui/core/preferences/account_preferences_sync.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_scaffold.dart';
 import 'package:gymboss/ui/core/subscription/pro_controller.dart';
 import 'package:gymboss/ui/home_screen/home_screen.dart';
@@ -54,12 +55,17 @@ class _GymControlAppState extends State<GymControlApp>
   late final RankingRepository _ranking;
   late final SessionsRepository _sessions;
   late final UnitsController _units;
+  late final ThemeController _theme;
+  late final LocaleController _locale;
   late final TrainingPreferencesController _trainingPreferences;
+  late final AccountPreferencesSync _accountPreferences;
   late final WorkoutSessionController _session;
   late final AerobicSessionController _aerobicSession;
   Future<void> _sessionSync = Future.value();
   bool _restoreAttempted = false;
   bool _cacheWarmStarted = false;
+  bool _preferencesHydrated = false;
+  bool _preferencesHydrating = false;
 
   @override
   void initState() {
@@ -83,7 +89,16 @@ class _GymControlAppState extends State<GymControlApp>
     );
     _pro = ProController(_client);
     _units = UnitsController();
+    _theme = ThemeController();
+    _locale = LocaleController();
     _trainingPreferences = TrainingPreferencesController();
+    _accountPreferences = AccountPreferencesSync(
+      ranking: _ranking,
+      theme: _theme,
+      locale: _locale,
+      units: _units,
+      training: _trainingPreferences,
+    );
     _session = WorkoutSessionController(
       oneRmFormula: _trainingPreferences.formula,
     );
@@ -121,6 +136,8 @@ class _GymControlAppState extends State<GymControlApp>
       if (status == AuthStatus.unauthenticated) {
         _restoreAttempted = false;
         _cacheWarmStarted = false;
+        _preferencesHydrated = false;
+        _preferencesHydrating = false;
         if (_session.isActive) _session.clear();
         await _aerobicSession.clear();
       }
@@ -149,6 +166,23 @@ class _GymControlAppState extends State<GymControlApp>
     if (!_cacheWarmStarted) {
       _cacheWarmStarted = true;
       unawaited(_warmOfflineCache());
+    }
+    // Account preferences are deliberately outside the cache warmer: a
+    // preference outage must never delay a durable workout restore.
+    if (!_preferencesHydrated && !_preferencesHydrating) {
+      _preferencesHydrating = true;
+      unawaited(_hydrateAccountPreferences());
+    }
+  }
+
+  Future<void> _hydrateAccountPreferences() async {
+    try {
+      _preferencesHydrated = await _accountPreferences.hydrate();
+    } catch (_) {
+      // Local copies keep the app usable; the next authenticated foreground
+      // pass retries server reconciliation.
+    } finally {
+      _preferencesHydrating = false;
     }
   }
 
@@ -244,10 +278,13 @@ class _GymControlAppState extends State<GymControlApp>
     WidgetsBinding.instance.removeObserver(this);
     _authVm.removeListener(_queueSessionSync);
     _trainingPreferences.removeListener(_syncTrainingPreferences);
+    _accountPreferences.dispose();
     _client.dispose();
     _session.dispose();
     _aerobicSession.dispose();
     _units.dispose();
+    _theme.dispose();
+    _locale.dispose();
     _trainingPreferences.dispose();
     super.dispose();
   }
@@ -256,9 +293,7 @@ class _GymControlAppState extends State<GymControlApp>
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider<ThemeController>(
-          create: (_) => ThemeController(),
-        ),
+        ChangeNotifierProvider<ThemeController>.value(value: _theme),
         ChangeNotifierProvider<UnitsController>.value(value: _units),
         ChangeNotifierProvider<TrainingPreferencesController>.value(
           value: _trainingPreferences,
@@ -267,9 +302,7 @@ class _GymControlAppState extends State<GymControlApp>
         ChangeNotifierProvider<AerobicSessionController>.value(
           value: _aerobicSession,
         ),
-        ChangeNotifierProvider<LocaleController>(
-          create: (_) => LocaleController(),
-        ),
+        ChangeNotifierProvider<LocaleController>.value(value: _locale),
         ChangeNotifierProvider<AuthViewModel>.value(value: _authVm),
         ChangeNotifierProvider<ProController>.value(value: _pro),
         Provider<AuthenticatedClient>.value(value: _client),

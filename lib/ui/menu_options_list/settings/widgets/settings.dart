@@ -280,7 +280,7 @@ class _SettingsState extends State<Settings> {
             title: Localizations.localeOf(context).languageCode == 'ru'
                 ? 'Расчёты тренировки'
                 : 'Training calculations',
-            children: [const _FormulaTile()],
+            children: [const _FormulaTile(), const _DeloadFactorTile()],
           ),
           const SizedBox(height: 20),
           _Section(title: l.syncLedger, children: [const _SyncLedgerTile()]),
@@ -298,11 +298,6 @@ class _SettingsState extends State<Settings> {
                     builder: (_) => const DataPortabilityScreen(),
                   ),
                 ),
-              ),
-              _SettingsTile(
-                icon: CupertinoIcons.bell_fill,
-                label: l.labelNotifications,
-                onTap: () {},
               ),
             ],
           ),
@@ -335,7 +330,7 @@ class _SettingsState extends State<Settings> {
                 label: _sendingDiagnostics
                     ? 'Sending diagnostics…'
                     : 'Send diagnostics (${DiagnosticService.instance.eventCount})',
-                onTap: _sendingDiagnostics ? () {} : _sendDiagnostics,
+                onTap: _sendingDiagnostics ? null : _sendDiagnostics,
               ),
               _SwitchTile(
                 icon: CupertinoIcons.shield_lefthalf_fill,
@@ -500,6 +495,79 @@ class _FormulaTile extends StatelessWidget {
   }
 }
 
+class _DeloadFactorTile extends StatelessWidget {
+  const _DeloadFactorTile();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final preferences = context.watch<TrainingPreferencesController>();
+    final russian = Localizations.localeOf(context).languageCode == 'ru';
+    final percentage = (preferences.deloadFactor * 100).round();
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      onPressed: () async {
+        final selected = await showCupertinoModalPopup<int>(
+          context: context,
+          builder: (sheetContext) => CupertinoActionSheet(
+            title: Text(russian ? 'Разгрузка' : 'Deload'),
+            message: Text(
+              russian
+                  ? 'Вес в разгрузочной тренировке. Повторы и техника остаются в плане.'
+                  : 'Weight used for a deload. Reps and technique stay in the plan.',
+            ),
+            actions: [50, 60, 70, 80, 90]
+                .map(
+                  (value) => CupertinoActionSheetAction(
+                    isDefaultAction: value == percentage,
+                    onPressed: () => Navigator.pop(sheetContext, value),
+                    child: Text('$value%'),
+                  ),
+                )
+                .toList(),
+            cancelButton: CupertinoActionSheetAction(
+              onPressed: () => Navigator.pop(sheetContext),
+              child: Text(AppLocalizations.of(context).cancel),
+            ),
+          ),
+        );
+        if (selected != null) {
+          await preferences.setDeloadFactor(selected / 100);
+        }
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Icon(
+              CupertinoIcons.arrow_down_right,
+              size: 18,
+              color: colors.accent,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                russian ? 'Разгрузка' : 'Deload',
+                style: TextStyle(fontSize: 15, color: colors.textPrimary),
+              ),
+            ),
+            Text(
+              '$percentage%',
+              style: TextStyle(fontSize: 14, color: colors.textSecondary),
+            ),
+            const SizedBox(width: 6),
+            Icon(
+              CupertinoIcons.chevron_forward,
+              size: 14,
+              color: colors.textSecondary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _Section extends StatelessWidget {
   final String title;
   final List<Widget> children;
@@ -549,7 +617,7 @@ class _Section extends StatelessWidget {
 class _SettingsTile extends StatelessWidget {
   final IconData icon;
   final String label;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   const _SettingsTile({
     required this.icon,
     required this.label,
@@ -566,19 +634,27 @@ class _SettingsTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
-            Icon(icon, size: 18, color: c.accent),
+            Icon(
+              icon,
+              size: 18,
+              color: onTap == null ? c.textSecondary : c.accent,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 label,
-                style: TextStyle(fontSize: 15, color: c.textPrimary),
+                style: TextStyle(
+                  fontSize: 15,
+                  color: onTap == null ? c.textSecondary : c.textPrimary,
+                ),
               ),
             ),
-            Icon(
-              CupertinoIcons.chevron_forward,
-              size: 14,
-              color: c.textSecondary,
-            ),
+            if (onTap != null)
+              Icon(
+                CupertinoIcons.chevron_forward,
+                size: 14,
+                color: c.textSecondary,
+              ),
           ],
         ),
       ),

@@ -4,12 +4,28 @@ class RankProfile {
   final double? weightKg;
   final double? heightCm;
   final bool dontAskWeight;
+  final DateTime? weightPromptedAt;
+  final bool appearanceDark;
+  final String lightAccent;
+  final String darkAccent;
+  final String? locale;
+  final String unit;
+  final String oneRmFormula;
+  final double deloadFactor;
   final DateTime updatedAt;
 
   const RankProfile({
     this.weightKg,
     this.heightCm,
     required this.dontAskWeight,
+    this.weightPromptedAt,
+    this.appearanceDark = false,
+    this.lightAccent = 'red',
+    this.darkAccent = 'red',
+    this.locale,
+    this.unit = 'kg',
+    this.oneRmFormula = 'epley',
+    this.deloadFactor = .70,
     required this.updatedAt,
   });
 
@@ -21,6 +37,33 @@ class RankProfile {
         ? null
         : jsonDouble(j['height_cm'], min: 0, max: 300),
     dontAskWeight: jsonBool(j['dont_ask_weight']),
+    weightPromptedAt: DateTime.tryParse(jsonString(j['weight_prompted_at'])),
+    appearanceDark: jsonBool(j['appearance_dark']),
+    lightAccent: _enumValue(j['light_accent'], const {
+      'red',
+      'blue',
+      'purple',
+      'green',
+    }, 'red'),
+    darkAccent: _enumValue(j['dark_accent'], const {
+      'red',
+      'blue',
+      'purple',
+      'green',
+    }, 'red'),
+    locale: _nullableEnumValue(j['locale'], const {'en', 'ru'}),
+    unit: _enumValue(j['unit'], const {'kg', 'lb'}, 'kg'),
+    oneRmFormula: _enumValue(j['one_rm_formula'], const {
+      'epley',
+      'brzycki',
+      'wathan',
+    }, 'epley'),
+    deloadFactor: jsonDouble(
+      j['deload_factor'],
+      min: .1,
+      max: 1,
+      fallback: .70,
+    ),
     updatedAt: DateTime.tryParse(jsonString(j['updated_at'])) ?? DateTime(2000),
   );
 
@@ -28,12 +71,36 @@ class RankProfile {
     double? weightKg,
     double? heightCm,
     bool? dontAskWeight,
+    DateTime? weightPromptedAt,
+    bool? appearanceDark,
+    String? lightAccent,
+    String? darkAccent,
+    String? locale,
+    String? unit,
+    String? oneRmFormula,
+    double? deloadFactor,
   }) => RankProfile(
     weightKg: weightKg ?? this.weightKg,
     heightCm: heightCm ?? this.heightCm,
     dontAskWeight: dontAskWeight ?? this.dontAskWeight,
+    weightPromptedAt: weightPromptedAt ?? this.weightPromptedAt,
+    appearanceDark: appearanceDark ?? this.appearanceDark,
+    lightAccent: lightAccent ?? this.lightAccent,
+    darkAccent: darkAccent ?? this.darkAccent,
+    locale: locale ?? this.locale,
+    unit: unit ?? this.unit,
+    oneRmFormula: oneRmFormula ?? this.oneRmFormula,
+    deloadFactor: deloadFactor ?? this.deloadFactor,
     updatedAt: updatedAt,
   );
+}
+
+String _enumValue(Object? value, Set<String> allowed, String fallback) {
+  return value is String && allowed.contains(value) ? value : fallback;
+}
+
+String? _nullableEnumValue(Object? value, Set<String> allowed) {
+  return value is String && allowed.contains(value) ? value : null;
 }
 
 class ExerciseRank {

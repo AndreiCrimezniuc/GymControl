@@ -36,7 +36,7 @@ void main() {
     },
   );
 
-  test('minimum-energy workout removes optional work and failure sets', () {
+  test('low-energy workout removes optional work and failure sets', () {
     final workout = Workout(
       id: 'w',
       name: 'Day',
@@ -68,10 +68,10 @@ void main() {
         ),
       ),
     );
-    final adapted = workout.forEnergy(EnergyMode.minimum);
+    final adapted = workout.forEnergy(EnergyMode.low);
     expect(adapted.exercises.length, 2);
     expect(adapted.exercises.first.sets.length, 2);
-    expect(adapted.exercises.first.sets.first.weightKg, 82);
+    expect(adapted.exercises.first.sets.first.weightKg, 90);
   });
 
   test('assistance subtracts from bodyweight and never becomes negative', () {

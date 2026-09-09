@@ -11,9 +11,10 @@ class LocaleController extends ChangeNotifier {
 
   Locale? _locale;
   Locale? get locale => _locale;
+  late final Future<void> ready;
 
   LocaleController() {
-    _load();
+    ready = _load();
   }
 
   Future<void> _load() async {
@@ -35,5 +36,21 @@ class LocaleController extends ChangeNotifier {
     } else {
       await prefs.setString(_prefsKey, locale.languageCode);
     }
+  }
+
+  Future<void> applyRemote(Locale? locale) async {
+    if (locale != null &&
+        !supported.any((item) => item.languageCode == locale.languageCode)) {
+      return;
+    }
+    final changed = _locale?.languageCode != locale?.languageCode;
+    _locale = locale;
+    final prefs = await SharedPreferences.getInstance();
+    if (locale == null) {
+      await prefs.remove(_prefsKey);
+    } else {
+      await prefs.setString(_prefsKey, locale.languageCode);
+    }
+    if (changed) notifyListeners();
   }
 }

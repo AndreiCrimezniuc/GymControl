@@ -23,6 +23,8 @@ class ThemeController extends ChangeNotifier {
 
   bool get isDark => _isDark;
   AppAccent get accent => _isDark ? _darkAccent : _lightAccent;
+  AppAccent get lightAccent => _lightAccent;
+  AppAccent get darkAccent => _darkAccent;
   AppColors get colors =>
       (_isDark ? AppColors.dark : AppColors.light).withAccent(accent);
 
@@ -75,6 +77,31 @@ class ThemeController extends ChangeNotifier {
         value.name,
       );
     }
+  }
+
+  /// Applies the account-level appearance preference after sign-in. Local
+  /// storage still makes the first frame instant; the account copy then keeps
+  /// another device from silently reverting the user's design choice.
+  Future<void> applyRemote({
+    required bool isDark,
+    required AppAccent lightAccent,
+    required AppAccent darkAccent,
+  }) async {
+    _localChangeRevision++;
+    final changed =
+        _isDark != isDark ||
+        _lightAccent != lightAccent ||
+        _darkAccent != darkAccent;
+    _isDark = isDark;
+    _lightAccent = lightAccent;
+    _darkAccent = darkAccent;
+    final prefs = await SharedPreferences.getInstance();
+    await Future.wait([
+      prefs.setBool(_prefsKey, isDark),
+      prefs.setString(_lightAccentPrefsKey, lightAccent.name),
+      prefs.setString(_darkAccentPrefsKey, darkAccent.name),
+    ]);
+    if (changed) notifyListeners();
   }
 
   static AppAccent? _parseAccent(String? value) {

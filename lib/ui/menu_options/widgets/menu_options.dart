@@ -96,14 +96,21 @@ class _MenuOptionsState extends State<MenuOptions> {
 
   Future<void> _checkWeightPrompt() async {
     try {
-      final profile = await _ranking.getProfile();
+      // Prefer the server timestamp whenever it is reachable so an annual
+      // prompt answered on a second device cannot briefly reappear here.
+      // Offline still falls back to the durable profile snapshot.
+      final profile = await _ranking.getProfile(forceRefresh: true);
       if (!mounted) return;
       if (profile.dontAskWeight) return;
 
       final prefs = await SharedPreferences.getInstance();
-      final lastCheckMs = prefs.getInt(_weightPromptKey) ?? 0;
-      final lastCheck = DateTime.fromMillisecondsSinceEpoch(lastCheckMs);
-      if (lastCheckMs > 0 &&
+      final legacyMs = prefs.getInt(_weightPromptKey);
+      final lastCheck =
+          profile.weightPromptedAt ??
+          (legacyMs == null
+              ? null
+              : DateTime.fromMillisecondsSinceEpoch(legacyMs));
+      if (lastCheck != null &&
           DateTime.now().difference(lastCheck) < _weightPromptInterval) {
         return;
       }
@@ -118,8 +125,10 @@ class _MenuOptionsState extends State<MenuOptions> {
   }
 
   Future<void> _markWeightPrompted() async {
+    final now = DateTime.now();
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_weightPromptKey, DateTime.now().millisecondsSinceEpoch);
+    await prefs.setInt(_weightPromptKey, now.millisecondsSinceEpoch);
+    await _ranking.updateProfile(weightPromptedAt: now);
   }
 
   void _showFirstTimeWeightSheet() {

@@ -39,12 +39,32 @@ void main() {
       isOnline: () async => false,
     );
 
-    final profile = await ranking.updateProfile(weightKg: 82, heightCm: 180);
+    final profile = await ranking.updateProfile(
+      weightKg: 82,
+      heightCm: 180,
+      appearanceDark: true,
+      lightAccent: 'purple',
+      darkAccent: 'green',
+      locale: 'ru',
+      unit: 'lb',
+      oneRmFormula: 'wathan',
+      deloadFactor: .6,
+      weightPromptedAt: DateTime.utc(2026, 9, 9),
+    );
     await ranking.recordLift(exerciseId: 'bench', weightKg: 100, reps: 5);
     await sessions.recordSession();
 
     expect(profile.weightKg, 82);
     expect((await ranking.getProfile()).heightCm, 180);
+    expect((await ranking.getProfile(forceRefresh: true)).heightCm, 180);
+    expect(profile.appearanceDark, isTrue);
+    expect(profile.lightAccent, 'purple');
+    expect(profile.darkAccent, 'green');
+    expect(profile.locale, 'ru');
+    expect(profile.unit, 'lb');
+    expect(profile.oneRmFormula, 'wathan');
+    expect(profile.deloadFactor, .6);
+    expect(profile.weightPromptedAt, DateTime.utc(2026, 9, 9));
     expect((await sessions.getStreakData()).currentStreakWorkouts, 0);
     expect(store.pending().map((mutation) => mutation.kind), [
       'ranking.profile',

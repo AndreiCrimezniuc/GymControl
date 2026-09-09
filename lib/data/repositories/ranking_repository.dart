@@ -29,6 +29,8 @@ class RankingRepository {
     _registerHandlers();
   }
 
+  Future<bool> get isOnline => _isOnline();
+
   Future<RankProfile> getProfile({bool forceRefresh = false}) async {
     final cached = _store.getDoc(_collection, 'profile');
     if (!forceRefresh && cached != null) {
@@ -36,6 +38,7 @@ class RankingRepository {
       return RankProfile.fromJson(cached);
     }
     if (!await _isOnline()) {
+      if (cached != null) return RankProfile.fromJson(cached);
       return RankProfile(dontAskWeight: false, updatedAt: DateTime(2000));
     }
     return _refreshProfile();
@@ -67,11 +70,29 @@ class RankingRepository {
     double? weightKg,
     double? heightCm,
     bool? dontAskWeight,
+    DateTime? weightPromptedAt,
+    bool? appearanceDark,
+    String? lightAccent,
+    String? darkAccent,
+    String? locale,
+    String? unit,
+    String? oneRmFormula,
+    double? deloadFactor,
   }) async {
     final body = <String, dynamic>{};
     if (weightKg != null) body['weight_kg'] = weightKg;
     if (heightCm != null) body['height_cm'] = heightCm;
     if (dontAskWeight != null) body['dont_ask_weight'] = dontAskWeight;
+    if (weightPromptedAt != null) {
+      body['weight_prompted_at'] = weightPromptedAt.toUtc().toIso8601String();
+    }
+    if (appearanceDark != null) body['appearance_dark'] = appearanceDark;
+    if (lightAccent != null) body['light_accent'] = lightAccent;
+    if (darkAccent != null) body['dark_accent'] = darkAccent;
+    if (locale != null) body['locale'] = locale;
+    if (unit != null) body['unit'] = unit;
+    if (oneRmFormula != null) body['one_rm_formula'] = oneRmFormula;
+    if (deloadFactor != null) body['deload_factor'] = deloadFactor;
 
     final previous = _store.getDoc(_collection, 'profile') ?? const {};
     final local = {
