@@ -14,6 +14,7 @@ import 'package:gymboss/ui/core/ui/widgets/app_scaffold.dart';
 import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
 import 'package:gymboss/domain/models/exercises/exercise_catalog.dart';
 import 'package:gymboss/domain/models/workouts/workout_debrief.dart';
+import 'package:gymboss/domain/models/insights/trainer_report.dart';
 import 'package:gymboss/ui/menu_options_list/exercises/widgets/muscle_illustration.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/session/workout_session_controller.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/session/workout_calculators.dart';
@@ -1761,6 +1762,8 @@ class _DoneViewState extends State<_DoneView>
                 const SizedBox(height: 20),
                 _DebriefSignal(debrief: d),
                 const SizedBox(height: 12),
+                _TrainerReportCard(report: TrainerReport.fromDebrief(d)),
+                const SizedBox(height: 12),
                 Row(
                   children: [
                     _stat(c, '${d.workingSets}', l10n.workingSets),
@@ -2052,6 +2055,101 @@ class _DebriefSignal extends StatelessWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _TrainerReportCard extends StatelessWidget {
+  final TrainerReport report;
+  const _TrainerReportCard({required this.report});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final russian = Localizations.localeOf(context).languageCode == 'ru';
+    final (title, body, icon) = switch (report.kind) {
+      TrainerReportKind.breakthrough => (
+        russian ? 'Тренерский разбор: прорыв' : 'Coach debrief: breakthrough',
+        russian
+            ? 'Новый личный ориентир. На следующей сессии повторите чистое выполнение, не добавляйте нагрузку автоматически.'
+            : 'A new personal marker. Repeat the clean execution next time; do not auto-add load.',
+        CupertinoIcons.rosette,
+      ),
+      TrainerReportKind.recover => (
+        russian
+            ? 'Тренерский разбор: восстановление'
+            : 'Coach debrief: recover',
+        russian
+            ? 'Сопоставимый объём заметно ниже прошлого. Следующую силовую сессию начните в режиме «нет сил» или сохраните обычный вес.'
+            : 'Comparable output was materially lower. Start the next strength session in Low-energy mode or hold the load.',
+        CupertinoIcons.heart,
+      ),
+      TrainerReportKind.build => (
+        russian ? 'Тренерский разбор: набран ритм' : 'Coach debrief: building',
+        russian
+            ? 'Объём вырос на ${report.volumeChangePercent!.round()}%. Сохраните текущий темп ещё одну тренировку и следите за техникой.'
+            : 'Volume rose ${report.volumeChangePercent!.round()}%. Keep this pace for one more session and protect form.',
+        CupertinoIcons.arrow_up_right,
+      ),
+      TrainerReportKind.hold => (
+        russian ? 'Тренерский разбор: стабильность' : 'Coach debrief: hold',
+        russian
+            ? 'Нагрузка держится ровно. Это хороший момент улучшить диапазон повторений или качество последнего подхода.'
+            : 'Load is holding steady. Improve the rep range or quality of the final set before increasing load.',
+        CupertinoIcons.equal_circle,
+      ),
+      TrainerReportKind.establish => (
+        russian
+            ? 'Тренерский разбор: точка отсчёта'
+            : 'Coach debrief: baseline',
+        russian
+            ? 'Первая сопоставимая запись создана. Повторите эту тренировку — после этого приложение сможет оценивать динамику.'
+            : 'Your first comparable record is set. Repeat this workout and GymControl can measure the trend.',
+        CupertinoIcons.scope,
+      ),
+    };
+    return Semantics(
+      label: '$title. $body',
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: c.card,
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: c.border),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, size: 18, color: c.accent),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: c.textPrimary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    body,
+                    style: TextStyle(
+                      color: c.textSecondary,
+                      fontSize: 11,
+                      height: 1.35,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

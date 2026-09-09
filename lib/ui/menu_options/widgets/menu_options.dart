@@ -4,10 +4,12 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gymboss/data/repositories/ranking_repository.dart';
 import 'package:gymboss/data/repositories/sessions_repository.dart';
+import 'package:gymboss/data/repositories/programs_repository.dart';
 import 'package:gymboss/data/repositories/workouts_repository.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/domain/models/ranking/rank_data.dart';
 import 'package:gymboss/domain/models/streak/streak_data.dart';
+import 'package:gymboss/domain/models/programs/training_program.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/theme/app_design.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_scaffold.dart';
@@ -19,6 +21,9 @@ import 'package:gymboss/ui/menu_options_list/ranking/widgets/ranking.dart';
 import 'package:gymboss/ui/menu_options_list/settings/widgets/settings.dart';
 import 'package:gymboss/ui/menu_options_list/statistics/widgets/statistics.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/widgets/workouts.dart';
+import 'package:gymboss/ui/menu_options_list/workouts/widgets/workout_runner.dart';
+import 'package:gymboss/ui/menu_options_list/workouts/session/aerobic_runner.dart';
+import 'package:gymboss/ui/menu_options_list/workouts/session/workout_session_controller.dart';
 import 'package:gymboss/l10n/app_localizations.dart';
 
 class MenuOptions extends StatefulWidget {
@@ -31,10 +36,12 @@ class MenuOptions extends StatefulWidget {
 class _MenuOptionsState extends State<MenuOptions> {
   late final SessionsRepository _sessions;
   late final RankingRepository _ranking;
+  late final ProgramsRepository _programs;
   late final WorkoutsRepository _workoutsRepo;
   StreakData _streak = StreakData.empty;
   UserRanks? _passport;
   int _workouts = 0;
+  List<TrainingProgram> _programItems = const [];
 
   @override
   void initState() {
@@ -42,10 +49,12 @@ class _MenuOptionsState extends State<MenuOptions> {
     final client = context.read<AuthenticatedClient>();
     _sessions = SessionsRepository(client: client);
     _ranking = RankingRepository(client: client);
+    _programs = ProgramsRepository(client: client);
     _workoutsRepo = WorkoutsRepository(client: client);
     _loadStreak();
     _loadPassport();
     _loadWorkouts();
+    _loadPrograms();
   }
 
   Future<void> _loadWorkouts() async {
@@ -59,6 +68,13 @@ class _MenuOptionsState extends State<MenuOptions> {
     try {
       final passport = await _ranking.getUserRanks();
       if (mounted) setState(() => _passport = passport);
+    } catch (_) {}
+  }
+
+  Future<void> _loadPrograms() async {
+    try {
+      final programs = await _programs.list();
+      if (mounted) setState(() => _programItems = programs);
     } catch (_) {}
   }
 
@@ -131,6 +147,9 @@ class _MenuOptionsState extends State<MenuOptions> {
       context,
     ).push(CupertinoPageRoute<void>(builder: (_) => page));
     _loadWorkouts();
+    _loadPrograms();
+    _loadPassport();
+    _loadStreak();
   }
 
   @override
@@ -138,6 +157,8 @@ class _MenuOptionsState extends State<MenuOptions> {
     final c = context.colors;
     final l10n = AppLocalizations.of(context);
     final chain = _streak.currentStreakWorkouts;
+    final strengthSession = context.watch<WorkoutSessionController>();
+    final aerobicSession = context.watch<AerobicSessionController>();
     final nextMilestone = _streak.nextMilestoneWorkouts;
     final nextMilestoneLabel =
         '$nextMilestone ${_workoutWord(context, nextMilestone)}';
@@ -171,6 +192,30 @@ class _MenuOptionsState extends State<MenuOptions> {
               ],
             ),
             const SizedBox(height: 22),
+            _TodayCommandCard(
+              strengthSession: strengthSession,
+              aerobicSession: aerobicSession,
+              nextScheduled: _nextScheduledWorkout(),
+              passport: _passport,
+              onOpenWorkouts: () => _pushAndReload(const Workouts()),
+              onOpenPassport: () => _push(const Ranking()),
+              onResumeStrength: () {
+                strengthSession.resume();
+                _push(const WorkoutRunnerScreen());
+              },
+              onResumeAerobic: () {
+                aerobicSession.resume();
+                _push(
+                  AerobicRunnerScreen(
+                    workoutId: aerobicSession.workoutId,
+                    workoutName: aerobicSession.workoutName,
+                    repo: _workoutsRepo,
+                    sessions: _sessions,
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
             AppGlassSurface(
               onTap: () => _showYearCalendar(context),
               child: _StatStrip(
@@ -251,6 +296,218 @@ class _MenuOptionsState extends State<MenuOptions> {
       context: context,
       builder: (_) => _YearCalendarSheet(streak: _streak),
     );
+  }
+
+  ScheduledWorkout? _nextScheduledWorkout() {
+    final now = DateTime.now();
+    ScheduledWorkout? next;
+    for (final program in _programItems) {
+      final candidate = program.nextWorkout(now);
+      if (candidate == null) continue;
+      if (next == null || candidate.date!.isBefore(next.date!)) {
+        next = candidate;
+      }
+    }
+    return next;
+  }
+}
+
+class _TodayCommandCard extends StatelessWidget {
+  final WorkoutSessionController strengthSession;
+  final AerobicSessionController aerobicSession;
+  final ScheduledWorkout? nextScheduled;
+  final UserRanks? passport;
+  final VoidCallback onOpenWorkouts;
+  final VoidCallback onOpenPassport;
+  final VoidCallback onResumeStrength;
+  final VoidCallback onResumeAerobic;
+
+  const _TodayCommandCard({
+    required this.strengthSession,
+    required this.aerobicSession,
+    required this.nextScheduled,
+    required this.passport,
+    required this.onOpenWorkouts,
+    required this.onOpenPassport,
+    required this.onResumeStrength,
+    required this.onResumeAerobic,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.colors;
+    final russian = Localizations.localeOf(context).languageCode == 'ru';
+    final activeStrength =
+        strengthSession.isActive && !strengthSession.isFinished;
+    final activeAerobic = aerobicSession.isActive;
+    final active = activeStrength || activeAerobic;
+    final action = activeStrength
+        ? onResumeStrength
+        : activeAerobic
+        ? onResumeAerobic
+        : onOpenWorkouts;
+    final title = activeStrength
+        ? strengthSession.workout?.name ?? ''
+        : activeAerobic
+        ? aerobicSession.workoutName
+        : nextScheduled?.workoutName ??
+              (russian ? 'Сделайте день своим' : 'Make the day yours');
+    final detail = activeStrength
+        ? '${strengthSession.doneSets}/${strengthSession.totalSets} ${russian ? 'подходов' : 'sets'} · ${strengthSession.elapsed}'
+        : activeAerobic
+        ? '${aerobicSession.running ? (russian ? 'идёт' : 'running') : (russian ? 'пауза' : 'paused')} · ${AerobicSessionController.fmt(aerobicSession.totalSeconds)}'
+        : nextScheduled == null
+        ? (russian
+              ? 'Начните тренировку без лишнего планирования.'
+              : 'Start a session without extra planning.')
+        : _dateLabel(nextScheduled!, russian);
+    final eyebrow = active
+        ? (russian ? 'АКТИВНАЯ ТРЕНИРОВКА' : 'ACTIVE WORKOUT')
+        : nextScheduled == null
+        ? (russian ? 'СЕГОДНЯ' : 'TODAY')
+        : (russian ? 'СЛЕДУЮЩАЯ ПО ПЛАНУ' : 'NEXT ON PLAN');
+    final actionLabel = active
+        ? (russian ? 'Продолжить' : 'Resume')
+        : nextScheduled == null
+        ? (russian ? 'Выбрать тренировку' : 'Choose workout')
+        : (russian ? 'Открыть тренировки' : 'Open workouts');
+    final ranked = passport?.exerciseRanks.length ?? 0;
+    final passportLabel = ranked == 0
+        ? (russian ? 'Паспорт: первая запись' : 'Passport: first entry')
+        : ranked < 3
+        ? (russian
+              ? 'Паспорт: калибровка $ranked/3'
+              : 'Passport: calibration $ranked/3')
+        : (russian
+              ? 'Паспорт: класс ${passport!.overallRank ?? '—'}'
+              : 'Passport: class ${passport!.overallRank ?? '—'}');
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
+      decoration: BoxDecoration(
+        color: c.invBg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: c.accent.withValues(alpha: .4)),
+        boxShadow: c.cardShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 3,
+                height: 14,
+                decoration: BoxDecoration(
+                  color: c.accent,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                eyebrow,
+                style: TextStyle(
+                  color: c.accent,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.3,
+                ),
+              ),
+              const Spacer(),
+              Pressable(
+                semanticLabel: passportLabel,
+                onTap: onOpenPassport,
+                child: Icon(
+                  CupertinoIcons.shield_lefthalf_fill,
+                  size: 17,
+                  color: c.accent,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: c.invText,
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -.45,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            detail,
+            style: TextStyle(
+              color: c.invText.withValues(alpha: .67),
+              fontSize: 12,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: Pressable(
+                  onTap: action,
+                  haptic: true,
+                  child: Container(
+                    height: 42,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: c.accent,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      actionLabel,
+                      style: TextStyle(
+                        color: c.textOnAccent,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Pressable(
+                  semanticLabel: passportLabel,
+                  onTap: onOpenPassport,
+                  child: Text(
+                    passportLabel,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: c.invText.withValues(alpha: .68),
+                      fontSize: 10,
+                      height: 1.2,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _dateLabel(ScheduledWorkout item, bool russian) {
+    final date = item.date;
+    if (date == null) return item.plannedOn;
+    final now = DateTime.now();
+    final days = DateTime(
+      date.year,
+      date.month,
+      date.day,
+    ).difference(DateTime(now.year, now.month, now.day)).inDays;
+    if (days == 0) return russian ? 'Сегодня по плану' : 'Planned for today';
+    if (days == 1) return russian ? 'Завтра по плану' : 'Planned for tomorrow';
+    return russian
+        ? 'Через $days дн. · ${item.plannedOn}'
+        : 'In $days days · ${item.plannedOn}';
   }
 }
 
