@@ -242,25 +242,26 @@ class _GymControlAppState extends State<GymControlApp>
     final exerciseIds = fullWorkouts
         .expand((workout) => workout.exercises)
         .map((exercise) => exercise.exerciseId)
-        .toSet()
-        .take(30);
+        .toSet();
     await bounded<int>(exerciseIds, 4, (id) async {
       await Future.wait([
         safe(() => _exercises.getStats(id, forceRefresh: true)),
         safe(() => _exercises.getHistory(id, forceRefresh: true)),
       ]);
     });
-    // Deep analytics are useful but not required to execute a cached plan.
-    // Cap this second tier so a long-lived account cannot generate hundreds
-    // of startup requests or crowd out interactive traffic.
-    await bounded<Workout>(fullWorkouts.take(15), 3, (workout) async {
+    // A successful sign-in establishes the user's complete offline snapshot.
+    // Keep the work in the background and bounded, but do not silently omit
+    // older programs or sessions: a long-lived account must be able to browse
+    // its complete training history during an extended offline period.
+    await bounded<Workout>(fullWorkouts, 3, (workout) async {
       final stats = await safe(
         () => _workouts.stats(workout.id, forceRefresh: true),
       );
       if (stats == null) return;
-      // Three exact recent sessions are enough for "previous" values while
-      // keeping first-sign-in bandwidth bounded for long-lived accounts.
-      for (final run in stats.history.take(3)) {
+      // `history` is the complete, server-authoritative run index for this
+      // program. Preserve every exact run detail as well so the historical
+      // screen does not degrade to blank sessions in airplane mode.
+      for (final run in stats.history) {
         await safe(
           () => _workouts.runDetail(
             workout.id,

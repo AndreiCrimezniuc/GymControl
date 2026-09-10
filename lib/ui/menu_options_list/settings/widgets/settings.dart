@@ -6,7 +6,6 @@ import 'package:gymboss/config/api_config.dart';
 import 'package:gymboss/core/errors/app_error.dart';
 import 'package:gymboss/data/diagnostics/diagnostic_service.dart';
 import 'package:gymboss/data/repositories/ranking_repository.dart';
-import 'package:gymboss/data/sync/sync_service.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/domain/models/ranking/rank_data.dart';
 import 'package:gymboss/domain/models/training/training_prescription.dart';
@@ -282,9 +281,6 @@ class _SettingsState extends State<Settings> {
                 : 'Training calculations',
             children: [const _FormulaTile(), const _DeloadFactorTile()],
           ),
-          const SizedBox(height: 20),
-          _Section(title: l.syncLedger, children: [const _SyncLedgerTile()]),
-          const SizedBox(height: 20),
           _Section(
             title: l.sectionAccount,
             children: [
@@ -364,68 +360,6 @@ class _SettingsState extends State<Settings> {
           const _DeleteAccountButton(),
         ],
       ),
-    );
-  }
-}
-
-class _SyncLedgerTile extends StatelessWidget {
-  const _SyncLedgerTile();
-
-  @override
-  Widget build(BuildContext context) {
-    return ValueListenableBuilder<SyncStatus>(
-      valueListenable: SyncService.instance.status,
-      builder: (context, status, _) {
-        final c = context.colors;
-        final l = AppLocalizations.of(context);
-        final label = status.rejected > 0
-            ? l.syncRejected(status.rejected)
-            : status.pending > 0
-            ? l.syncPending(status.pending)
-            : status.online
-            ? l.syncCurrent
-            : l.syncOfflineSafe;
-        final icon = status.rejected > 0
-            ? CupertinoIcons.exclamationmark_triangle_fill
-            : status.pending > 0
-            ? CupertinoIcons.arrow_2_circlepath
-            : status.online
-            ? CupertinoIcons.check_mark_circled_solid
-            : CupertinoIcons.wifi_slash;
-        return CupertinoButton(
-          padding: EdgeInsets.zero,
-          onPressed: status.rejected > 0
-              ? SyncService.instance.retryRejected
-              : status.pending > 0
-              ? SyncService.instance.flush
-              : null,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Row(
-              children: [
-                Icon(icon, size: 19, color: c.accent),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    label,
-                    style: TextStyle(
-                      color: c.textPrimary,
-                      fontSize: 14,
-                      height: 1.3,
-                    ),
-                  ),
-                ),
-                if (status.pending > 0 || status.rejected > 0)
-                  Icon(
-                    CupertinoIcons.refresh,
-                    size: 16,
-                    color: c.textSecondary,
-                  ),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 }

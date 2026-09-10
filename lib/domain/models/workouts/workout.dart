@@ -510,7 +510,10 @@ class WorkoutStats {
       history: jsonObjectList(
         j['history'],
         WorkoutRunPoint.fromJson,
-        maxItems: 1000,
+        // The server deliberately bounds a portable per-program timeline at
+        // 5,000 sessions. Keep the same contract locally so cache hydration
+        // never silently drops older sessions that were successfully fetched.
+        maxItems: 5000,
       ),
       averageDurationSeconds:
           (j['average_duration_seconds'] as num?)?.toInt() ?? 0,
