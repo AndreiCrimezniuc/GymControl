@@ -72,6 +72,20 @@ void main() {
     expect(requests, 0, reason: 'known-offline reads must not wait for HTTP');
   });
 
+  test('first-ever offline launch installs the bundled core catalog', () async {
+    final offlineRepository = ExercisesRepository(
+      client: client,
+      isOnline: () async => false,
+    );
+
+    final catalog = await offlineRepository.getCatalog();
+
+    expect(catalog, isNotEmpty);
+    expect(catalog.map((exercise) => exercise.name), contains('Bench Press'));
+    expect(store.hasList('exercises:catalog'), isTrue);
+    expect(store.getDoc('exercise', '1')?['name'], 'Bench Press');
+  });
+
   test('performed set is kept in the outbox when the network fails', () async {
     await repository.logSet(
       42,
@@ -173,7 +187,10 @@ void main() {
       client: client,
       isOnline: () async => false,
     );
-    final item = await offline.createCustom(name: 'Temporary lift', muscleGroup: 'Other');
+    final item = await offline.createCustom(
+      name: 'Temporary lift',
+      muscleGroup: 'Other',
+    );
     await store.enqueue(
       Mutation(
         id: 'dependent-workout',
@@ -201,7 +218,10 @@ void main() {
       client: client,
       isOnline: () async => false,
     );
-    final item = await offline.createCustom(name: 'Disposable', muscleGroup: 'Other');
+    final item = await offline.createCustom(
+      name: 'Disposable',
+      muscleGroup: 'Other',
+    );
 
     await offline.archiveCustom(item.id);
 

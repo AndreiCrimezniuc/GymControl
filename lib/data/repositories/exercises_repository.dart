@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 
 import 'package:gymboss/config/api_config.dart';
 import 'package:gymboss/data/local/exercise_media_cache.dart';
+import 'package:gymboss/data/local/bundled_catalog_snapshot.dart';
 import 'package:gymboss/data/local/local_store.dart';
 import 'package:gymboss/data/local/mutation.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
@@ -44,10 +45,33 @@ class ExercisesRepository {
       unawaited(_refreshCatalogInBackground());
       return cached;
     }
-    if (!await _isOnline() && _store.hasList(_catalogKey)) {
-      return _cachedCatalog();
+    if (!await _isOnline()) {
+      return _store.hasList(_catalogKey)
+          ? _cachedCatalog()
+          : _installBundledCatalogSnapshot();
     }
-    return _refreshCatalog();
+    try {
+      return await _refreshCatalog();
+    } on Object catch (error) {
+      // Connectivity signals are advisory: a captive portal or a just-failed
+      // server must not make a first-ever launch useless. Keep the built-in
+      // snapshot available until a real catalog response arrives.
+      if (isTransientNetworkFailure(error) && !_store.hasList(_catalogKey)) {
+        return _installBundledCatalogSnapshot();
+      }
+      rethrow;
+    }
+  }
+
+  Future<List<ExerciseCatalogItem>> _installBundledCatalogSnapshot() async {
+    for (final doc in bundledCatalogSnapshot) {
+      await _store.putDoc(_catalogCollection, '${doc['id']}', doc);
+    }
+    await _store.putListIds(
+      _catalogKey,
+      bundledCatalogSnapshot.map((doc) => '${doc['id']}').toList(),
+    );
+    return _cachedCatalog();
   }
 
   Future<List<ExerciseCatalogItem>> _refreshCatalog() async {
