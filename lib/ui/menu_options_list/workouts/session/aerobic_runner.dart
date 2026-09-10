@@ -19,6 +19,7 @@ import 'package:gymboss/ui/core/ui/widgets/pressable.dart';
 /// Kept free of UI so the timer/lap logic is unit-testable.
 class AerobicSessionController extends ChangeNotifier {
   static const _storageKey = 'active_aerobic_session_v1';
+  static const idlePauseAfter = Duration(hours: 4);
   final DateTime Function() _now;
   int _accumulated = 0;
   int _segmentBase = 0;
@@ -27,6 +28,7 @@ class AerobicSessionController extends ChangeNotifier {
   bool _active = false;
   bool _minimized = false;
   DateTime? _runningSince;
+  DateTime? _lastInteractionAt;
   DateTime? _startedAt;
   String _workoutId = '';
   String _workoutName = '';
@@ -53,6 +55,8 @@ class AerobicSessionController extends ChangeNotifier {
   String get workoutId => _workoutId;
   String get workoutName => _workoutName;
   String get sessionId => _sessionId;
+  bool get isPausedForInactivity =>
+      _active && !_running && _lastInteractionAt != null;
   DateTime get startedAt => _startedAt ?? _now();
   List<int> get laps => List.unmodifiable(_laps);
 
@@ -71,6 +75,7 @@ class AerobicSessionController extends ChangeNotifier {
     _workoutName = workoutName;
     _sessionId = const Uuid().v4();
     _startedAt = _now();
+    _lastInteractionAt = _startedAt;
     _active = true;
     _minimized = false;
     _running = false;
@@ -84,12 +89,13 @@ class AerobicSessionController extends ChangeNotifier {
     _sessionId = _sessionId.isEmpty ? const Uuid().v4() : _sessionId;
     _startedAt ??= _now();
     _running = true;
+    _lastInteractionAt = _now();
     _segmentBase = _accumulated;
     _runningSince = _now();
     _ticker?.cancel();
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       _accumulated++;
-      notifyListeners();
+      if (!autoPauseIfIdle()) notifyListeners();
     });
     unawaited(_persist());
     notifyListeners();
@@ -102,6 +108,7 @@ class AerobicSessionController extends ChangeNotifier {
     _runningSince = null;
     _ticker?.cancel();
     _running = false;
+    _lastInteractionAt = _now();
     unawaited(_persist());
     notifyListeners();
   }
@@ -115,6 +122,7 @@ class AerobicSessionController extends ChangeNotifier {
     if (d <= 0) return;
     _laps.add(d);
     _lapBase = total;
+    _lastInteractionAt = _now();
     unawaited(_persist());
     notifyListeners();
   }
@@ -127,6 +135,7 @@ class AerobicSessionController extends ChangeNotifier {
     _running = false;
     _runningSince = null;
     _laps.clear();
+    _lastInteractionAt = _now();
     unawaited(_persist());
     notifyListeners();
   }
@@ -162,11 +171,16 @@ class AerobicSessionController extends ChangeNotifier {
       _minimized = true;
       _running = json['running'] == true;
       _runningSince = _running ? (runningSince ?? _now()) : null;
+      _lastInteractionAt =
+          DateTime.tryParse(json['last_interaction_at'] as String? ?? '') ??
+          _runningSince ??
+          startedAt;
+      autoPauseIfIdle();
       if (_running) {
         _ticker?.cancel();
         _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
           _accumulated++;
-          notifyListeners();
+          if (!autoPauseIfIdle()) notifyListeners();
         });
       }
       notifyListeners();
@@ -185,6 +199,7 @@ class AerobicSessionController extends ChangeNotifier {
     _active = false;
     _minimized = false;
     _runningSince = null;
+    _lastInteractionAt = null;
     _startedAt = null;
     _workoutId = '';
     _workoutName = '';
@@ -198,12 +213,16 @@ class AerobicSessionController extends ChangeNotifier {
   void minimize() {
     if (!_active || _minimized) return;
     _minimized = true;
+    _lastInteractionAt = _now();
+    unawaited(_persist());
     notifyListeners();
   }
 
   void resume() {
     if (!_active || !_minimized) return;
     _minimized = false;
+    _lastInteractionAt = _now();
+    unawaited(_persist());
     notifyListeners();
   }
 
@@ -224,8 +243,32 @@ class AerobicSessionController extends ChangeNotifier {
         'laps': _laps,
         'running': _running,
         'running_since': _runningSince?.toIso8601String(),
+        'last_interaction_at': _lastInteractionAt?.toIso8601String(),
       }),
     );
+  }
+
+  /// Keeps a forgotten stopwatch as a resumable draft while excluding the
+  /// silent gap from workout duration.
+  bool autoPauseIfIdle() {
+    if (!_active || !_running) return false;
+    final lastInteraction = _lastInteractionAt;
+    if (lastInteraction == null) return false;
+    final now = _now();
+    if (now.difference(lastInteraction) < idlePauseAfter) return false;
+    final pauseAt = lastInteraction.add(idlePauseAfter);
+    final untilPause =
+        _segmentBase +
+        pauseAt.difference(_runningSince ?? pauseAt).inSeconds.clamp(0, 172800);
+    _accumulated = untilPause > _accumulated ? untilPause : _accumulated;
+    _segmentBase = _accumulated;
+    _runningSince = null;
+    _running = false;
+    _ticker?.cancel();
+    _ticker = null;
+    unawaited(_persist());
+    notifyListeners();
+    return true;
   }
 
   @override

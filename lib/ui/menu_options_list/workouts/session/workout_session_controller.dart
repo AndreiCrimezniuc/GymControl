@@ -115,6 +115,7 @@ class WorkoutSessionController extends ChangeNotifier {
   static const maxExercises = 75;
   static const maxSetsPerExercise = 100;
   static const maxTotalSets = 500;
+  static const idlePauseAfter = Duration(hours: 4);
   static const _storageKey = 'active_workout_session_v1';
   static const _snapshotVersion = 2;
   OneRmFormula _oneRmFormula;
@@ -132,6 +133,10 @@ class WorkoutSessionController extends ChangeNotifier {
   int _loggedSets = 0;
   double _loggedVolumeKg = 0;
   DateTime? _startedAt;
+  DateTime? _activeSegmentStartedAt;
+  DateTime? _lastInteractionAt;
+  int _activeElapsedSeconds = 0;
+  bool _pausedForInactivity = false;
   String? _sessionId;
   WorkoutDebrief? _debrief;
 
@@ -141,6 +146,7 @@ class WorkoutSessionController extends ChangeNotifier {
   Timer? _ticker;
   Timer? _persistDebounce;
   String? _lastSnapshot;
+  final DateTime Function() _now;
 
   late ExercisesRepository _exercises;
   late RankingRepository _ranking;
@@ -148,8 +154,11 @@ class WorkoutSessionController extends ChangeNotifier {
   late WorkoutsRepository _workouts;
   late UnitsController _units;
 
-  WorkoutSessionController({OneRmFormula oneRmFormula = OneRmFormula.epley})
-    : _oneRmFormula = oneRmFormula;
+  WorkoutSessionController({
+    OneRmFormula oneRmFormula = OneRmFormula.epley,
+    DateTime Function()? now,
+  }) : _oneRmFormula = oneRmFormula,
+       _now = now ?? DateTime.now;
 
   void setOneRmFormula(OneRmFormula formula) {
     _oneRmFormula = formula;
@@ -168,6 +177,7 @@ class WorkoutSessionController extends ChangeNotifier {
   double get loggedVolumeKg => _loggedVolumeKg;
   bool get resting => _resting;
   int get restLeft => _restLeft;
+  bool get isPausedForInactivity => _pausedForInactivity;
   WorkoutDebrief? get debrief => _debrief;
 
   int get doneSets =>
@@ -183,13 +193,23 @@ class WorkoutSessionController extends ChangeNotifier {
     return (v != null && v > 0) ? v : null;
   }
 
-  String get elapsed {
-    if (_startedAt == null) return '00:00';
-    final d = DateTime.now().difference(_startedAt!);
+  int get elapsedSeconds => _elapsedSecondsAt(_now());
+
+  String get elapsed => _formatElapsed(elapsedSeconds);
+
+  static String _formatElapsed(int totalSeconds) {
+    final d = Duration(seconds: totalSeconds.clamp(0, 1 << 30));
     final h = d.inHours, m = d.inMinutes % 60, s = d.inSeconds % 60;
     final mm = m.toString().padLeft(2, '0');
     final ss = s.toString().padLeft(2, '0');
     return h > 0 ? '$h:$mm:$ss' : '$mm:$ss';
+  }
+
+  int _elapsedSecondsAt(DateTime at) {
+    final segmentStartedAt = _activeSegmentStartedAt;
+    if (segmentStartedAt == null) return _activeElapsedSeconds;
+    return _activeElapsedSeconds +
+        at.difference(segmentStartedAt).inSeconds.clamp(0, 1 << 30);
   }
 
   /// Rehydrates an interrupted workout after dependencies are ready. Invalid
@@ -221,13 +241,25 @@ class WorkoutSessionController extends ChangeNotifier {
       _difficulty = data['difficulty'] as String? ?? 'normal';
       _sessionId = data['session_id'] as String?;
       final startedAt = DateTime.tryParse(jsonString(data['started_at']));
-      final now = DateTime.now();
+      final now = _now();
       if (startedAt == null ||
-          startedAt.isAfter(now.add(const Duration(minutes: 5))) ||
-          now.difference(startedAt) > const Duration(hours: 48)) {
+          startedAt.isAfter(now.add(const Duration(minutes: 5)))) {
         throw const FormatException('stale or invalid active workout');
       }
       _startedAt = startedAt;
+      _activeElapsedSeconds = jsonInt(
+        data['active_elapsed_seconds'],
+        min: 0,
+        max: 1 << 30,
+      );
+      _pausedForInactivity = jsonBool(data['paused_for_inactivity']);
+      _lastInteractionAt =
+          DateTime.tryParse(jsonString(data['last_interaction_at'])) ??
+          startedAt;
+      _activeSegmentStartedAt = _pausedForInactivity
+          ? null
+          : (DateTime.tryParse(jsonString(data['active_segment_started_at'])) ??
+                startedAt);
       _routineChanged = data['routine_changed'] as bool? ?? false;
       _minimized = true;
       _finished = false;
@@ -245,25 +277,28 @@ class WorkoutSessionController extends ChangeNotifier {
       int? restoredRestSeconds;
       if (restUntilRaw != null) {
         final restUntil = DateTime.tryParse(restUntilRaw);
-        final remaining = restUntil?.difference(DateTime.now()).inSeconds ?? 0;
+        final remaining = restUntil?.difference(now).inSeconds ?? 0;
         if (remaining > 0) {
           restoredRestSeconds = remaining;
           _startRest(remaining);
         }
       }
+      // A process may have been suspended for hours, so do this synchronously
+      // on restore rather than waiting for the first periodic ticker.
+      autoPauseIfIdle();
       _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-        if (_active && !_finished) notifyListeners();
+        if (_active && !_finished && !autoPauseIfIdle()) {
+          notifyListeners();
+        }
       });
       _lastSnapshot = _snapshot();
-      unawaited(
-        WorkoutLiveActivity.start(
-          workoutName: _workout!.name,
-          totalSets: _totalSets,
-          completedSets: _loggedSets,
-          startedAt: _startedAt!,
-          restSeconds: restoredRestSeconds,
-        ),
-      );
+      if (_pausedForInactivity) {
+        _restTimer?.cancel();
+        _restTimer = null;
+        _resting = false;
+      } else {
+        unawaited(_startLiveActivity(restSeconds: restoredRestSeconds));
+      }
       notifyListeners();
       _loadPrs();
       _loadPreviousValues();
@@ -306,18 +341,17 @@ class WorkoutSessionController extends ChangeNotifier {
     _routineChanged = false;
     _minimized = false;
     _active = true;
-    _startedAt = DateTime.now();
+    _startedAt = _now();
+    _activeSegmentStartedAt = _startedAt;
+    _lastInteractionAt = _startedAt;
+    _activeElapsedSeconds = 0;
+    _pausedForInactivity = false;
     _sessionId = const Uuid().v4();
-    unawaited(
-      WorkoutLiveActivity.start(
-        workoutName: workout.name,
-        totalSets: _totalSets,
-        completedSets: 0,
-        startedAt: _startedAt!,
-      ),
-    );
+    unawaited(_startLiveActivity());
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (_active && !_finished) notifyListeners();
+      if (_active && !_finished && !autoPauseIfIdle()) {
+        notifyListeners();
+      }
     });
     notifyListeners();
     _loadPrs();
@@ -466,11 +500,13 @@ class WorkoutSessionController extends ChangeNotifier {
   }
 
   void minimize() {
+    _touch();
     _minimized = true;
     notifyListeners();
   }
 
   void resume() {
+    _touch();
     _minimized = false;
     notifyListeners();
   }
@@ -478,6 +514,7 @@ class WorkoutSessionController extends ChangeNotifier {
   /// Toggle a set done/undone. Persistence is deferred until the user
   /// explicitly chooses to save the finished workout.
   void toggleSet(SessionSet s) {
+    _touch();
     if (s.done) {
       _uncount(s);
       s.done = false;
@@ -524,6 +561,7 @@ class WorkoutSessionController extends ChangeNotifier {
   /// Cycle a set's type (warmup → working → failure). No-op once logged.
   void cycleSetType(SessionSet s) {
     if (s.done) return;
+    _touch();
     final i = setTypes.indexOf(s.type);
     s.type = setTypes[(i + 1) % setTypes.length];
     notifyListeners();
@@ -533,6 +571,7 @@ class WorkoutSessionController extends ChangeNotifier {
   /// no-ops once the set has been logged.
   void setSetType(SessionSet s, String type) {
     if (s.done || !setTypes.contains(type) || s.type == type) return;
+    _touch();
     s.type = type;
     notifyListeners();
   }
@@ -544,6 +583,7 @@ class WorkoutSessionController extends ChangeNotifier {
       return;
     }
     if (s.progression == progression) return;
+    _touch();
     s.progression = progression;
     notifyListeners();
   }
@@ -551,12 +591,14 @@ class WorkoutSessionController extends ChangeNotifier {
   void setEffort(SessionSet s, {double? rpe}) {
     if (s.done) return;
     if (rpe != null && (!rpe.isFinite || rpe < 6 || rpe > 10)) return;
+    _touch();
     s.rpe = rpe;
     notifyListeners();
   }
 
   void usePrevious(SessionSet s) {
     if (s.done || s.previousReps == null) return;
+    _touch();
     if (s.previousWeightKg != null) {
       s.weight = _fmt(_units.fromKg(s.previousWeightKg!));
     }
@@ -566,6 +608,7 @@ class WorkoutSessionController extends ChangeNotifier {
   }
 
   void setExerciseNote(SessionExercise exercise, String note) {
+    _touch();
     exercise.note = String.fromCharCodes(note.trim().runes.take(1000));
     _routineChanged = true;
     notifyListeners();
@@ -580,6 +623,7 @@ class WorkoutSessionController extends ChangeNotifier {
     if (!const {'superset', 'circuit', 'interval'}.contains(type)) return;
     final index = _groups.indexOf(exercise);
     if (index < 0 || index >= _groups.length - 1) return;
+    _touch();
     final next = _groups[index + 1];
     final id =
         exercise.trainingGroupId ?? next.trainingGroupId ?? const Uuid().v4();
@@ -596,6 +640,7 @@ class WorkoutSessionController extends ChangeNotifier {
   void ungroup(SessionExercise exercise) {
     final id = exercise.trainingGroupId;
     if (id == null) return;
+    _touch();
     for (final item in _groups.where((item) => item.trainingGroupId == id)) {
       item
         ..trainingGroupId = null
@@ -612,6 +657,7 @@ class WorkoutSessionController extends ChangeNotifier {
     if (g.sets.length >= maxSetsPerExercise || _totalSets >= maxTotalSets) {
       return;
     }
+    _touch();
     final last = g.sets.isNotEmpty ? g.sets.last : null;
     g.sets.add(
       SessionSet(
@@ -635,6 +681,7 @@ class WorkoutSessionController extends ChangeNotifier {
       maxTotalSets - _totalSets,
     ].reduce((a, b) => a < b ? a : b);
     if (available <= 0) return;
+    _touch();
     plans = plans.take(available).toList();
     group.sets.insertAll(0, [
       for (final plan in plans)
@@ -657,6 +704,7 @@ class WorkoutSessionController extends ChangeNotifier {
   /// it had already been checked off.
   void removeSet(SessionExercise g, SessionSet s) {
     if (!g.sets.remove(s)) return;
+    _touch();
     _totalSets--;
     _uncount(s);
     _routineChanged = true;
@@ -674,6 +722,7 @@ class WorkoutSessionController extends ChangeNotifier {
     int restSeconds = 90,
   }) {
     if (_groups.length >= maxExercises || _totalSets >= maxTotalSets) return;
+    _touch();
     _groups.add(
       SessionExercise(
         exerciseId: exerciseId,
@@ -705,6 +754,7 @@ class WorkoutSessionController extends ChangeNotifier {
     final i = _groups.indexOf(g);
     final j = i + delta;
     if (i < 0 || j < 0 || j >= _groups.length) return;
+    _touch();
     _groups.removeAt(i);
     _groups.insert(j, g);
     _routineChanged = true;
@@ -714,6 +764,7 @@ class WorkoutSessionController extends ChangeNotifier {
   /// Remove an entire exercise and all of its sets from the session.
   void removeExercise(SessionExercise g) {
     if (!_groups.remove(g)) return;
+    _touch();
     for (final s in g.sets) {
       _totalSets--;
       _uncount(s);
@@ -725,6 +776,7 @@ class WorkoutSessionController extends ChangeNotifier {
   Future<void> updateRoutineFromSession() async {
     final workout = _workout;
     if (workout == null || !_routineChanged) return;
+    _touch();
     final exercises = [
       for (final group in _groups)
         () {
@@ -819,12 +871,14 @@ class WorkoutSessionController extends ChangeNotifier {
   }
 
   void adjustRest(int delta) {
+    _touch();
     _restLeft = (_restLeft + delta).clamp(0, 3600);
     unawaited(_updateLiveActivity(restSeconds: _restLeft));
     notifyListeners();
   }
 
   void skipRest() {
+    _touch();
     _restTimer?.cancel();
     _resting = false;
     unawaited(_updateLiveActivity());
@@ -842,9 +896,7 @@ class WorkoutSessionController extends ChangeNotifier {
       clear(endLiveActivity: false);
       return;
     }
-    final durationSeconds = _startedAt == null
-        ? 0
-        : DateTime.now().difference(_startedAt!).inSeconds;
+    final durationSeconds = elapsedSeconds;
     _debrief = _buildDebrief(durationSeconds);
     for (final group in _groups) {
       for (final set in group.sets.where((set) => set.done)) {
@@ -959,6 +1011,11 @@ class WorkoutSessionController extends ChangeNotifier {
     _debrief = null;
     _workout = null;
     _sessionId = null;
+    _startedAt = null;
+    _activeSegmentStartedAt = null;
+    _lastInteractionAt = null;
+    _activeElapsedSeconds = 0;
+    _pausedForInactivity = false;
     _groups.clear();
     _prKg.clear();
     _loggedSets = 0;
@@ -974,7 +1031,10 @@ class WorkoutSessionController extends ChangeNotifier {
   }
 
   /// Called by text fields whose model values are updated directly.
-  void checkpoint() => _schedulePersist();
+  void checkpoint() {
+    _touch();
+    _schedulePersist();
+  }
 
   void _recalculate() {
     _totalSets = _groups.fold(0, (sum, group) => sum + group.sets.length);
@@ -1051,6 +1111,10 @@ class WorkoutSessionController extends ChangeNotifier {
     'difficulty': _difficulty,
     'session_id': _sessionId,
     'started_at': _startedAt?.toIso8601String(),
+    'active_elapsed_seconds': _activeElapsedSeconds,
+    'active_segment_started_at': _activeSegmentStartedAt?.toIso8601String(),
+    'last_interaction_at': _lastInteractionAt?.toIso8601String(),
+    'paused_for_inactivity': _pausedForInactivity,
     'routine_changed': _routineChanged,
     'rest_until': _resting
         ? DateTime.now().add(Duration(seconds: _restLeft)).toIso8601String()
@@ -1118,6 +1182,56 @@ class WorkoutSessionController extends ChangeNotifier {
     _ticker?.cancel();
     _restTimer = null;
     _ticker = null;
+  }
+
+  /// Stops counting after a long silent gap but deliberately retains the
+  /// draft. A forgotten workout must never become a fictional all-night run
+  /// or be silently written to history.
+  bool autoPauseIfIdle() {
+    if (!_active || _finished || _pausedForInactivity) return false;
+    final lastInteraction = _lastInteractionAt;
+    if (lastInteraction == null) return false;
+    final now = _now();
+    if (now.difference(lastInteraction) < idlePauseAfter) return false;
+    _activeElapsedSeconds = _elapsedSecondsAt(
+      lastInteraction.add(idlePauseAfter),
+    );
+    _activeSegmentStartedAt = null;
+    _pausedForInactivity = true;
+    _restTimer?.cancel();
+    _restTimer = null;
+    _resting = false;
+    _restLeft = 0;
+    unawaited(WorkoutLiveActivity.end());
+    notifyListeners();
+    return true;
+  }
+
+  /// Records a meaningful user action. Resuming a stale draft creates a new
+  /// active segment, so idle hours are never retroactively counted.
+  void _touch() {
+    if (!_active || _finished) return;
+    final now = _now();
+    if (_pausedForInactivity) {
+      _pausedForInactivity = false;
+      _activeSegmentStartedAt = now;
+      unawaited(_startLiveActivity());
+    }
+    _lastInteractionAt = now;
+  }
+
+  Future<void> _startLiveActivity({int? restSeconds}) {
+    final workout = _workout;
+    if (workout == null) return Future.value();
+    return WorkoutLiveActivity.start(
+      workoutName: workout.name,
+      totalSets: _totalSets,
+      completedSets: _loggedSets,
+      // ActivityKit can only render a wall-clock range. Restart it from the
+      // accumulated active duration when the athlete resumes a paused draft.
+      startedAt: _now().subtract(Duration(seconds: elapsedSeconds)),
+      restSeconds: restSeconds,
+    );
   }
 
   Future<void> _updateLiveActivity({int? restSeconds}) =>

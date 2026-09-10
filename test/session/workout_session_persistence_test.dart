@@ -114,8 +114,9 @@ void main() {
   });
 
   test(
-    'stale active workout is discarded instead of reviving its timer',
+    'stale active workout restores as a paused draft without idle time',
     () async {
+      var now = DateTime(2026, 9, 10, 12);
       SharedPreferences.setMockInitialValues({
         'active_workout_session_v1': jsonEncode({
           'version': 2,
@@ -126,9 +127,7 @@ void main() {
             'exercises': [],
           },
           'difficulty': 'normal',
-          'started_at': DateTime.now()
-              .subtract(const Duration(days: 3))
-              .toIso8601String(),
+          'started_at': now.subtract(const Duration(days: 3)).toIso8601String(),
           'groups': [],
         }),
       });
@@ -155,7 +154,7 @@ void main() {
         isOnline: () async => false,
       );
       final units = UnitsController();
-      final controller = WorkoutSessionController();
+      final controller = WorkoutSessionController(now: () => now);
 
       expect(
         await controller.restore(
@@ -165,12 +164,25 @@ void main() {
           workouts: workouts,
           units: units,
         ),
-        isFalse,
+        isTrue,
       );
-      expect(controller.isActive, isFalse);
+      expect(controller.isActive, isTrue);
+      expect(controller.isPausedForInactivity, isTrue);
+      expect(controller.elapsedSeconds, const Duration(hours: 4).inSeconds);
+      controller.resume();
+      now = now.add(const Duration(minutes: 30));
+      expect(
+        controller.elapsedSeconds,
+        const Duration(hours: 4, minutes: 30).inSeconds,
+      );
+      now = now.add(const Duration(hours: 4, minutes: 1));
+      expect(controller.autoPauseIfIdle(), isTrue);
+      expect(controller.isPausedForInactivity, isTrue);
+      expect(controller.elapsedSeconds, const Duration(hours: 8).inSeconds);
       final prefs = await SharedPreferences.getInstance();
-      expect(prefs.getString('active_workout_session_v1'), isNull);
+      expect(prefs.getString('active_workout_session_v1'), isNotNull);
 
+      controller.clear();
       controller.dispose();
       units.dispose();
       client.dispose();

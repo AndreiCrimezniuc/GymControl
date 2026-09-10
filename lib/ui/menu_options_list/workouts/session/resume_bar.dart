@@ -20,6 +20,7 @@ class WorkoutResumeBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.colors;
     final l10n = AppLocalizations.of(context);
+    final russian = Localizations.localeOf(context).languageCode == 'ru';
     final progress = session.totalSets == 0
         ? 0.0
         : (session.doneSets / session.totalSets).clamp(0.0, 1.0);
@@ -78,11 +79,15 @@ class WorkoutResumeBar extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            l10n.resumeSummary(
-                              session.elapsed,
-                              session.doneSets,
-                              session.totalSets,
-                            ),
+                            session.isPausedForInactivity
+                                ? russian
+                                      ? 'На паузе · ${session.elapsed}'
+                                      : 'Paused · ${session.elapsed}'
+                                : l10n.resumeSummary(
+                                    session.elapsed,
+                                    session.doneSets,
+                                    session.totalSets,
+                                  ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(

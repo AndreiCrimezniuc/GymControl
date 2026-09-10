@@ -144,7 +144,14 @@ class _GymControlAppState extends State<GymControlApp>
       await WorkoutLiveActivity.end();
       return;
     }
-    if (_session.isActive) return;
+    // iOS may suspend Dart timers while the phone is locked. Re-evaluate the
+    // durable last-interaction timestamp on every foreground transition so a
+    // forgotten workout is paused even before the next one-second ticker.
+    if (_session.isActive) {
+      _session.autoPauseIfIdle();
+      _aerobicSession.autoPauseIfIdle();
+      return;
+    }
     // Reconcile even after the one allowed restore attempt. A Live Activity
     // can survive a killed/suspended process while local state is already
     // gone, so every later foreground transition must retry this cleanup.

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gymboss/ui/menu_options_list/workouts/session/aerobic_runner.dart';
@@ -89,6 +91,38 @@ void main() {
       expect(restored.running, isTrue);
       expect(restored.workoutId, 'run-1');
       expect(restored.totalSeconds, greaterThanOrEqualTo(4));
+      restored.dispose();
+    });
+
+    testWidgets('pauses a forgotten running draft after four idle hours', (
+      tester,
+    ) async {
+      final now = DateTime(2026, 9, 10, 12);
+      SharedPreferences.setMockInitialValues({
+        'active_aerobic_session_v1': jsonEncode({
+          'workout_id': 'run-1',
+          'workout_name': 'Easy run',
+          'session_id': 'session-1',
+          'started_at': now.subtract(const Duration(days: 2)).toIso8601String(),
+          'accumulated': 0,
+          'lap_base': 0,
+          'laps': [],
+          'running': true,
+          'running_since': now
+              .subtract(const Duration(days: 2))
+              .toIso8601String(),
+          'last_interaction_at': now
+              .subtract(const Duration(days: 2))
+              .toIso8601String(),
+        }),
+      });
+      final restored = AerobicSessionController(now: () => now);
+
+      await restored.restore();
+
+      expect(restored.isActive, isTrue);
+      expect(restored.running, isFalse);
+      expect(restored.totalSeconds, const Duration(hours: 4).inSeconds);
       restored.dispose();
     });
   });
