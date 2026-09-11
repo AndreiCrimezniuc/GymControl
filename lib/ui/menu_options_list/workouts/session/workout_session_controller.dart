@@ -92,6 +92,11 @@ class SessionExercise {
   String memory;
   String? trainingGroupId;
   String trainingGroupType;
+
+  /// Optional workout-plan guardrail. It is intentionally advisory at logging
+  /// time: the UI asks for confirmation instead of rejecting a real result.
+  int? plannedRepMin;
+  int? plannedRepMax;
   SessionExercise({
     required this.exerciseId,
     required this.name,
@@ -105,6 +110,8 @@ class SessionExercise {
     this.memory = '',
     this.trainingGroupId,
     this.trainingGroupType = '',
+    this.plannedRepMin,
+    this.plannedRepMax,
   });
 }
 
@@ -441,10 +448,17 @@ class WorkoutSessionController extends ChangeNotifier {
           rpe: working.map((set) => set.rpe).toList(),
           estimatedOneRmKg: estimatedOneRm,
         );
+    final targetReps =
+        (group.plannedRepMin != null && group.plannedRepMax != null)
+        ? suggestion.targetReps.clamp(
+            group.plannedRepMin!,
+            group.plannedRepMax!,
+          )
+        : suggestion.targetReps;
     for (final set in group.sets.where((set) => set.type != 'warmup')) {
       if (set.done) continue;
       set.weight = _fmt(_units.fromKg(suggestion.weightKg));
-      set.reps = '${suggestion.targetReps}';
+      set.reps = '$targetReps';
       if (suggestion.advanced) set.progression = 'weight';
     }
   }
@@ -478,6 +492,8 @@ class WorkoutSessionController extends ChangeNotifier {
           note: ex.comment,
           trainingGroupId: ex.trainingGroupId,
           trainingGroupType: ex.trainingGroupType,
+          plannedRepMin: ex.plannedRepMin,
+          plannedRepMax: ex.plannedRepMax,
           sets: [
             for (final s in planned)
               () {
@@ -1073,6 +1089,8 @@ class WorkoutSessionController extends ChangeNotifier {
     memory: jsonString(data['memory']),
     trainingGroupId: jsonNullableString(data['training_group_id']),
     trainingGroupType: jsonString(data['training_group_type']),
+    plannedRepMin: jsonNullableInt(data['planned_rep_min'], min: 1, max: 1000),
+    plannedRepMax: jsonNullableInt(data['planned_rep_max'], min: 1, max: 1000),
     sets: jsonObjectList(data['sets'], (set) {
       return SessionSet(
         exerciseId: jsonInt(set['exercise_id']),
@@ -1135,6 +1153,8 @@ class WorkoutSessionController extends ChangeNotifier {
             'memory': group.memory,
             'training_group_id': group.trainingGroupId,
             'training_group_type': group.trainingGroupType,
+            'planned_rep_min': group.plannedRepMin,
+            'planned_rep_max': group.plannedRepMax,
             'sets': group.sets
                 .map(
                   (set) => {

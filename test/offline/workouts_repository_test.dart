@@ -322,6 +322,8 @@ void main() {
       progressionRepMin: 6,
       progressionRepMax: 10,
       progressionTargetRpe: 8,
+      plannedRepMin: 6,
+      plannedRepMax: 10,
       restSeconds: 90,
       comment: 'Controlled pause',
       sets: [WorkoutSet(difficulty: 'medium', weightKg: 80, reps: 8)],
@@ -341,6 +343,8 @@ void main() {
     expect(actual.trainingGroupType, 'circuit');
     expect(actual.progressionRuleType, 'double_progression');
     expect(actual.progressionTargetRpe, 8);
+    expect(actual.plannedRepMin, 6);
+    expect(actual.plannedRepMax, 10);
     expect(actual.imageUrl2, '/bench-2.png');
   });
 

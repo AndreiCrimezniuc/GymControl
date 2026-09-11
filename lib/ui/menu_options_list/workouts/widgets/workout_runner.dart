@@ -52,6 +52,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
           ..addListener(() {
             s.reps = _reps[s]!.text;
             session.checkpoint();
+            if (mounted) setState(() {});
           });
       }
     }
@@ -83,6 +84,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
       ..addListener(() {
         s.reps = _reps[s]!.text;
         context.read<WorkoutSessionController>().checkpoint();
+        if (mounted) setState(() {});
       }),
   );
 
@@ -346,6 +348,55 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     } finally {
       if (mounted) setState(() => _finishing = false);
     }
+  }
+
+  bool _isOutsideRepRange(SessionExercise exercise, SessionSet set) {
+    if (!const {
+      'weight_reps',
+      'bodyweight_reps',
+      'reps_only',
+    }.contains(exercise.exerciseType)) {
+      return false;
+    }
+    final min = exercise.plannedRepMin;
+    final max = exercise.plannedRepMax;
+    if (min == null || max == null) return false;
+    final reps = int.tryParse(set.reps.trim()) ?? 0;
+    return reps > 0 && (reps < min || reps > max);
+  }
+
+  Future<void> _toggleSetWithRepRangeCheck(
+    WorkoutSessionController session,
+    SessionExercise exercise,
+    SessionSet set,
+  ) async {
+    if (set.done || !_isOutsideRepRange(exercise, set)) {
+      session.toggleSet(set);
+      return;
+    }
+    final isRussian = Localizations.localeOf(context).languageCode == 'ru';
+    final min = exercise.plannedRepMin!;
+    final max = exercise.plannedRepMax!;
+    final reps = int.tryParse(set.reps.trim()) ?? 0;
+    final proceed = await showAppDialog<bool>(
+      context,
+      title: isRussian ? 'Повторения вне плана' : 'Outside your rep range',
+      message: isRussian
+          ? 'У «${exercise.name}» задан диапазон $min–$max, а вы ввели $reps. Точно отметить этот подход?'
+          : '${exercise.name} is planned for $min–$max reps; you entered $reps. Mark this set anyway?',
+      actions: [
+        AppDialogAction(
+          isRussian ? 'Исправить' : 'Adjust reps',
+          onPressed: () => Navigator.pop(context, false),
+        ),
+        AppDialogAction(
+          isRussian ? 'Отметить всё равно' : 'Mark anyway',
+          isDestructive: true,
+          onPressed: () => Navigator.pop(context, true),
+        ),
+      ],
+    );
+    if (proceed == true && mounted) session.toggleSet(set);
   }
 
   @override
@@ -718,6 +769,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                       const SizedBox(height: 3),
                       Text(
                         'Rest ${g.restSeconds}s'
+                        '${const {'weight_reps', 'bodyweight_reps', 'reps_only'}.contains(g.exerciseType) && g.plannedRepMin != null && g.plannedRepMax != null ? '  ·  ${g.plannedRepMin}–${g.plannedRepMax} reps' : ''}'
                         '${pr != null ? '  ·  PR ${units.format(pr)}${units.label}' : ''}',
                         style: TextStyle(fontSize: 12, color: c.textSecondary),
                       ),
@@ -1003,6 +1055,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
                 _rc(s),
                 s.done,
                 _secondaryUnit(g.exerciseType),
+                invalid: _isOutsideRepRange(g, s),
               ),
             ),
             const SizedBox(width: 6),
@@ -1080,7 +1133,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
             ),
             const SizedBox(width: 6),
             Pressable(
-              onTap: () => session.toggleSet(s),
+              onTap: () => _toggleSetWithRepRangeCheck(session, g, s),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 curve: const Cubic(0.23, 1, 0.32, 1),
@@ -1502,8 +1555,9 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
     AppColors c,
     TextEditingController ctrl,
     bool done,
-    String unit,
-  ) => Semantics(
+    String unit, {
+    bool invalid = false,
+  }) => Semantics(
     textField: true,
     label: unit == 'reps'
         ? AppLocalizations.of(context).repetitions
@@ -1516,7 +1570,7 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
       inputFormatters: [NumericLimitFormatter(allowDecimal: unit != 'reps')],
       textAlign: TextAlign.center,
       style: TextStyle(
-        color: c.textPrimary,
+        color: invalid ? CupertinoColors.systemRed : c.textPrimary,
         fontSize: 16,
         fontWeight: FontWeight.w800,
       ),
@@ -1525,7 +1579,10 @@ class _WorkoutRunnerScreenState extends State<WorkoutRunnerScreen> {
       decoration: BoxDecoration(
         color: c.card,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: c.border),
+        border: Border.all(
+          color: invalid ? CupertinoColors.systemRed : c.border,
+          width: invalid ? 1.4 : 1,
+        ),
       ),
     ),
   );

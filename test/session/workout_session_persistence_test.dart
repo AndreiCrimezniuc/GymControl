@@ -69,6 +69,8 @@ void main() {
           muscleGroup: 'Chest',
           restSeconds: 90,
           comment: '',
+          plannedRepMin: 3,
+          plannedRepMax: 8,
           sets: [WorkoutSet(difficulty: 'medium', weightKg: 80, reps: 5)],
         ),
       ],
@@ -105,6 +107,8 @@ void main() {
     expect(restored.workout?.id, 'workout-1');
     expect(restored.groups.single.sets.single.weight, '82.5');
     expect(restored.groups.single.sets.single.done, isTrue);
+    expect(restored.groups.single.plannedRepMin, 3);
+    expect(restored.groups.single.plannedRepMax, 8);
     expect(restored.isMinimized, isTrue);
 
     restored.clear();
