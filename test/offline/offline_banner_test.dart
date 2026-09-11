@@ -55,6 +55,20 @@ void main() {
     expect(find.textContaining('Syncing 1 change'), findsOneWidget);
   });
 
+  testWidgets('shows rejected work even after the live queue is empty', (
+    tester,
+  ) async {
+    SyncService.instance.status.value = const SyncStatus(
+      online: true,
+      pending: 0,
+      rejected: 2,
+    );
+    await tester.pumpWidget(_wrap(const OfflineBanner()));
+
+    expect(find.textContaining('2 changes need attention'), findsOneWidget);
+    expect(find.byType(GestureDetector), findsOneWidget);
+  });
+
   test('SyncStatus equality avoids redundant rebuilds', () {
     const a = SyncStatus(online: true, pending: 2);
     const b = SyncStatus(online: true, pending: 2);
