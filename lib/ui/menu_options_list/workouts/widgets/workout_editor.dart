@@ -125,6 +125,15 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
       setState(() => _error = 'Add at least one exercise');
       return;
     }
+    for (final exercise in _exercises) {
+      final error = exercise.repRangeValidationError(
+        russian: Localizations.localeOf(context).languageCode == 'ru',
+      );
+      if (error != null) {
+        setState(() => _error = error);
+        return;
+      }
+    }
 
     setState(() {
       _saving = true;
@@ -467,6 +476,135 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
     }
   }
 
+  Future<void> _pickPlannedRepRange() async {
+    final minimum = TextEditingController(
+      text: widget.model.plannedRepMin?.toString() ?? '',
+    );
+    final maximum = TextEditingController(
+      text: widget.model.plannedRepMax?.toString() ?? '',
+    );
+    final action = await showCupertinoModalPopup<String>(
+      context: context,
+      builder: (sheetContext) {
+        final isRussian = Localizations.localeOf(context).languageCode == 'ru';
+        return AnimatedPadding(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.viewInsetsOf(sheetContext).bottom,
+          ),
+          child: CupertinoPopupSurface(
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      isRussian
+                          ? 'Допустимые повторения'
+                          : 'Allowed repetitions',
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      isRussian
+                          ? 'Защищает только план. Фактический результат не ограничивается.'
+                          : 'Guards the plan only. Your actual result is never limited.',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: CupertinoColors.secondaryLabel,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: CupertinoTextField(
+                            controller: minimum,
+                            placeholder: isRussian ? 'От' : 'Min',
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              NumericLimitFormatter(allowDecimal: false),
+                            ],
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 12),
+                          child: Text('–'),
+                        ),
+                        Expanded(
+                          child: CupertinoTextField(
+                            controller: maximum,
+                            placeholder: isRussian ? 'До' : 'Max',
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              NumericLimitFormatter(allowDecimal: false),
+                            ],
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      width: double.infinity,
+                      child: CupertinoButton.filled(
+                        onPressed: () => Navigator.pop(sheetContext, 'save'),
+                        child: Text(
+                          isRussian ? 'Сохранить диапазон' : 'Save range',
+                        ),
+                      ),
+                    ),
+                    CupertinoButton(
+                      onPressed: () => Navigator.pop(sheetContext, 'clear'),
+                      child: Text(
+                        isRussian ? 'Снять ограничение' : 'Remove guardrail',
+                        style: const TextStyle(
+                          color: CupertinoColors.destructiveRed,
+                        ),
+                      ),
+                    ),
+                    CupertinoButton(
+                      onPressed: () => Navigator.pop(sheetContext),
+                      child: Text(AppLocalizations.of(context).cancel),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+    if (!mounted) {
+      minimum.dispose();
+      maximum.dispose();
+      return;
+    }
+    if (action == 'clear') {
+      setState(() {
+        widget.model.plannedRepMin = null;
+        widget.model.plannedRepMax = null;
+      });
+    } else if (action == 'save') {
+      final min = int.tryParse(minimum.text.trim());
+      final max = int.tryParse(maximum.text.trim());
+      setState(() {
+        widget.model.plannedRepMin = min;
+        widget.model.plannedRepMax = max;
+      });
+    }
+    minimum.dispose();
+    maximum.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
@@ -564,6 +702,57 @@ class _ExerciseEditorState extends State<_ExerciseEditor> {
               ),
             ),
           ),
+          if (widget.model.supportsRepRange) ...[
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: _pickPlannedRepRange,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: c.iconBg,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: c.border),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      CupertinoIcons.shield_lefthalf_fill,
+                      size: 16,
+                      color: c.accent,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        Localizations.localeOf(context).languageCode == 'ru'
+                            ? 'Диапазон повторений'
+                            : 'Rep range guardrail',
+                        style: TextStyle(color: c.textPrimary, fontSize: 13),
+                      ),
+                    ),
+                    Text(
+                      widget.model.plannedRepMin == null ||
+                              widget.model.plannedRepMax == null
+                          ? (Localizations.localeOf(context).languageCode ==
+                                    'ru'
+                                ? 'Не задан'
+                                : 'Not set')
+                          : '${widget.model.plannedRepMin}–${widget.model.plannedRepMax}',
+                      style: TextStyle(color: c.textSecondary, fontSize: 12),
+                    ),
+                    const SizedBox(width: 5),
+                    Icon(
+                      CupertinoIcons.chevron_down,
+                      size: 12,
+                      color: c.textSecondary,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 8),
           Row(
             children: [
@@ -863,6 +1052,7 @@ class _EditExercise {
   final String name;
   final String imageUrl;
   final String muscleGroup;
+  final String exerciseType;
   final restCtrl = TextEditingController(text: '90');
   final commentCtrl = TextEditingController();
   final List<_PlannedSetDraft> sets;
@@ -874,12 +1064,15 @@ class _EditExercise {
   int progressionRepMax;
   double progressionTargetRpe;
   double progressionPercentOneRm;
+  int? plannedRepMin;
+  int? plannedRepMax;
 
   _EditExercise({
     required this.exerciseId,
     required this.name,
     required this.imageUrl,
     required this.muscleGroup,
+    this.exerciseType = 'weight_reps',
     this.isOptional = false,
     this.alternativeGroupId,
     this.progressionRuleType = 'manual',
@@ -888,6 +1081,8 @@ class _EditExercise {
     this.progressionRepMax = 10,
     this.progressionTargetRpe = 8.5,
     this.progressionPercentOneRm = 75,
+    this.plannedRepMin,
+    this.plannedRepMax,
     List<_PlannedSetDraft>? sets,
   }) : sets = sets ?? List.generate(3, (_) => _PlannedSetDraft());
 
@@ -896,6 +1091,7 @@ class _EditExercise {
     name: item.name,
     imageUrl: item.imageUrl,
     muscleGroup: item.muscleGroup,
+    exerciseType: item.exerciseType,
   );
 
   factory _EditExercise.fromExercise(
@@ -907,6 +1103,7 @@ class _EditExercise {
       name: ex.name,
       imageUrl: ex.imageUrl,
       muscleGroup: ex.muscleGroup,
+      exerciseType: ex.exerciseType,
       isOptional: ex.isOptional,
       alternativeGroupId: ex.alternativeGroupId,
       progressionRuleType: ex.progressionRuleType,
@@ -915,6 +1112,8 @@ class _EditExercise {
       progressionRepMax: ex.progressionRepMax,
       progressionTargetRpe: ex.progressionTargetRpe,
       progressionPercentOneRm: ex.progressionPercentOneRm,
+      plannedRepMin: ex.plannedRepMin,
+      plannedRepMax: ex.plannedRepMax,
     );
     m.restCtrl.text = '${ex.restSeconds}';
     m.commentCtrl.text = ex.comment;
@@ -942,6 +1141,7 @@ class _EditExercise {
       name: name,
       imageUrl: imageUrl,
       muscleGroup: muscleGroup,
+      exerciseType: exerciseType,
       isOptional: isOptional,
       alternativeGroupId: alternativeGroupId,
       progressionRuleType: progressionRuleType,
@@ -950,6 +1150,8 @@ class _EditExercise {
       progressionRepMax: progressionRepMax,
       progressionTargetRpe: progressionTargetRpe,
       progressionPercentOneRm: progressionPercentOneRm,
+      plannedRepMin: plannedRepMin,
+      plannedRepMax: plannedRepMax,
       restSeconds: rest,
       comment: commentCtrl.text.trim(),
       sets: sets.map((set) => set.toDomain(units)).toList(),
@@ -959,6 +1161,36 @@ class _EditExercise {
   void addSet() {
     final previous = sets.isEmpty ? null : sets.last;
     sets.add(_PlannedSetDraft.copy(previous));
+  }
+
+  bool get supportsRepRange => switch (exerciseType) {
+    'weight_reps' || 'bodyweight_reps' || 'reps_only' => true,
+    _ => false,
+  };
+
+  String? repRangeValidationError({required bool russian}) {
+    if (!supportsRepRange && (plannedRepMin != null || plannedRepMax != null)) {
+      return russian
+          ? '$name: диапазон повторений доступен только для упражнений на повторения.'
+          : '$name: a rep range is available only for rep-based exercises.';
+    }
+    if (plannedRepMin == null && plannedRepMax == null) return null;
+    final min = plannedRepMin;
+    final max = plannedRepMax;
+    if (min == null || max == null || min < 1 || max > 1000 || min > max) {
+      return russian
+          ? '$name: укажите корректный диапазон от 1 до 1000 повторений.'
+          : '$name: enter a valid range from 1 to 1000 repetitions.';
+    }
+    for (final set in sets) {
+      final reps = int.tryParse(set.repsCtrl.text.trim()) ?? 0;
+      if (reps > 0 && reps < min || reps > max) {
+        return russian
+            ? '$name: в плане $reps повторений, а допустимо $min–$max.'
+            : '$name: the plan has $reps reps, while $min–$max is allowed.';
+      }
+    }
+    return null;
   }
 
   void removeSet(int index) {

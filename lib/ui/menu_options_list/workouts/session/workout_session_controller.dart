@@ -801,6 +801,8 @@ class WorkoutSessionController extends ChangeNotifier {
             progressionRepMax: original?.progressionRepMax ?? 10,
             progressionTargetRpe: original?.progressionTargetRpe ?? 8.5,
             progressionPercentOneRm: original?.progressionPercentOneRm ?? 75,
+            plannedRepMin: original?.plannedRepMin,
+            plannedRepMax: original?.plannedRepMax,
             restSeconds: group.restSeconds,
             comment: group.note,
             sets: [

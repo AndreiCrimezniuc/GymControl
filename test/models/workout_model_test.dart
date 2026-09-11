@@ -22,6 +22,22 @@ void main() {
       expect((exercise.toJson()['progression'] as Map)['target_rpe'], 8.5);
     });
 
+    test('planned rep range is independent from progression and round-trips', () {
+      final exercise = WorkoutExercise.fromJson({
+        'exercise_id': 42,
+        'name': 'Squat',
+        'planned_rep_min': 3,
+        'planned_rep_max': 8,
+        'progression': {'type': 'double_progression', 'rep_min': 6, 'rep_max': 10},
+        'sets': <Object>[],
+      });
+      expect(exercise.plannedRepMin, 3);
+      expect(exercise.plannedRepMax, 8);
+      expect(exercise.progressionRepMin, 6);
+      expect(exercise.toJson()['planned_rep_min'], 3);
+      expect(exercise.toJson()['planned_rep_max'], 8);
+    });
+
     final json = {
       'id': 'w1',
       'name': 'Push Day',

@@ -67,6 +67,11 @@ class WorkoutExercise {
   final int progressionRepMax;
   final double progressionTargetRpe;
   final double progressionPercentOneRm;
+
+  /// Optional planning guardrail for repetitions in this workout only.
+  /// This is deliberately separate from a progression rule's rep range.
+  final int? plannedRepMin;
+  final int? plannedRepMax;
   final int restSeconds;
   final String comment;
   final List<WorkoutSet> sets;
@@ -88,6 +93,8 @@ class WorkoutExercise {
     this.progressionRepMax = 10,
     this.progressionTargetRpe = 8.5,
     this.progressionPercentOneRm = 75,
+    this.plannedRepMin,
+    this.plannedRepMax,
     required this.restSeconds,
     required this.comment,
     required this.sets,
@@ -128,6 +135,12 @@ class WorkoutExercise {
       (j['progression'] as Map?)?['percent_1rm'],
       fallback: 75,
     ),
+    plannedRepMin: j['planned_rep_min'] == null
+        ? null
+        : jsonInt(j['planned_rep_min'], min: 1, max: 1000),
+    plannedRepMax: j['planned_rep_max'] == null
+        ? null
+        : jsonInt(j['planned_rep_max'], min: 1, max: 1000),
     restSeconds: jsonInt(j['rest_seconds'], fallback: 90, min: 0, max: 86400),
     comment: jsonString(j['comment']),
     sets: jsonObjectList(j['sets'], WorkoutSet.fromJson, maxItems: 100),
@@ -152,6 +165,8 @@ class WorkoutExercise {
       'target_rpe': progressionTargetRpe,
       'percent_1rm': progressionPercentOneRm,
     },
+    if (plannedRepMin != null) 'planned_rep_min': plannedRepMin,
+    if (plannedRepMax != null) 'planned_rep_max': plannedRepMax,
     'rest_seconds': restSeconds,
     'comment': comment,
     'sets': sets.map((s) => s.toJson()).toList(),
@@ -164,6 +179,8 @@ class WorkoutExercise {
     int? restSeconds,
     String? comment,
     List<WorkoutSet>? sets,
+    int? plannedRepMin,
+    int? plannedRepMax,
   }) => WorkoutExercise(
     exerciseId: exerciseId,
     name: name,
@@ -181,6 +198,8 @@ class WorkoutExercise {
     progressionRepMax: progressionRepMax,
     progressionTargetRpe: progressionTargetRpe,
     progressionPercentOneRm: progressionPercentOneRm,
+    plannedRepMin: plannedRepMin ?? this.plannedRepMin,
+    plannedRepMax: plannedRepMax ?? this.plannedRepMax,
     restSeconds: restSeconds ?? this.restSeconds,
     comment: comment ?? this.comment,
     sets: sets ?? this.sets,
