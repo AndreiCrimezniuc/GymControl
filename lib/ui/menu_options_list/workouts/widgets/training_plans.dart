@@ -23,6 +23,7 @@ class _TrainingPlansScreenState extends State<TrainingPlansScreen> {
   List<TrainingProgram> _items = const [];
   List<Workout> _routines = const [];
   bool _loading = true;
+  String? _error;
 
   bool get _russian => Localizations.localeOf(context).languageCode == 'ru';
 
@@ -36,6 +37,12 @@ class _TrainingPlansScreenState extends State<TrainingPlansScreen> {
   }
 
   Future<void> _load() async {
+    if (mounted) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final values = await Future.wait([
         _programs.list(),
@@ -47,8 +54,53 @@ class _TrainingPlansScreenState extends State<TrainingPlansScreen> {
         _routines = values[1] as List<Workout>;
         _loading = false;
       });
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = error.toString();
+        });
+      }
+    }
+  }
+
+  Future<void> _delete(TrainingProgram program) async {
+    final confirmed = await showAppDialog<bool>(
+      context,
+      title: _russian ? 'Удалить программу?' : 'Delete program?',
+      message: _russian
+          ? '«${program.name}» и её расписание будут удалены. Тренировки и их история останутся.'
+          : '“${program.name}” and its schedule will be removed. Your workouts and history stay intact.',
+      actions: [
+        AppDialogAction(
+          _russian ? 'Отмена' : 'Cancel',
+          onPressed: () => Navigator.pop(context, false),
+        ),
+        AppDialogAction(
+          _russian ? 'Удалить' : 'Delete',
+          isDestructive: true,
+          onPressed: () => Navigator.pop(context, true),
+        ),
+      ],
+    );
+    if (confirmed != true) return;
+    try {
+      await _programs.delete(program.id);
+      if (mounted) {
+        setState(() => _items.removeWhere((item) => item.id == program.id));
+      }
     } catch (_) {
-      if (mounted) setState(() => _loading = false);
+      if (!mounted) return;
+      await showAppDialog<void>(
+        context,
+        title: _russian ? 'Не удалось удалить' : 'Could not delete',
+        message: _russian
+            ? 'Программа останется на устройстве и будет синхронизирована при следующем подключении.'
+            : 'The program remains on this device and will sync on the next connection.',
+        actions: [
+          AppDialogAction('OK', onPressed: () => Navigator.pop(context)),
+        ],
+      );
     }
   }
 
@@ -232,8 +284,24 @@ class _TrainingPlansScreenState extends State<TrainingPlansScreen> {
     );
     name.dispose();
     goal.dispose();
-    await _programs.save(program);
-    if (mounted) setState(() => _items = [program, ..._items]);
+    try {
+      await _programs.save(program);
+      if (mounted) setState(() => _items = [program, ..._items]);
+    } catch (_) {
+      if (!mounted) return;
+      await showAppDialog<void>(
+        context,
+        title: _russian
+            ? 'Не удалось создать программу'
+            : 'Could not create program',
+        message: _russian
+            ? 'Попробуйте ещё раз. Ваши тренировки не изменились.'
+            : 'Try again. Your workouts were not changed.',
+        actions: [
+          AppDialogAction('OK', onPressed: () => Navigator.pop(context)),
+        ],
+      );
+    }
   }
 
   @override
@@ -248,6 +316,8 @@ class _TrainingPlansScreenState extends State<TrainingPlansScreen> {
     ],
     body: _loading
         ? const Center(child: CupertinoActivityIndicator())
+        : _error != null
+        ? _PlansLoadError(onRetry: _load, russian: _russian)
         : _items.isEmpty
         ? _EmptyPlan(onCreate: _create, russian: _russian)
         : ListView.separated(
@@ -257,12 +327,56 @@ class _TrainingPlansScreenState extends State<TrainingPlansScreen> {
             itemBuilder: (_, index) => _ProgramCard(
               program: _items[index],
               russian: _russian,
-              onDelete: () async {
-                await _programs.delete(_items[index].id);
-                if (mounted) setState(() => _items.removeAt(index));
-              },
+              onDelete: () => _delete(_items[index]),
             ),
           ),
+  );
+}
+
+class _PlansLoadError extends StatelessWidget {
+  final VoidCallback onRetry;
+  final bool russian;
+  const _PlansLoadError({required this.onRetry, required this.russian});
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(30),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            CupertinoIcons.exclamationmark_triangle,
+            size: 36,
+            color: context.colors.accent,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            russian
+                ? 'Не удалось загрузить программы'
+                : 'Could not load programs',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: context.colors.textPrimary,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            russian
+                ? 'Проверьте подключение и повторите попытку.'
+                : 'Check your connection and try again.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: context.colors.textSecondary),
+          ),
+          const SizedBox(height: 14),
+          CupertinoButton.filled(
+            onPressed: onRetry,
+            child: Text(russian ? 'Повторить' : 'Retry'),
+          ),
+        ],
+      ),
+    ),
   );
 }
 

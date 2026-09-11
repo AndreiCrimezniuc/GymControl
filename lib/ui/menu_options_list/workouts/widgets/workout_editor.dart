@@ -288,8 +288,9 @@ class _WorkoutEditorScreenState extends State<WorkoutEditorScreen> {
                             ? null
                             : (enabled) =>
                                   _setAlternativeToPrevious(e.key, enabled),
-                        onRemove: () =>
-                            setState(() => _exercises.removeAt(e.key)),
+                        onRemove: () => setState(() {
+                          _exercises.removeAt(e.key).dispose();
+                        }),
                         onUp: () => _move(e.key, -1),
                         onDown: () => _move(e.key, 1),
                       ),

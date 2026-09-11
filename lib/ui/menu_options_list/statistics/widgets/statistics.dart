@@ -35,6 +35,8 @@ class _StatisticsState extends State<Statistics> {
   StatsSummary _summary = StatsSummary.empty;
   List<ActivityPoint> _activity = const [];
   String _period = 'all';
+  String? _error;
+  int _periodRequest = 0;
 
   @override
   void initState() {
@@ -47,6 +49,10 @@ class _StatisticsState extends State<Statistics> {
   }
 
   Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       final results = await Future.wait([
         _sessions.getStreakData(),
@@ -64,21 +70,27 @@ class _StatisticsState extends State<Statistics> {
         _activity = results[4] as List<ActivityPoint>;
         _loading = false;
       });
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = error.toString();
+        });
+      }
     }
   }
 
   Future<void> _setPeriod(String period) async {
     if (period == _period) return;
-    setState(() => _period = period);
+    final request = ++_periodRequest;
     try {
       final results = await Future.wait([
         _workoutsRepo.statsSummary(period: period),
         _workoutsRepo.activity(period: period),
       ]);
-      if (mounted) {
+      if (mounted && request == _periodRequest) {
         setState(() {
+          _period = period;
           _summary = results[0] as StatsSummary;
           _activity = results[1] as List<ActivityPoint>;
         });
@@ -94,6 +106,8 @@ class _StatisticsState extends State<Statistics> {
       title: AppLocalizations.of(context).statistics,
       body: _loading
           ? const SkeletonList()
+          : _error != null
+          ? _StatsLoadError(onRetry: _load)
           : CustomScrollView(
               slivers: [
                 CupertinoSliverRefreshControl(onRefresh: _load),
@@ -178,6 +192,55 @@ class _StatisticsState extends State<Statistics> {
                 ),
               ],
             ),
+    );
+  }
+}
+
+class _StatsLoadError extends StatelessWidget {
+  final VoidCallback onRetry;
+  const _StatsLoadError({required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    final russian = Localizations.localeOf(context).languageCode == 'ru';
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(30),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              CupertinoIcons.chart_bar_alt_fill,
+              size: 36,
+              color: context.colors.accent,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              russian
+                  ? 'Не удалось загрузить статистику'
+                  : 'Could not load statistics',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: context.colors.textPrimary,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              russian
+                  ? 'Сохранённые данные появятся, когда подключение восстановится.'
+                  : 'Saved data will appear when the connection is restored.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: context.colors.textSecondary),
+            ),
+            const SizedBox(height: 14),
+            CupertinoButton.filled(
+              onPressed: onRetry,
+              child: Text(russian ? 'Повторить' : 'Retry'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
