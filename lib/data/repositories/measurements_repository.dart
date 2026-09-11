@@ -39,7 +39,7 @@ class MeasurementsRepository {
       unawaited(_refreshInBackground());
       return cached;
     }
-    if (!await _isOnline()) return const [];
+    if (!await _isOnline()) return _cachedList();
     return _refresh();
   }
 

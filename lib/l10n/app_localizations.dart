@@ -536,6 +536,18 @@ abstract class AppLocalizations {
   /// **'Connect to the internet and open it once. After that, it will be available offline.'**
   String get workoutUnavailableBody;
 
+  /// No description provided for @workoutPlanUnavailableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This workout’s plan is not saved offline yet'**
+  String get workoutPlanUnavailableTitle;
+
+  /// No description provided for @workoutPlanUnavailableBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect to the internet once and open this workout. We will save its exercises and sets on this device.'**
+  String get workoutPlanUnavailableBody;
+
   /// No description provided for @retry.
   ///
   /// In en, this message translates to:

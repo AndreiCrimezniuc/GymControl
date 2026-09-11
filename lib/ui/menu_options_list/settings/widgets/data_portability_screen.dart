@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 
 import 'package:gymboss/data/repositories/account_data_repository.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
+import 'package:gymboss/data/sync/network_failure.dart';
 import 'package:gymboss/domain/models/import/history_csv_parser.dart';
 import 'package:gymboss/ui/core/theme/theme_controller.dart';
 import 'package:gymboss/ui/core/ui/widgets/app_dialog.dart';
@@ -123,12 +124,23 @@ class _DataPortabilityScreenState extends State<DataPortabilityScreen> {
     }
   }
 
-  Future<void> _error(Object error) => showAppDialog<void>(
-    context,
-    title: _ru ? 'Не получилось' : 'Could not complete',
-    message: error.toString(),
-    actions: [AppDialogAction('OK', onPressed: () => Navigator.pop(context))],
-  );
+  Future<void> _error(Object error) {
+    final offline = isTransientNetworkFailure(error);
+    return showAppDialog<void>(
+      context,
+      title: offline
+          ? (_ru
+                ? 'Нужно подключение к интернету'
+                : 'Internet connection needed')
+          : (_ru ? 'Не получилось' : 'Could not complete'),
+      message: offline
+          ? (_ru
+                ? 'Полный импорт и экспорт обращаются к вашему аккаунту. Сохранённые на устройстве тренировки и изменения останутся на месте.'
+                : 'Full import and export use your account. Workouts and changes already saved on this device will stay here.')
+          : error.toString(),
+      actions: [AppDialogAction('OK', onPressed: () => Navigator.pop(context))],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

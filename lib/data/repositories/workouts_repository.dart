@@ -21,6 +21,10 @@ import 'package:gymboss/domain/models/workouts/workout.dart';
 /// local cache and are queued in the outbox to sync when connectivity returns.
 /// Operations that inherently need the server (public browsing, copy, import,
 /// share) surface a clear offline error when there's no connection.
+class WorkoutPlanUnavailableOffline implements Exception {
+  const WorkoutPlanUnavailableOffline();
+}
+
 class WorkoutsRepository {
   static const _collection = 'workout';
   static const _folderCollection = 'workout-folder';
@@ -275,6 +279,9 @@ class WorkoutsRepository {
     // complete durable snapshot rather than blocking an otherwise usable
     // workout behind a connectivity probe.
     if (forceRefresh && cached != null && !await _isOnline()) {
+      if (!_hasPlannedSets(cached)) {
+        throw const WorkoutPlanUnavailableOffline();
+      }
       return Workout.fromJson(cached);
     }
     if (!await _isOnline()) {
@@ -332,7 +339,11 @@ class WorkoutsRepository {
       unawaited(_refreshStatsSummaryInBackground(period));
       return StatsSummary.fromJson(cached);
     }
-    if (!await _isOnline()) return StatsSummary.empty;
+    if (!await _isOnline()) {
+      return cached == null
+          ? StatsSummary.empty
+          : StatsSummary.fromJson(cached);
+    }
     return _refreshStatsSummary(period);
   }
 
@@ -374,7 +385,9 @@ class WorkoutsRepository {
       unawaited(_refreshActivityInBackground(period));
       return _activityFromCache(cached);
     }
-    if (!await _isOnline()) return const [];
+    if (!await _isOnline()) {
+      return cached == null ? const [] : _activityFromCache(cached);
+    }
     return _refreshActivity(period);
   }
 
@@ -420,7 +433,11 @@ class WorkoutsRepository {
       unawaited(_refreshWorkoutStatsInBackground(id));
       return WorkoutStats.fromJson(cached);
     }
-    if (!await _isOnline()) return WorkoutStats.empty;
+    if (!await _isOnline()) {
+      return cached == null
+          ? WorkoutStats.empty
+          : WorkoutStats.fromJson(cached);
+    }
     return _refreshWorkoutStats(id);
   }
 
@@ -462,7 +479,9 @@ class WorkoutsRepository {
       unawaited(_refreshRunDetailInBackground(id, date, sessionId));
       return _runDetailFromCache(cached);
     }
-    if (!await _isOnline()) return const [];
+    if (!await _isOnline()) {
+      return cached == null ? const [] : _runDetailFromCache(cached);
+    }
     return _refreshRunDetail(id, date, sessionId);
   }
 
@@ -763,7 +782,11 @@ class WorkoutsRepository {
     if (resp.statusCode != 201) {
       throw Exception(_err(resp.body, resp.statusCode));
     }
-    return Workout.fromJson(jsonDecode(resp.body) as Map<String, dynamic>);
+    final doc = jsonDecode(resp.body) as Map<String, dynamic>;
+    final workout = Workout.fromJson(doc);
+    await _store.putDoc(_collection, workout.id, doc);
+    await _store.prependToList(_ownedKey, workout.id);
+    return workout;
   }
 
   Future<String> share(String id) async {
@@ -784,7 +807,11 @@ class WorkoutsRepository {
     if (resp.statusCode != 201) {
       throw Exception(_err(resp.body, resp.statusCode));
     }
-    return Workout.fromJson(jsonDecode(resp.body) as Map<String, dynamic>);
+    final doc = jsonDecode(resp.body) as Map<String, dynamic>;
+    final workout = Workout.fromJson(doc);
+    await _store.putDoc(_collection, workout.id, doc);
+    await _store.prependToList(_ownedKey, workout.id);
+    return workout;
   }
 
   // ── Internals ──────────────────────────────────────────────────────────────

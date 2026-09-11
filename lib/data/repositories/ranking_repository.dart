@@ -8,6 +8,7 @@ import 'package:gymboss/data/local/local_store.dart';
 import 'package:gymboss/data/local/mutation.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/data/sync/connectivity_service.dart';
+import 'package:gymboss/data/sync/network_failure.dart';
 import 'package:gymboss/data/sync/sync_service.dart';
 import 'package:gymboss/domain/models/ranking/rank_data.dart';
 
@@ -41,7 +42,14 @@ class RankingRepository {
       if (cached != null) return RankProfile.fromJson(cached);
       return RankProfile(dontAskWeight: false, updatedAt: DateTime(2000));
     }
-    return _refreshProfile();
+    try {
+      return await _refreshProfile();
+    } on Object catch (error) {
+      if (isTransientNetworkFailure(error) && cached != null) {
+        return RankProfile.fromJson(cached);
+      }
+      rethrow;
+    }
   }
 
   Future<RankProfile> _refreshProfile() async {
@@ -128,8 +136,17 @@ class RankingRepository {
       unawaited(_refreshUserRanksInBackground());
       return UserRanks.fromJson(cached);
     }
-    if (!await _isOnline()) return UserRanks.empty;
-    return _refreshUserRanks();
+    if (!await _isOnline()) {
+      return cached == null ? UserRanks.empty : UserRanks.fromJson(cached);
+    }
+    try {
+      return await _refreshUserRanks();
+    } on Object catch (error) {
+      if (isTransientNetworkFailure(error) && cached != null) {
+        return UserRanks.fromJson(cached);
+      }
+      rethrow;
+    }
   }
 
   Future<UserRanks> _refreshUserRanks() async {

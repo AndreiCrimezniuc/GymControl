@@ -243,7 +243,32 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
     }
     // Detail cards may have been rendered from the compact list cache. Reload
     // the full plan at the launch boundary so no workout can start empty.
-    final fullWorkout = await widget.repo.get(_w!.id, forceRefresh: true);
+    Workout fullWorkout;
+    try {
+      fullWorkout = await widget.repo.get(_w!.id, forceRefresh: true);
+    } on WorkoutPlanUnavailableOffline {
+      if (!mounted) return;
+      await showAppDialog<void>(
+        context,
+        title: l.workoutPlanUnavailableTitle,
+        message: l.workoutPlanUnavailableBody,
+        actions: [
+          AppDialogAction('OK', onPressed: () => Navigator.pop(context)),
+        ],
+      );
+      return;
+    } catch (_) {
+      if (!mounted) return;
+      await showAppDialog<void>(
+        context,
+        title: l.workoutUnavailableTitle,
+        message: l.workoutUnavailableBody,
+        actions: [
+          AppDialogAction('OK', onPressed: () => Navigator.pop(context)),
+        ],
+      );
+      return;
+    }
     if (!mounted) return;
     final configured = await _configureExercises(
       fullWorkout.forEnergy(_energy),

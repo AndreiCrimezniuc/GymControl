@@ -407,8 +407,12 @@ class _WorkoutsState extends State<Workouts> {
 
   Future<void> _showActionError(Object error) => showAppDialog<void>(
     context,
-    title: AppLocalizations.of(context).couldNotSaveChanges,
-    message: error.toString().replaceFirst('Exception: ', ''),
+    title: error is WorkoutPlanUnavailableOffline
+        ? AppLocalizations.of(context).workoutPlanUnavailableTitle
+        : AppLocalizations.of(context).couldNotSaveChanges,
+    message: error is WorkoutPlanUnavailableOffline
+        ? AppLocalizations.of(context).workoutPlanUnavailableBody
+        : AppLocalizations.of(context).couldNotSaveChanges,
     actions: [AppDialogAction('OK', onPressed: () => Navigator.pop(context))],
   );
 

@@ -95,4 +95,26 @@ void main() {
     expect(await repository.list(), isEmpty);
     expect(store.pending(), isEmpty);
   });
+
+  test('forced offline refresh keeps cached measurements', () async {
+    await store.putDoc('body_measurements', 'm1', {
+      'id': 'm1',
+      'measured_at': '2026-09-11',
+      'weight_kg': 82,
+    });
+    await store.putListIds('body_measurements:list', ['m1']);
+    final client = AuthenticatedClient(
+      storage: TokenStorage(),
+      authService: AuthService(),
+      inner: MockClient((_) async => throw const SocketException('offline')),
+    );
+    addTearDown(client.dispose);
+
+    final items = await MeasurementsRepository(
+      client: client,
+      isOnline: () async => false,
+    ).list(forceRefresh: true);
+
+    expect(items.single.weightKg, 82);
+  });
 }

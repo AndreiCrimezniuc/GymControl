@@ -75,6 +75,8 @@
   ,"couldNotLoadWorkouts": "Could not load workouts"
   ,"workoutUnavailableTitle": "This workout is not on this device yet"
   ,"workoutUnavailableBody": "Connect to the internet and open it once. After that, it will be available offline."
+  ,"workoutPlanUnavailableTitle": "This workout’s plan is not saved offline yet"
+  ,"workoutPlanUnavailableBody": "Connect to the internet once and open this workout. We will save its exercises and sets on this device."
   ,"retry": "Retry"
   ,"sortExercises": "Sort exercises"
   ,"searchExercises": "Search {count} exercises", "@searchExercises": {"placeholders": {"count": {"type": "int"}}}

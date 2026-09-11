@@ -238,6 +238,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Connect to the internet and open it once. After that, it will be available offline.';
 
   @override
+  String get workoutPlanUnavailableTitle =>
+      'This workout’s plan is not saved offline yet';
+
+  @override
+  String get workoutPlanUnavailableBody =>
+      'Connect to the internet once and open this workout. We will save its exercises and sets on this device.';
+
+  @override
   String get retry => 'Retry';
 
   @override

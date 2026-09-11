@@ -72,4 +72,48 @@ void main() {
       'session.record',
     ]);
   });
+
+  test(
+    'cached passport and streak survive a false-positive network refresh',
+    () async {
+      await store.putDoc('ranking', 'profile', {
+        'weight_kg': 82,
+        'updated_at': '2026-09-11T00:00:00.000Z',
+      });
+      await store.putDoc('ranking', 'me', {
+        'profile': {'weight_kg': 82, 'updated_at': '2026-09-11T00:00:00.000Z'},
+        'exercise_ranks': [],
+      });
+      await store.putDoc('session_stats', 'streak', {
+        'current_streak_workouts': 7,
+        'active_weeks': [],
+      });
+      final client = AuthenticatedClient(
+        storage: TokenStorage(),
+        authService: AuthService(),
+        inner: MockClient((_) async => throw const SocketException('offline')),
+      );
+      addTearDown(client.dispose);
+      final ranking = RankingRepository(
+        client: client,
+        isOnline: () async => true,
+      );
+      final sessions = SessionsRepository(
+        client: client,
+        isOnline: () async => true,
+      );
+
+      expect((await ranking.getProfile(forceRefresh: true)).weightKg, 82);
+      expect(
+        (await ranking.getUserRanks(forceRefresh: true)).profile.weightKg,
+        82,
+      );
+      expect(
+        (await sessions.getStreakData(
+          forceRefresh: true,
+        )).currentStreakWorkouts,
+        7,
+      );
+    },
+  );
 }

@@ -137,7 +137,11 @@ class ExercisesRepository {
       unawaited(_refreshStatsInBackground(id));
       return ExerciseStats.fromJson(cached);
     }
-    if (!await _isOnline()) return _emptyStats(id);
+    // Pull-to-refresh asks for newer data; it must never erase a usable local
+    // record just because the device is offline.
+    if (!await _isOnline()) {
+      return cached == null ? _emptyStats(id) : ExerciseStats.fromJson(cached);
+    }
     return _refreshStats(id);
   }
 
@@ -179,7 +183,9 @@ class ExercisesRepository {
       unawaited(_refreshHistoryInBackground(id));
       return _historyFromCache(cached);
     }
-    if (!await _isOnline()) return const [];
+    if (!await _isOnline()) {
+      return cached == null ? const [] : _historyFromCache(cached);
+    }
     return _refreshHistory(id);
   }
 
@@ -193,7 +199,14 @@ class ExercisesRepository {
       return jsonString(cached['note']);
     }
     if (!await _isOnline()) return jsonString(cached?['note']);
-    return _refreshNote(exerciseId);
+    try {
+      return await _refreshNote(exerciseId);
+    } on Object catch (error) {
+      if (isTransientNetworkFailure(error) && cached != null) {
+        return jsonString(cached['note']);
+      }
+      rethrow;
+    }
   }
 
   Future<String> _refreshNote(int exerciseId) async {

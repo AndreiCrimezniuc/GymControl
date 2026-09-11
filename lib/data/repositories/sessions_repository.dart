@@ -6,6 +6,7 @@ import 'package:gymboss/data/local/local_store.dart';
 import 'package:gymboss/data/local/mutation.dart';
 import 'package:gymboss/data/services/auth/authenticated_client.dart';
 import 'package:gymboss/data/sync/connectivity_service.dart';
+import 'package:gymboss/data/sync/network_failure.dart';
 import 'package:gymboss/data/sync/sync_service.dart';
 import 'package:gymboss/domain/models/streak/streak_data.dart';
 
@@ -52,8 +53,17 @@ class SessionsRepository {
       unawaited(_refreshStreakInBackground());
       return StreakData.fromJson(cached);
     }
-    if (!await _isOnline()) return StreakData.empty;
-    return _refreshStreak();
+    if (!await _isOnline()) {
+      return cached == null ? StreakData.empty : StreakData.fromJson(cached);
+    }
+    try {
+      return await _refreshStreak();
+    } on Object catch (error) {
+      if (isTransientNetworkFailure(error) && cached != null) {
+        return StreakData.fromJson(cached);
+      }
+      rethrow;
+    }
   }
 
   Future<StreakData> _refreshStreak() async {

@@ -160,6 +160,40 @@ void main() {
     expect(stats.totalSets, 12);
   });
 
+  test(
+    'forced offline refresh keeps cached exercise insights and note',
+    () async {
+      await store.putDoc('exercise_stats', '42', {
+        'exercise_id': 42,
+        'total_sets': 12,
+      });
+      await store.putDoc('exercise_history', '42', {
+        'items': [
+          {
+            'date': '2026-09-11',
+            'session_id': 's1',
+            'workout_name': 'Push',
+            'sets': [],
+          },
+        ],
+      });
+      await store.putDoc('exercise_note', '42', {
+        'note': 'Keep shoulders down',
+      });
+      final offline = ExercisesRepository(
+        client: client,
+        isOnline: () async => false,
+      );
+
+      expect((await offline.getStats(42, forceRefresh: true)).totalSets, 12);
+      expect(await offline.getHistory(42, forceRefresh: true), hasLength(1));
+      expect(
+        await offline.getPersistentNote(42, forceRefresh: true),
+        'Keep shoulders down',
+      );
+    },
+  );
+
   test('custom exercise is immediately available and queued offline', () async {
     final item =
         await ExercisesRepository(

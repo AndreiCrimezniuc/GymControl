@@ -240,6 +240,14 @@ class AppLocalizationsRu extends AppLocalizations {
       'Подключитесь к интернету и откройте её один раз. После этого она будет доступна офлайн.';
 
   @override
+  String get workoutPlanUnavailableTitle =>
+      'План этой тренировки ещё не сохранён офлайн';
+
+  @override
+  String get workoutPlanUnavailableBody =>
+      'Один раз подключитесь к интернету и откройте эту тренировку. Мы сохраним её упражнения и подходы на устройстве.';
+
+  @override
   String get retry => 'Повторить';
 
   @override

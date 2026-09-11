@@ -106,6 +106,96 @@ void main() {
     expect(workout.name, 'Instant cache');
   });
 
+  test('forced offline refresh keeps every cached workout insight', () async {
+    await store.putDoc('stats_summary', 'summary_all', {
+      'total_workouts': 9,
+      'workouts_per_month': [],
+    });
+    await store.putDoc('stats_activity', 'activity_all', {
+      'items': [
+        {
+          'date': '2026-09-11',
+          'duration_seconds': 900,
+          'reps': 24,
+          'volume_kg': 1200,
+          'workouts': 1,
+        },
+      ],
+    });
+    await store.putDoc('workout_stats', 'w1', {
+      'times_performed': 4,
+      'potential_volume': {},
+      'history': [],
+    });
+    await store.putDoc('workout_run_detail', 'w1:2026-09-11:s1', {
+      'items': [
+        {
+          'exercise_id': 42,
+          'name': 'Dips',
+          'muscle_group': 'Chest',
+          'sets': [],
+        },
+      ],
+    });
+    final client = AuthenticatedClient(
+      storage: TokenStorage(),
+      authService: AuthService(),
+      inner: MockClient((_) async => throw const SocketException('offline')),
+    );
+    addTearDown(client.dispose);
+    final repository = WorkoutsRepository(
+      client: client,
+      isOnline: () async => false,
+    );
+
+    expect(
+      (await repository.statsSummary(forceRefresh: true)).totalWorkouts,
+      9,
+    );
+    expect(await repository.activity(forceRefresh: true), hasLength(1));
+    expect(
+      (await repository.stats('w1', forceRefresh: true)).timesPerformed,
+      4,
+    );
+    expect(
+      await repository.runDetail(
+        'w1',
+        '2026-09-11',
+        sessionId: 's1',
+        forceRefresh: true,
+      ),
+      hasLength(1),
+    );
+  });
+
+  test(
+    'a compact cached card never starts as an empty offline workout',
+    () async {
+      await store.putDoc('workout', 'w1', {
+        'id': 'w1',
+        'name': 'Needs a full plan',
+        'exercises': [
+          {'exercise_id': 42, 'name': 'Dips', 'sets': []},
+        ],
+      });
+      final client = AuthenticatedClient(
+        storage: TokenStorage(),
+        authService: AuthService(),
+        inner: MockClient((_) async => throw const SocketException('offline')),
+      );
+      addTearDown(client.dispose);
+      final repository = WorkoutsRepository(
+        client: client,
+        isOnline: () async => false,
+      );
+
+      await expectLater(
+        repository.get('w1', forceRefresh: true),
+        throwsA(isA<WorkoutPlanUnavailableOffline>()),
+      );
+    },
+  );
+
   test('completed run updates cache before background sync', () async {
     await store.putDoc('workout', 'w1', {
       'id': 'w1',
