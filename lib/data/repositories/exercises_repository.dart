@@ -41,6 +41,11 @@ class ExercisesRepository {
     bool forceRefresh = false,
   }) async {
     if (!forceRefresh && _store.hasList(_catalogKey)) {
+      // Older app versions wrote the bundled starter catalog without media
+      // URLs. Repair those exact stable records before returning the cache, so
+      // an offline user is not stuck with the old mannequin until a network
+      // refresh happens to succeed.
+      await _repairBundledMediaCache();
       final cached = _cachedCatalog();
       unawaited(_refreshCatalogInBackground());
       return cached;
@@ -72,6 +77,23 @@ class ExercisesRepository {
       bundledCatalogSnapshot.map((doc) => '${doc['id']}').toList(),
     );
     return _cachedCatalog();
+  }
+
+  Future<void> _repairBundledMediaCache() async {
+    for (final bundled in bundledCatalogSnapshot) {
+      final id = '${bundled['id']}';
+      final existing = _store.getDoc(_catalogCollection, id);
+      if (existing == null ||
+          jsonString(existing['image_url']).isNotEmpty ||
+          jsonString(existing['image_url2']).isNotEmpty) {
+        continue;
+      }
+      await _store.putDoc(_catalogCollection, id, {
+        ...existing,
+        'image_url': bundled['image_url'],
+        'image_url2': bundled['image_url2'],
+      });
+    }
   }
 
   Future<List<ExerciseCatalogItem>> _refreshCatalog() async {

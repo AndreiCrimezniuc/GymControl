@@ -144,11 +144,27 @@ class _TwoFrameState extends State<_TwoFrame> {
   @override
   void initState() {
     super.initState();
-    if (widget.animate && widget.url2.isNotEmpty) {
-      _timer = Timer.periodic(const Duration(milliseconds: 850), (_) {
-        if (mounted) setState(() => _second = !_second);
-      });
+    _syncAnimation();
+  }
+
+  @override
+  void didUpdateWidget(covariant _TwoFrame oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.animate != widget.animate || oldWidget.url2 != widget.url2) {
+      _syncAnimation();
     }
+  }
+
+  void _syncAnimation() {
+    _timer?.cancel();
+    _timer = null;
+    if (!widget.animate || widget.url2.isEmpty) {
+      _second = false;
+      return;
+    }
+    _timer = Timer.periodic(const Duration(milliseconds: 900), (_) {
+      if (mounted) setState(() => _second = !_second);
+    });
   }
 
   @override
@@ -161,7 +177,11 @@ class _TwoFrameState extends State<_TwoFrame> {
   Widget build(BuildContext context) {
     final url = (_second && widget.url2.isNotEmpty) ? widget.url2 : widget.url1;
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 220),
+      duration: const Duration(milliseconds: 280),
+      switchInCurve: Curves.easeInOut,
+      switchOutCurve: Curves.easeInOut,
+      transitionBuilder: (child, animation) =>
+          FadeTransition(opacity: animation, child: child),
       child: NetImage(
         key: ValueKey(url),
         url: url,

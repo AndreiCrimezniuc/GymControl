@@ -86,6 +86,36 @@ void main() {
     expect(store.getDoc('exercise', '1')?['name'], 'Bench Press');
   });
 
+  test('repairs an old cached starter exercise without connectivity', () async {
+    await store.putDoc('exercise', '1', {
+      'id': 1,
+      'name': 'Bench Press',
+      'muscle_group': 'Chest',
+      'equipment': 'barbell',
+      'category': 'strength',
+      'level': 'beginner',
+      'force': 'push',
+      'image_url': '',
+      'image_url2': '',
+      'instructions': '',
+    });
+    await store.putListIds('exercises:catalog', ['1']);
+
+    final catalog = await ExercisesRepository(
+      client: client,
+      isOnline: () async => false,
+    ).getCatalog();
+
+    expect(
+      catalog.single.imageUrl,
+      '/api/v1/exercise-images/0042-relaxation.png',
+    );
+    expect(
+      catalog.single.imageUrl2,
+      '/api/v1/exercise-images/0042-tension.png',
+    );
+  });
+
   test('performed set is kept in the outbox when the network fails', () async {
     await repository.logSet(
       42,

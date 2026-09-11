@@ -490,7 +490,10 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
             level: '',
             force: '',
             imageUrl: ex.imageUrl,
-            imageUrl2: '',
+            // Keep the second Everkinetic frame. Dropping it here made the
+            // exact same exercise animate from the catalog but stay static
+            // when opened from a workout plan.
+            imageUrl2: ex.imageUrl2,
             instructions: '',
           ),
           repo: widget.exercises,
