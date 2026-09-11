@@ -262,7 +262,12 @@ class WorkoutsRepository {
 
   Future<Workout> get(String id, {bool forceRefresh = false}) async {
     final cached = _store.getDoc(_collection, id);
-    if (!forceRefresh && cached != null) {
+    // A locally created or previously opened workout is a complete, durable
+    // definition. Never put it behind a connectivity check: both the detail
+    // screen and Start workout must work immediately after going offline.
+    // Refreshing remains best-effort and deliberately cannot replace the
+    // workout the person is about to use.
+    if (cached != null && (!forceRefresh || _hasPlannedSets(cached))) {
       unawaited(_refreshWorkoutInBackground(id));
       return Workout.fromJson(cached);
     }

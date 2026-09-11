@@ -524,6 +524,18 @@ abstract class AppLocalizations {
   /// **'Could not load workouts'**
   String get couldNotLoadWorkouts;
 
+  /// No description provided for @workoutUnavailableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This workout is not on this device yet'**
+  String get workoutUnavailableTitle;
+
+  /// No description provided for @workoutUnavailableBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect to the internet and open it once. After that, it will be available offline.'**
+  String get workoutUnavailableBody;
+
   /// No description provided for @retry.
   ///
   /// In en, this message translates to:

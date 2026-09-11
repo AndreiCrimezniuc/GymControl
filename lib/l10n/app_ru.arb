@@ -73,6 +73,8 @@
   ,"libraryEmpty": "Библиотека пуста"
   ,"createWorkout": "Создать тренировку"
   ,"couldNotLoadWorkouts": "Не удалось загрузить тренировки"
+  ,"workoutUnavailableTitle": "Эта тренировка ещё не сохранена на устройстве"
+  ,"workoutUnavailableBody": "Подключитесь к интернету и откройте её один раз. После этого она будет доступна офлайн."
   ,"retry": "Повторить"
   ,"sortExercises": "Сортировка упражнений"
   ,"searchExercises": "Поиск среди {count} упражнений", "@searchExercises": {"placeholders": {"count": {"type": "int"}}}

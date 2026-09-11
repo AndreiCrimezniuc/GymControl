@@ -232,6 +232,14 @@ class AppLocalizationsRu extends AppLocalizations {
   String get couldNotLoadWorkouts => 'Не удалось загрузить тренировки';
 
   @override
+  String get workoutUnavailableTitle =>
+      'Эта тренировка ещё не сохранена на устройстве';
+
+  @override
+  String get workoutUnavailableBody =>
+      'Подключитесь к интернету и откройте её один раз. После этого она будет доступна офлайн.';
+
+  @override
   String get retry => 'Повторить';
 
   @override

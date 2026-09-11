@@ -146,8 +146,12 @@ class _WorkoutsState extends State<Workouts> {
   Future<void> _openDetail(Workout w) async {
     await Navigator.of(context, rootNavigator: true).push(
       CupertinoPageRoute(
-        builder: (_) =>
-            WorkoutDetailScreen(id: w.id, repo: _repo, exercises: _exercises),
+        builder: (_) => WorkoutDetailScreen(
+          id: w.id,
+          initialWorkout: w,
+          repo: _repo,
+          exercises: _exercises,
+        ),
       ),
     );
     _load();

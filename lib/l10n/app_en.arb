@@ -73,6 +73,8 @@
   ,"libraryEmpty": "Library is empty"
   ,"createWorkout": "Create workout"
   ,"couldNotLoadWorkouts": "Could not load workouts"
+  ,"workoutUnavailableTitle": "This workout is not on this device yet"
+  ,"workoutUnavailableBody": "Connect to the internet and open it once. After that, it will be available offline."
   ,"retry": "Retry"
   ,"sortExercises": "Sort exercises"
   ,"searchExercises": "Search {count} exercises", "@searchExercises": {"placeholders": {"count": {"type": "int"}}}

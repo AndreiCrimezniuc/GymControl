@@ -32,11 +32,16 @@ const _modes = ['normal', 'deload'];
 
 class WorkoutDetailScreen extends StatefulWidget {
   final String id;
+
+  /// The list already has a durable local representation. Passing it through
+  /// means opening a workout never waits for a second cache read or network.
+  final Workout? initialWorkout;
   final WorkoutsRepository repo;
   final ExercisesRepository exercises;
   const WorkoutDetailScreen({
     super.key,
     required this.id,
+    this.initialWorkout,
     required this.repo,
     required this.exercises,
   });
@@ -128,20 +133,30 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   @override
   void initState() {
     super.initState();
+    _w = widget.initialWorkout;
+    _loading = _w == null;
     _load();
   }
 
   Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    if (_w == null) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final w = await widget.repo.get(widget.id);
-      final s = await widget.repo.stats(widget.id);
       if (mounted) {
         setState(() {
           _w = w;
+          _loading = false;
+          _error = null;
+        });
+      }
+      final s = await widget.repo.stats(widget.id);
+      if (mounted) {
+        setState(() {
           _stats = s;
           _loading = false;
         });
@@ -149,7 +164,9 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = e.toString();
+          // If a local card is already on screen, the network failure is not
+          // an error state. Its cached plan remains safe to view and launch.
+          _error = _w == null ? e.toString() : null;
           _loading = false;
         });
       }
@@ -645,6 +662,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    final l = AppLocalizations.of(context);
     final w = _w;
     return AppPage(
       title: w?.name ?? 'Workout',
@@ -665,9 +683,45 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
           ? const Center(child: CupertinoActivityIndicator())
           : _error != null || w == null
           ? Center(
-              child: Text(
-                'Could not load',
-                style: TextStyle(color: c.textSecondary),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      CupertinoIcons.wifi_slash,
+                      size: 34,
+                      color: c.textSecondary,
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      l.workoutUnavailableTitle,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: c.textPrimary,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      l.workoutUnavailableBody,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: c.textSecondary, height: 1.35),
+                    ),
+                    const SizedBox(height: 16),
+                    Pressable(
+                      onTap: _load,
+                      child: Text(
+                        l.retry,
+                        style: TextStyle(
+                          color: c.accent,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             )
           : _buildBody(c, w),

@@ -230,6 +230,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get couldNotLoadWorkouts => 'Could not load workouts';
 
   @override
+  String get workoutUnavailableTitle =>
+      'This workout is not on this device yet';
+
+  @override
+  String get workoutUnavailableBody =>
+      'Connect to the internet and open it once. After that, it will be available offline.';
+
+  @override
   String get retry => 'Retry';
 
   @override

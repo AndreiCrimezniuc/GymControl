@@ -254,6 +254,44 @@ void main() {
     expect(actual.imageUrl2, '/bench-2.png');
   });
 
+  test(
+    'a workout created offline opens and starts from its complete local plan',
+    () async {
+      final client = AuthenticatedClient(
+        storage: TokenStorage(),
+        authService: AuthService(),
+        inner: MockClient((_) async => throw const SocketException('offline')),
+      );
+      addTearDown(client.dispose);
+      final repository = WorkoutsRepository(
+        client: client,
+        isOnline: () async => false,
+      );
+      const exercise = WorkoutExercise(
+        exerciseId: 42,
+        name: 'Dips',
+        imageUrl: '',
+        muscleGroup: 'Chest',
+        exerciseType: 'weight_reps',
+        restSeconds: 90,
+        comment: '',
+        sets: [WorkoutSet(difficulty: 'medium', weightKg: 20, reps: 8)],
+      );
+
+      final created = await repository.create(
+        name: 'Dips day',
+        comment: '',
+        exercises: const [exercise],
+      );
+      final reopened = await repository.get(created.id, forceRefresh: true);
+
+      expect(reopened.id, created.id);
+      expect(reopened.exercises, hasLength(1));
+      expect(reopened.exercises.single.name, 'Dips');
+      expect(reopened.exercises.single.sets.single.reps, 8);
+    },
+  );
+
   test('completed session corrections remain durable offline', () async {
     await store.putDoc('session_stats', 'streak', {'current_streak': 5});
     await store.putDoc('workout_stats', 'w1', {'times_performed': 1});
